@@ -8,10 +8,10 @@
 using System.Text;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Unity.Collections;
 
 namespace UnityEngine.UI {
 	public class TemplateTextBase : MonoBehaviour {
+		[Tooltip("示例：“剩余数量：{leftCount=1}”")]
 		[TextArea(3, 10)]
 		[SerializeField]
 		protected string m_Text = string.Empty;
