@@ -139,6 +139,7 @@ public class TransformInspector : Editor {
 				() => {
 					foreach (var o in targets) {
 						if (o is Transform trans) {
+							Undo.RecordObject(trans, "Reset");
 							trans.position = Vector3.zero;
 							EditorUtility.SetDirty(trans);
 						}
@@ -147,6 +148,7 @@ public class TransformInspector : Editor {
 				() => {
 					foreach (var o in targets) {
 						if (o is Transform trans) {
+							Undo.RecordObject(trans, "Round");
 							Vector3 pos = trans.position;
 							pos.x = Mathf.Round(pos.x * 100) * 0.01F;
 							pos.y = Mathf.Round(pos.y * 100) * 0.01F;
@@ -166,6 +168,7 @@ public class TransformInspector : Editor {
 				() => {
 					foreach (var o in targets) {
 						if (o is Transform trans) {
+							Undo.RecordObject(trans, "Reset");
 							trans.eulerAngles = Vector3.zero;
 							EditorUtility.SetDirty(trans);
 						}
@@ -174,6 +177,7 @@ public class TransformInspector : Editor {
 				() => {
 					foreach (var o in targets) {
 						if (o is Transform trans) {
+							Undo.RecordObject(trans, "Round");
 							Vector3 angles = trans.eulerAngles;
 							angles.x = Mathf.Round(angles.x * 100) * 0.01F;
 							angles.y = Mathf.Round(angles.y * 100) * 0.01F;
@@ -201,13 +205,13 @@ public class TransformInspector : Editor {
 		if (resetAction != null) {
 			genericMenu.AddItem(new GUIContent("重置"), false, () => {
 				resetAction();
-				serializedObject.ApplyModifiedProperties();
+				m_InternalEditor.serializedObject.ApplyModifiedProperties();
 			});
 		}
 		if (resetAction != null) {
 			genericMenu.AddItem(new GUIContent("保留2位小数"), false, () => {
 				roundAction();
-				serializedObject.ApplyModifiedProperties();
+				m_InternalEditor.serializedObject.ApplyModifiedProperties();
 			});
 		}
 		genericMenu.AddItem(new GUIContent(m_IsGlobalVisible ? "隐藏Global" : "显示Global"), false, () => {
