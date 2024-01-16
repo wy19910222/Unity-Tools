@@ -1026,7 +1026,11 @@ public class EasySplinePath2DPlusEditor : Editor {
 			float alto = camera.pixelRect.height;
 			sizeAux *= 1200 / alto;
 		}
+#if UNITY_2022_1_OR_NEWER
+		Vector3 newPos = Handles.FreeMoveHandle(pos, sizeAux, Vector3.zero, Handles.CircleHandleCap);
+#else
 		Vector3 newPos = Handles.FreeMoveHandle(pos, camera.transform.rotation, sizeAux, Vector3.zero, Handles.CircleHandleCap);
+#endif
 		Transform creatorTrans = creator.transform;
 		Vector3 creatorForward = creatorTrans.forward;
 		Vector3 cameraPos = camera.transform.position;

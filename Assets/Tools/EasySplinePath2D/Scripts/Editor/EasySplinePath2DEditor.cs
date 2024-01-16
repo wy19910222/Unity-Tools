@@ -866,8 +866,12 @@ public class EasySplinePath2DEditor : Editor
                 tipo = IconType.NODE_SELECTED;
             }
 
+#if UNITY_2022_1_OR_NEWER
+            Vector3 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), handleSize, new Vector2(), Handles.CircleHandleCap);
+#else
             Vector2 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), Quaternion.identity, handleSize, new Vector2(), Handles.CircleHandleCap);
-            
+#endif
+
             if (creator.GetPoint(i) != newPos)
             {
                 if (pressingV)
@@ -1089,7 +1093,11 @@ public class EasySplinePath2DEditor : Editor
 
                 if (!esconder)
                 {
+#if UNITY_2022_1_OR_NEWER
+                   Vector3 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), handleSize, new Vector2(), Handles.CircleHandleCap);
+#else
                    Vector2 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), Quaternion.identity, handleSize, new Vector2(), Handles.CircleHandleCap);
+#endif
 
                     DrawHandleIcon(IconType.CONTROL, creator.GetPoint(i), controlIconSize);
                     //Handles.Label(creator.GetPoint(i), i.ToString());
