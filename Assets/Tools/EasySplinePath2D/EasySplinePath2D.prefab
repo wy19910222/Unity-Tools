@@ -1,0 +1,98 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &100100000
+Prefab:
+  m_ObjectHideFlags: 1
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications: []
+    m_RemovedComponents: []
+  m_ParentPrefab: {fileID: 0}
+  m_RootGameObject: {fileID: 1414421954931328}
+  m_IsPrefabParent: 1
+--- !u!1 &1414421954931328
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4779047211087276}
+  - component: {fileID: 114670559187316500}
+  - component: {fileID: 114358004978974718}
+  m_Layer: 0
+  m_Name: EasySplinePath2D
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4779047211087276
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1414421954931328}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &114358004978974718
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1414421954931328}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59e9c0eb9b42c884ca2c461b64c5b842, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  path:
+    points:
+    - {x: -1, y: 0}
+    - {x: -0.5, y: 0.5}
+    - {x: -0.5, y: -0.5}
+    - {x: 1, y: 0}
+    closed: 0
+    setControlPointsAutomatically: 0
+    offset: {x: 0, y: 0}
+    lockStatus: 0100000001000000
+  displayScale: 1
+  hideControlPoints: 0
+  allwaysVisible: 0
+  autoUpdate: 0
+  defaultControlType: 1
+  lineColor: {r: 0.84, g: 0.96, b: 1, a: 1}
+  handleLineColor: {r: 0.16, g: 0.5, b: 1, a: 1}
+  highlightColor: {r: 1, g: 0.8, b: 0, a: 1}
+  spacing: 0.1
+  resolution: 1
+  started: 0
+  points: []
+  selected: 1
+  offset: {x: 0, y: 0}
+  anchorIconSize: 0.35
+  controlIconSize: 0.12
+  buttonIconSize: 0.19
+  addIconSize: 0.2
+  anchorDiameter: 0.17
+  buttonDiameter: 0.09
+  controlDiameter: 0.059
+  lastScale: {x: 1, y: 1, z: 1}
+  saveOnPlay: 0
+--- !u!114 &114670559187316500
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1414421954931328}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cc12e466d9df49fca16e170c8032089, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
