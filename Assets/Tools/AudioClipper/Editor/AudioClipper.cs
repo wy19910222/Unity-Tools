@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+
 using Debug = UnityEngine.Debug;
 
 public class AudioClipper : EditorWindow {
@@ -41,7 +42,6 @@ public class AudioClipper : EditorWindow {
 	private static Texture2D m_TexStop;
 
 	[SerializeField] private AudioClip m_Clip;
-	[SerializeField] private float[] m_ClipData;
 	[SerializeField] private float m_Duration;
 	
 	[SerializeField] private float m_StartTime;
@@ -62,6 +62,11 @@ public class AudioClipper : EditorWindow {
 	private void OnEnable() {
 		m_AudioSource = EditorUtility.CreateGameObjectWithHideFlags("[AudioClipper]", HideFlags.HideAndDontSave, typeof(AudioSource)).GetComponent<AudioSource>();
 		m_TexStop ??= CreateTexStop();
+		Undo.undoRedoPerformed += Repaint;
+	}
+
+	private void OnDisable() {
+		Undo.undoRedoPerformed -= Repaint;
 	}
 
 	private bool m_WillRepaint;
@@ -99,19 +104,16 @@ public class AudioClipper : EditorWindow {
 	private void DrawAudioClipField() {
 		AudioClip newClip = EditorGUILayout.ObjectField("声音源文件", m_Clip, typeof(AudioClip), false) as AudioClip;
 		if (newClip != m_Clip) {
-			// Undo.RecordObject(this, "Clip");
+			Undo.RecordObject(this, $"AudioClipper.Clip {(newClip ? newClip.name : "null")}");
 			m_Clip = newClip;
 			m_ClippedClip = null;
 			m_AudioSource.clip = null;
 			if (newClip != null) {
-				m_ClipData = new float[newClip.samples * newClip.channels];
 				m_Duration = newClip.length;
 				m_StartTime = 0;
 				m_EndTime = m_Duration;
 				m_VolumeScale = 1;
-				newClip.GetData(m_ClipData, 0);
 			} else {
-				m_ClipData = null;
 				m_Duration = 0;
 				m_StartTime = 0;
 				m_EndTime = m_Duration;
@@ -154,7 +156,9 @@ public class AudioClipper : EditorWindow {
 		GUILayout.FlexibleSpace();
 		float endTime = Mathf.Clamp(EditorGUILayout.FloatField("结束时间", m_EndTime, GUILayout.Width(120F)), m_StartTime, m_Duration);
 		if (EditorGUI.EndChangeCheck()) {
-			// Undo.RecordObject(this, "Time");
+			string undoGroupName = $"AudioClipper.Time {startTime}-{endTime}";
+			Undo.RecordObject(this, undoGroupName);
+			Undo.SetCurrentGroupName(undoGroupName);
 			m_StartTime = startTime;
 			m_EndTime = endTime;
 			m_ClippedClip = null;
@@ -188,7 +192,7 @@ public class AudioClipper : EditorWindow {
 		
 		bool newLoop = GUILayout.Toggle(m_AudioSource.loop, EditorGUIUtility.IconContent("preAudioLoopOff"), "Button");
 		if (newLoop != m_AudioSource.loop) {
-			// Undo.RecordObject(this, "Loop");
+			Undo.RecordObject(m_AudioSource, $"AudioClipper.Loop {newLoop}");
 			m_AudioSource.loop = newLoop;
 		}
 		
@@ -205,7 +209,9 @@ public class AudioClipper : EditorWindow {
 				float newVolume = EditorGUI.Slider(popupRect, m_VolumeScale, 0, 2);
 				GUIUtility.ScaleAroundPivot(Vector2.one / scale, pivotPoint);
 				if (EditorGUI.EndChangeCheck()) {
-					// Undo.RecordObject(this, "VolumeScale");
+					string undoGroupName = $"AudioClipper.VolumeScale {newVolume}";
+					Undo.RecordObject(this, undoGroupName);
+					Undo.SetCurrentGroupName(undoGroupName);
 					m_VolumeScale = newVolume;
 					m_ClippedClip = null;
 					UpdateWaveformTexture();
@@ -340,20 +346,35 @@ public class AudioClipper : EditorWindow {
 					Vector2 mousePos = Event.current.mousePosition;
 					float deltaX = mousePos.x - m_PrevMousePos.x;
 					m_PrevMousePos = mousePos;
-					// Undo.RecordObject(this, "Time");
 					float deltaTime = deltaX / waveformRect.width * m_Duration;
 					switch (m_DraggingType) {
-						case -1:
-							m_StartTime = Mathf.Clamp(m_StartTime + deltaTime, 0, m_EndTime);
+						case -1: {
+							float startTime = Mathf.Clamp(m_StartTime + deltaTime, 0, m_EndTime);
+							string undoGroupName = $"AudioClipper.Time {startTime}-{m_EndTime}";
+							Undo.RecordObject(this, undoGroupName);
+							Undo.SetCurrentGroupName(undoGroupName);
+							m_StartTime = startTime;
 							break;
-						case 0:
+						}
+						case 0: {
 							deltaTime = Mathf.Clamp(deltaTime, -m_StartTime, m_Duration - m_EndTime);
-							m_StartTime += deltaTime;
-							m_EndTime += deltaTime;
+							float startTime = m_StartTime + deltaTime;
+							float endTime = m_EndTime + deltaTime;
+							string undoGroupName = $"AudioClipper.Time {startTime}-{endTime}";
+							Undo.RecordObject(this, undoGroupName);
+							Undo.SetCurrentGroupName(undoGroupName);
+							m_StartTime = startTime;
+							m_EndTime = endTime;
 							break;
-						case 1:
-							m_EndTime = Mathf.Clamp(m_EndTime + deltaTime, m_StartTime, m_Duration);
+						}
+						case 1: {
+							float endTime = Mathf.Clamp(m_EndTime + deltaTime, m_StartTime, m_Duration);
+							string undoGroupName = $"AudioClipper.Time {m_StartTime}-{endTime}";
+							Undo.RecordObject(this, undoGroupName);
+							Undo.SetCurrentGroupName(undoGroupName);
+							m_EndTime = endTime;
 							break;
+						}
 					}
 					m_ClippedClip = null;
 					m_AudioSource.clip = null;
@@ -372,7 +393,7 @@ public class AudioClipper : EditorWindow {
 #region Preview
 	private void PlayClippedAudio() {
 		if (m_Clip != null) {
-			if (m_ClippedClip == null) {
+			if (m_ClippedClip == null || m_ClippedClip.name != $"{m_Clip.name}_Clipped") {
 				m_ClippedClip = ClipAudio(m_Clip, m_StartTime, m_EndTime, m_VolumeScale);
 			}
 			m_AudioSource.clip = m_ClippedClip;
@@ -396,10 +417,15 @@ public class AudioClipper : EditorWindow {
 		foreach (Texture2D waveformTexture in m_WaveformTextures) {
 			m_TexturePool.Push(waveformTexture);
 		}
-		m_WaveformTextures = m_ClipData != null ? GenerateWaveTextures(m_ClipData, m_Clip.channels, m_Clip.samples, WAVEFORM_HEIGHT) : Array.Empty<Texture2D>();
+		m_WaveformTextures = m_Clip == null ? Array.Empty<Texture2D>() : GenerateWaveTextures(m_Clip, WAVEFORM_HEIGHT);
 	}
 
-	private Texture2D[] GenerateWaveTextures(IReadOnlyList<float> data, int channels, int samples, int height, int width = 2048) {
+	private Texture2D[] GenerateWaveTextures(AudioClip clip, int height, int width = 2048) {
+		int channels = clip.channels;
+		int samples = clip.samples;
+		float[] data = new float[samples * channels];
+		clip.GetData(data, 0);
+		
 		Texture2D[] waveformTextures = new Texture2D[channels];
 		Color[] colors = new Color[width * height];
 		for (int channelIndex = 0; channelIndex < channels; channelIndex++) {
@@ -486,7 +512,7 @@ public class AudioClipper : EditorWindow {
 			newData[i] *= volumeScale;
 		}
 
-		AudioClip clippedAudioClip = AudioClip.Create("ClippedAudio", lengthSamples, channels, frequency, false);
+		AudioClip clippedAudioClip = AudioClip.Create($"{clip.name}_Clipped", lengthSamples, channels, frequency, false);
 		clippedAudioClip.SetData(newData, 0);
 
 		return clippedAudioClip;
