@@ -56,9 +56,8 @@ public class AudioClipper : EditorWindow {
 	[SerializeField] private float m_VolumeScale = 1;
 	
 	[SerializeField] private AudioClip m_ClippedClip;
-	
-	[SerializeField] private Texture2D[] m_WaveformTextures = Array.Empty<Texture2D>();
 	[SerializeField] private AudioSource m_AudioSource;
+	[SerializeField] private Texture2D[] m_WaveformTextures = Array.Empty<Texture2D>();
 	
 	private readonly Stack<Texture2D> m_TexturePool = new Stack<Texture2D>();
 	
@@ -70,7 +69,12 @@ public class AudioClipper : EditorWindow {
 	private void OnEnable() {
 		m_AudioSource = EditorUtility.CreateGameObjectWithHideFlags("[AudioClipper]", HideFlags.HideAndDontSave, typeof(AudioSource)).GetComponent<AudioSource>();
 		m_TexStop ??= CreateTexStop();
-		Undo.undoRedoPerformed += Repaint;
+		Undo.undoRedoPerformed += () => {
+			m_ClippedClip = null;
+			m_AudioSource.clip = null;
+			UpdateWaveformTexture();
+			Repaint();
+		};
 	}
 
 	private void OnDisable() {
@@ -85,6 +89,22 @@ public class AudioClipper : EditorWindow {
 		} else if (m_WillRepaint) {
 			Repaint();
 			m_WillRepaint = false;
+		}
+	}
+
+	private void ShowButton(Rect rect) {
+		if (GUI.Button(rect, EditorGUIUtility.TrIconContent("_Help"), "IconButton")) {
+			PopupWindow.Show(rect, new PopupContent(260, EditorGUIUtility.singleLineHeight * 5, popupRect => {
+				popupRect.x += 6;
+				EditorGUI.LabelField(
+						popupRect,
+						"拖动左「边界线」可调整开始时间。\n" +
+						"拖动右「边界线」可调整结束时间。\n" +
+						"拖动中间「高亮区域」可整体调整选中时间段。\n" +
+						"拖动时按住「Ctrl键」可忽略吸附效果。\n" +
+						"调整后的音量可保存至文件。"
+				);
+			}));
 		}
 	}
 
@@ -442,11 +462,16 @@ public class AudioClipper : EditorWindow {
 #region Preview
 	private void PlayClippedAudio() {
 		if (m_Clip != null) {
-			if (m_ClippedClip == null || m_ClippedClip.name != $"{m_Clip.name}_Clipped") {
-				m_ClippedClip = ClipAudio(m_Clip, m_StartTime, m_EndTime, m_VolumeScale);
+			if (m_EndTime > m_StartTime) {
+				Debug.LogError(m_EndTime - m_StartTime);
+				if (m_ClippedClip == null) {
+					m_ClippedClip = ClipAudio(m_Clip, m_StartTime, m_EndTime, m_VolumeScale);
+				}
+				m_AudioSource.clip = m_ClippedClip;
+				m_AudioSource.Play();
+			} else {
+				Debug.LogError("Clipped empty!");
 			}
-			m_AudioSource.clip = m_ClippedClip;
-			m_AudioSource.Play();
 		} else {
 			Debug.LogError("Clip is none!");
 		}
@@ -516,15 +541,19 @@ public class AudioClipper : EditorWindow {
 #region Write
 	private void WriteClippedAudio() {
 		if (m_Clip != null) {
-			if (m_ClippedClip == null) {
-				m_ClippedClip = ClipAudio(m_Clip, m_StartTime, m_EndTime, m_VolumeScale);
-			}
-			string srcFilePath = AssetDatabase.GetAssetPath(m_Clip);
-			string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
-			string filePath = EditorUtility.SaveFilePanel("保存剪辑的音频", directory, m_Clip.name + "_New", "wav");
-			if (!string.IsNullOrEmpty(filePath)) {
-				AudioClipWriter.WriteToFile(filePath, m_ClippedClip, 16);
-				AssetDatabase.Refresh();
+			if (m_EndTime > m_StartTime) {
+				if (m_ClippedClip == null) {
+					m_ClippedClip = ClipAudio(m_Clip, m_StartTime, m_EndTime, m_VolumeScale);
+				}
+				string srcFilePath = AssetDatabase.GetAssetPath(m_Clip);
+				string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
+				string filePath = EditorUtility.SaveFilePanel("保存剪辑的音频", directory, m_Clip.name + "_New", "wav");
+				if (!string.IsNullOrEmpty(filePath)) {
+					AudioClipWriter.WriteToFile(filePath, m_ClippedClip, 16);
+					AssetDatabase.Refresh();
+				}
+			} else {
+				Debug.LogError("Clipped empty!");
 			}
 		} else {
 			Debug.LogError("Clip is none!");
