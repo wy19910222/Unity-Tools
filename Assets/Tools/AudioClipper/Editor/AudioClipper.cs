@@ -151,7 +151,7 @@ public class AudioClipper : EditorWindow {
 
 	private void DrawAudioClipInfo() {
 		EditorGUILayout.BeginHorizontal();
-		EditorGUILayout.LabelField($"时长: {((m_Clip ? m_Duration.ToString("F2") + "s" : "-"))}");
+		EditorGUILayout.LabelField($"时长: {((m_Clip ? m_Duration + "s" : "-"))}");
 		EditorGUILayout.LabelField($"声道: {(m_Clip ? m_Clip.channels : "-")}");
 		EditorGUILayout.LabelField($"采样率: {(m_Clip ? m_Clip.frequency : "-")}");
 		EditorGUILayout.EndHorizontal();
@@ -271,19 +271,19 @@ public class AudioClipper : EditorWindow {
 	}
 
 	private Rect DrawWaveformRuler(Rect fieldRect, float duration, float blockDuration) {
-		int blockCount = Mathf.FloorToInt(duration / blockDuration);
+		float blockCount = duration / blockDuration;
 		float blockWidth = blockDuration / duration * fieldRect.width;
 		Rect rulerRect = GUILayoutUtility.GetRect(fieldRect.width, RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT);
-		for (int i = 1; i <= blockCount; i++) {
-			Rect labelRect = new Rect(rulerRect.x + blockWidth * i - BACKGROUND_CELL_WIDTH * 0.5F, rulerRect.y,
-					BACKGROUND_CELL_WIDTH, RULER_LABEL_HEIGHT);
+		for (int i = 1; i < blockCount; i++) {
+			Rect labelRect = new Rect(rulerRect.x + blockWidth * i - BACKGROUND_CELL_WIDTH * 0.5F, rulerRect.y, BACKGROUND_CELL_WIDTH, RULER_LABEL_HEIGHT);
 			EditorGUI.LabelField(labelRect, $"{(blockDuration * i):F2}", m_RulerStyle);
-			Rect shortLineRect = new Rect(rulerRect.x + blockWidth * (i - 0.5F),
-					rulerRect.y + RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT * 0.5F, 1, RULER_LINE_HEIGHT * 0.5F);
-			EditorGUI.DrawRect(shortLineRect, COLOR_RULER_SHORT);
-			Rect longLineRect = new Rect(rulerRect.x + blockWidth * i, rulerRect.y + RULER_LABEL_HEIGHT, 1,
-					RULER_LINE_HEIGHT);
+			Rect longLineRect = new Rect(rulerRect.x + blockWidth * i, rulerRect.y + RULER_LABEL_HEIGHT, 1, RULER_LINE_HEIGHT);
 			EditorGUI.DrawRect(longLineRect, COLOR_RULER_LONG);
+		}
+		blockCount += 0.5F;
+		for (int i = 1; i < blockCount; i++) {
+			Rect shortLineRect = new Rect(rulerRect.x + blockWidth * (i - 0.5F), rulerRect.y + RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT * 0.5F, 1, RULER_LINE_HEIGHT * 0.5F);
+			EditorGUI.DrawRect(shortLineRect, COLOR_RULER_SHORT);
 		}
 		return rulerRect;
 	}
@@ -349,7 +349,7 @@ public class AudioClipper : EditorWindow {
 			Color prevColor = GUI.contentColor;
 			GUI.contentColor = COLOR_CURRENT;
 			Rect currentLabelRect = new Rect(currentLineRect.x + 2, currentLineRect.y, 40, EditorGUIUtility.singleLineHeight - 2);
-			EditorGUI.LabelField(currentLabelRect, $"{currentTime:F2}");
+			EditorGUI.LabelField(currentLabelRect, $"{currentTime:F3}");
 			GUI.contentColor = prevColor;
 		}
 
@@ -378,9 +378,8 @@ public class AudioClipper : EditorWindow {
 					Vector2 mousePos = Event.current.mousePosition;
 					switch (m_DraggingType) {
 						case DraggingType.START_TIME: {
+							float nextStartLineX = mousePos.x - m_DragPrevPos.x + startLineRect.x;
 							if (!Event.current.control) {
-								float dragPosOffsetX = m_DragPrevPos.x - startLineRect.x;
-								float nextStartLineX = mousePos.x - dragPosOffsetX;
 								float blockHalfWidth = waveformRect.width / duration * blockDuration * 0.5F;
 								float halfBlockCountF = (nextStartLineX - waveformRect.x) / blockHalfWidth;
 								float halfBlockCountI = Mathf.RoundToInt(halfBlockCountF);
@@ -389,8 +388,9 @@ public class AudioClipper : EditorWindow {
 								} else if (waveformRect.width / blockHalfWidth - halfBlockCountF < 0.2F) {
 									nextStartLineX = waveformRect.x + waveformRect.width;
 								}
-								mousePos.x = Mathf.Clamp(nextStartLineX + dragPosOffsetX, waveformRect.x, endLineRect.x);
 							}
+							nextStartLineX = Mathf.Clamp(nextStartLineX, waveformRect.x, endLineRect.x);
+							mousePos.x = nextStartLineX - startLineRect.x + m_DragPrevPos.x;
 							float deltaX = mousePos.x - m_DragPrevPos.x;
 							float startTime = m_StartTime + deltaX / waveformRect.width * duration;
 							if (!Mathf.Approximately(startTime, m_StartTime)) {
@@ -403,7 +403,7 @@ public class AudioClipper : EditorWindow {
 						}
 						case DraggingType.START_END_TIMES: {
 							float deltaX = mousePos.x - m_DragPrevPos.x;
-							float deltaTime = deltaX / waveformRect.width * duration;
+							float deltaTime = Mathf.Clamp(deltaX / waveformRect.width * duration, -m_StartTime, duration - m_EndTime);
 							float startTime = m_StartTime + deltaTime;
 							float endTime = m_EndTime + deltaTime;
 							if (!Mathf.Approximately(startTime, m_StartTime) || !Mathf.Approximately(endTime, m_EndTime)) {
@@ -416,9 +416,8 @@ public class AudioClipper : EditorWindow {
 							break;
 						}
 						case DraggingType.END_TIME: {
+							float nextEndLineX = mousePos.x - m_DragPrevPos.x + endLineRect.x;
 							if (!Event.current.control) {
-								float dragPosOffsetX = m_DragPrevPos.x - endLineRect.x;
-								float nextEndLineX = mousePos.x - dragPosOffsetX;
 								float blockHalfWidth = waveformRect.width / duration * blockDuration * 0.5F;
 								float halfBlockCountF = (nextEndLineX - waveformRect.x) / blockHalfWidth;
 								float halfBlockCountI = Mathf.RoundToInt(halfBlockCountF);
@@ -427,8 +426,9 @@ public class AudioClipper : EditorWindow {
 								} else if (waveformRect.width / blockHalfWidth - halfBlockCountF < 0.2F) {
 									nextEndLineX = waveformRect.x + waveformRect.width;
 								}
-								mousePos.x = Mathf.Clamp(nextEndLineX + dragPosOffsetX, startLineRect.x, waveformRect.x + waveformRect.width);
 							}
+							nextEndLineX = Mathf.Clamp(nextEndLineX, startLineRect.x, waveformRect.x + waveformRect.width);
+							mousePos.x = nextEndLineX - endLineRect.x + m_DragPrevPos.x;
 							float deltaX = mousePos.x - m_DragPrevPos.x;
 							float endTime = m_EndTime + deltaX / waveformRect.width * duration;
 							if (!Mathf.Approximately(endTime, m_EndTime)) {
