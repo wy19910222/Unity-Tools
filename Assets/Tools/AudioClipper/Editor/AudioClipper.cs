@@ -314,7 +314,7 @@ public class AudioClipper : EditorWindow {
 
 		if (m_AudioSource.clip && m_AudioSource.time > 0 && m_AudioSource.time < m_Duration) {
 			float current = (m_StartTime + m_AudioSource.time) / m_Duration;
-			Rect currentLineRect = new Rect(waveformRect.x + waveformRect.width * current, waveformRect.y, -1, waveformRect.height);
+			Rect currentLineRect = new Rect(waveformRect.x + waveformRect.width * current, waveformRect.y, 1, waveformRect.height);
 			EditorGUI.DrawRect(currentLineRect, COLOR_CURRENT);
 		}
 
