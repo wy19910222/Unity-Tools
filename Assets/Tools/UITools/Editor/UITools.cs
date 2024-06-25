@@ -87,7 +87,7 @@ public class UITools {
 	}
 #else
 	public class UIToolsWindow : EditorWindow {
-		[MenuItem("Window/UITools")]
+		[MenuItem("Tools/UITools")]
 		private static void Init() {
 			UIToolsWindow window = GetWindow<UIToolsWindow>("UITools");
 			window.minSize = new Vector2(40F, 40F);

@@ -15,7 +15,7 @@ using UnityEditor;
 using UObject = UnityEngine.Object;
 
 public class BatchRename : EditorWindow {
-	[MenuItem("Window/Batch Rename")]
+	[MenuItem("Tools/Batch Rename")]
 	private static void Init() {
 		BatchRename window = GetWindow<BatchRename>();
 		window.minSize = new Vector2(200F, 200F);

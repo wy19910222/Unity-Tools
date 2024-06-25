@@ -13,7 +13,7 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 public class AudioClipper : EditorWindow {
-	[MenuItem("Window/Audio Clipper")]
+	[MenuItem("Tools/Audio Clipper")]
 	public static void ShowWindow() {
 		AudioClipper window = GetWindow<AudioClipper>();
 		window.minSize = new Vector2(400F, 300F);

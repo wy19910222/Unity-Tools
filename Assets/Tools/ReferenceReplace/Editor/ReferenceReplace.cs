@@ -17,7 +17,7 @@ using UnityEditorInternal;
 using UObject = UnityEngine.Object;
 
 public class ReferenceReplace : EditorWindow {
-	[MenuItem("Window/Reference Replace")]
+	[MenuItem("Tools/Reference Replace")]
 	private static void Init() {
 		ReferenceReplace window = GetWindow<ReferenceReplace>();
 		window.minSize = new Vector2(200F, 200F);

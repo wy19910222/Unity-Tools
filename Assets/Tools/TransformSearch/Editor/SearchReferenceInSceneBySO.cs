@@ -17,7 +17,7 @@ using UObject = UnityEngine.Object;
 
 namespace TransformSearch {
 	public class SearchReferenceInSceneBySO : BaseSearch {
-		[MenuItem("Window/TransformSearch/SearchReferenceInSceneBySO")]
+		[MenuItem("Tools/TransformSearch/SearchReferenceInSceneBySO")]
 		private static void Init() {
 			SearchReferenceInSceneBySO window = GetWindow<SearchReferenceInSceneBySO>("SOReferenceInSceneSearch");
 			window.minSize = new Vector2(200F, 200F);
