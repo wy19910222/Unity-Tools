@@ -59,8 +59,6 @@ public class AudioClipper : EditorWindow {
 	private int m_DraggingType;
 	private Vector2 m_PrevMousePos;
 	
-	private bool m_IsAudioSliderShowing;
-	
 	private void OnEnable() {
 		m_AudioSource = EditorUtility.CreateGameObjectWithHideFlags("[AudioClipper]", HideFlags.HideAndDontSave, typeof(AudioSource)).GetComponent<AudioSource>();
 		m_TexStop ??= CreateTexStop();
@@ -483,7 +481,7 @@ public class AudioClipper : EditorWindow {
 		
 		int newDataLength = lengthSamples * channels;
 		float[] newData = new float[newDataLength];
-		clip.GetData(newData, startSample * channels);
+		clip.GetData(newData, startSample);
 		for (int i = 0; i < newDataLength; i++) {
 			newData[i] *= volumeScale;
 		}
