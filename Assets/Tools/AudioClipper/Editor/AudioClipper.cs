@@ -14,6 +14,13 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 public class AudioClipper : EditorWindow {
+	public enum DraggingType {
+		NONE,
+		START_TIME,
+		END_TIME,
+		START_END_TIMES
+	}
+	
 	[MenuItem("Tools/Audio Clipper")]
 	public static void ShowWindow() {
 		AudioClipper window = GetWindow<AudioClipper>();
@@ -34,7 +41,7 @@ public class AudioClipper : EditorWindow {
 	private static readonly Color COLOR_BACKGROUND = Color.black;
 	private static readonly Color COLOR_BACKGROUND_GRID = new Color(1, 0.5F, 0, 0.2F);
 	private static readonly Color COLOR_WAVEFORM = new Color(1, 0.5F, 0);
-	private static readonly Color COLOR_SELECTED = new Color(1, 1, 1, 0.3F);
+	private static readonly Color COLOR_SELECTED = new Color(1, 1, 1, 0.2F);
 	private static readonly Color COLOR_SELECTOR = new Color(0.5F, 1, 1);
 	private static readonly Color COLOR_CURRENT = new Color(1, 0, 0);
 
@@ -55,9 +62,10 @@ public class AudioClipper : EditorWindow {
 	
 	private readonly Stack<Texture2D> m_TexturePool = new Stack<Texture2D>();
 	
-	private bool m_IsDragging;
-	private int m_DraggingType;
-	private Vector2 m_PrevMousePos;
+	private DraggingType m_DraggingType;
+	private Vector2 m_DragStartPos;
+	private float m_DragStartStartTime;
+	private float m_DragStartEndTime;
 	
 	private void OnEnable() {
 		m_AudioSource = EditorUtility.CreateGameObjectWithHideFlags("[AudioClipper]", HideFlags.HideAndDontSave, typeof(AudioSource)).GetComponent<AudioSource>();
@@ -140,7 +148,7 @@ public class AudioClipper : EditorWindow {
 		Rect rulerRect = DrawWaveformRuler(fieldRect, duration, blockDuration);
 		Rect waveformRect = DrawWaveform(fieldRect, duration, blockDuration, m_WaveformTextures);
 		if (m_Clip) {
-			DrawSelector(rulerRect, waveformRect);
+			DrawSelector(rulerRect, waveformRect, blockDuration);
 		}
 		EditorGUILayout.EndVertical();
 		GUILayout.Space(2);
@@ -301,11 +309,14 @@ public class AudioClipper : EditorWindow {
 		return waveformRect;
 	}
 
-	private void DrawSelector(Rect rulerRect, Rect waveformRect) {
+	private void DrawSelector(Rect rulerRect, Rect waveformRect, float blockDuration) {
 		float start = m_StartTime / m_Duration;
 		float end = m_EndTime / m_Duration;
 		Rect selectedRect = new Rect(waveformRect.x + waveformRect.width * start, waveformRect.y, waveformRect.width * (end - start), waveformRect.height);
 		EditorGUI.DrawRect(selectedRect, COLOR_SELECTED);
+		selectedRect.y += selectedRect.height - EditorGUIUtility.singleLineHeight;
+		selectedRect.height = EditorGUIUtility.singleLineHeight;
+		EditorGUI.LabelField(selectedRect, EditorGUIUtility.TrTextContent($"时长: {m_EndTime - m_StartTime}s"), "CenteredLabel");
 		
 		Rect startLineRect = new Rect(waveformRect.x + waveformRect.width * start, waveformRect.y, 1, waveformRect.height);
 		EditorGUI.DrawRect(startLineRect, COLOR_SELECTOR);
@@ -313,9 +324,15 @@ public class AudioClipper : EditorWindow {
 		EditorGUI.DrawRect(endLineRect, COLOR_SELECTOR);
 
 		if (m_AudioSource.clip && m_AudioSource.time > 0 && m_AudioSource.time < m_Duration) {
-			float current = (m_StartTime + m_AudioSource.time) / m_Duration;
+			float currentTime = m_StartTime + m_AudioSource.time;
+			float current = currentTime / m_Duration;
 			Rect currentLineRect = new Rect(waveformRect.x + waveformRect.width * current, waveformRect.y, 1, waveformRect.height);
 			EditorGUI.DrawRect(currentLineRect, COLOR_CURRENT);
+			Color prevColor = GUI.contentColor;
+			GUI.contentColor = COLOR_CURRENT;
+			Rect currentLabelRect = new Rect(currentLineRect.x + 2, currentLineRect.y, 40, EditorGUIUtility.singleLineHeight - 2);
+			EditorGUI.LabelField(currentLabelRect, $"{currentTime:F2}");
+			GUI.contentColor = prevColor;
 		}
 
 		switch (Event.current.type) {
@@ -323,56 +340,88 @@ public class AudioClipper : EditorWindow {
 				Vector2 mousePos = Event.current.mousePosition;
 				if (mousePos.y >= rulerRect.yMin && mousePos.y <= waveformRect.yMax) {
 					float middle = (startLineRect.x + endLineRect.x) * 0.5F;
-					float temp1 = Mathf.Min(startLineRect.x + 10, middle);
-					float temp2 = Mathf.Max(endLineRect.x - 10, middle);
-					if (mousePos.x > startLineRect.x - 10 && mousePos.x < temp1) {
-						m_IsDragging = true;
-						m_DraggingType = -1;
-						m_PrevMousePos = mousePos;
+					float temp1 = Mathf.Min(startLineRect.x + 12, middle);
+					float temp2 = Mathf.Max(endLineRect.x - 12, middle);
+					if (mousePos.x > startLineRect.x - 12 && mousePos.x < temp1) {
+						m_DraggingType = DraggingType.START_TIME;
+						m_DragStartPos = mousePos;
+						m_DragStartStartTime = m_StartTime;
 					} else if (mousePos.x >= temp1 && mousePos.x <= temp2) {
-						m_IsDragging = true;
-						m_DraggingType = 0;
-						m_PrevMousePos = mousePos;
-					} else if (mousePos.x >= temp2 && mousePos.x < endLineRect.x + 10) {
-						m_IsDragging = true;
-						m_DraggingType = 1;
-						m_PrevMousePos = mousePos;
+						m_DraggingType = DraggingType.START_END_TIMES;
+						m_DragStartPos = mousePos;
+						m_DragStartStartTime = m_StartTime;
+						m_DragStartEndTime = m_EndTime;
+					} else if (mousePos.x >= temp2 && mousePos.x < endLineRect.x + 12) {
+						m_DraggingType = DraggingType.END_TIME;
+						m_DragStartPos = mousePos;
+						m_DragStartEndTime = m_EndTime;
 					}
 				}
 				break;
 			}
 			case EventType.MouseDrag: {
-				if (m_IsDragging) {
+				if (m_DraggingType is not DraggingType.NONE) {
 					Vector2 mousePos = Event.current.mousePosition;
-					float deltaX = mousePos.x - m_PrevMousePos.x;
-					m_PrevMousePos = mousePos;
-					float deltaTime = deltaX / waveformRect.width * m_Duration;
+					float deltaTime = (mousePos.x - m_DragStartPos.x) / waveformRect.width * m_Duration;
 					switch (m_DraggingType) {
-						case -1: {
-							float startTime = Mathf.Clamp(m_StartTime + deltaTime, 0, m_EndTime);
-							string undoGroupName = $"AudioClipper.Time {startTime}-{m_EndTime}";
-							Undo.RecordObject(this, undoGroupName);
-							Undo.SetCurrentGroupName(undoGroupName);
-							m_StartTime = startTime;
+						case DraggingType.START_TIME: {
+							float startTime = m_DragStartStartTime + deltaTime;
+							if (!Event.current.control) {
+								float blockCountF = startTime / blockDuration;
+								float blockCountI = Mathf.RoundToInt(blockCountF * 2) * 0.5F;
+								if (Mathf.Abs(blockCountF - blockCountI) < 0.1F) {
+									startTime = blockCountI * blockDuration;
+								} else if (m_Duration / blockDuration - blockCountF < 0.1F) {
+									startTime = m_Duration;
+								}
+							}
+							startTime = Mathf.Clamp(startTime, 0, m_EndTime);
+							if (!Mathf.Approximately(startTime, m_StartTime)) {
+								string undoGroupName = $"AudioClipper.Time {startTime}-{m_EndTime}";
+								Undo.RecordObject(this, undoGroupName);
+								Undo.SetCurrentGroupName(undoGroupName);
+								m_StartTime = startTime;
+							}
 							break;
 						}
-						case 0: {
-							deltaTime = Mathf.Clamp(deltaTime, -m_StartTime, m_Duration - m_EndTime);
-							float startTime = m_StartTime + deltaTime;
-							float endTime = m_EndTime + deltaTime;
-							string undoGroupName = $"AudioClipper.Time {startTime}-{endTime}";
-							Undo.RecordObject(this, undoGroupName);
-							Undo.SetCurrentGroupName(undoGroupName);
-							m_StartTime = startTime;
-							m_EndTime = endTime;
+						case DraggingType.START_END_TIMES: {
+							if (!Event.current.control) {
+								float blockCountF = deltaTime / blockDuration;
+								float blockCountI = Mathf.RoundToInt(blockCountF * 2) * 0.5F;
+								if (Mathf.Abs(blockCountF - blockCountI) < 0.1F) {
+									deltaTime = blockCountI * blockDuration;
+								}
+							}
+							deltaTime = Mathf.Clamp(deltaTime, -m_DragStartStartTime, m_Duration - m_DragStartEndTime);
+							float startTime = m_DragStartStartTime + deltaTime;
+							float endTime = m_DragStartEndTime + deltaTime;
+							if (!Mathf.Approximately(startTime, m_StartTime) || !Mathf.Approximately(endTime, m_EndTime)) {
+								string undoGroupName = $"AudioClipper.Time {startTime}-{endTime}";
+								Undo.RecordObject(this, undoGroupName);
+								Undo.SetCurrentGroupName(undoGroupName);
+								m_StartTime = startTime;
+								m_EndTime = endTime;
+							}
 							break;
 						}
-						case 1: {
-							float endTime = Mathf.Clamp(m_EndTime + deltaTime, m_StartTime, m_Duration);
-							string undoGroupName = $"AudioClipper.Time {m_StartTime}-{endTime}";
-							Undo.RecordObject(this, undoGroupName);
-							Undo.SetCurrentGroupName(undoGroupName);
-							m_EndTime = endTime;
+						case DraggingType.END_TIME: {
+							float endTime = m_DragStartEndTime + deltaTime;
+							if (!Event.current.control) {
+								float blockCountF = endTime / blockDuration;
+								float blockCountI = Mathf.RoundToInt(blockCountF * 2) * 0.5F;
+								if (Mathf.Abs(blockCountF - blockCountI) < 0.1F) {
+									endTime = blockCountI * blockDuration;
+								} else if (m_Duration / blockDuration - blockCountF < 0.1F) {
+									endTime = m_Duration;
+								}
+							}
+							endTime = Mathf.Clamp(endTime, m_StartTime, m_Duration);
+							if (!Mathf.Approximately(endTime, m_EndTime)) {
+								string undoGroupName = $"AudioClipper.Time {m_StartTime}-{endTime}";
+								Undo.RecordObject(this, undoGroupName);
+								Undo.SetCurrentGroupName(undoGroupName);
+								m_EndTime = endTime;
+							}
 							break;
 						}
 					}
@@ -384,7 +433,7 @@ public class AudioClipper : EditorWindow {
 			}
 			case EventType.MouseUp:
 			case EventType.Ignore:
-				m_IsDragging = false;
+				m_DraggingType = DraggingType.NONE;
 				break;
 		}
 	}
