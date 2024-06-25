@@ -393,6 +393,9 @@ public class AudioClipper : EditorWindow {
 							mousePos.x = nextStartLineX - startLineRect.x + m_DragPrevPos.x;
 							float deltaX = mousePos.x - m_DragPrevPos.x;
 							float startTime = m_StartTime + deltaX / waveformRect.width * duration;
+							// 0的时候莫名其妙会变成很小的接近0的数，先+1再-1可以变成0
+							float temp = startTime + 1;
+							startTime = temp - 1;
 							if (!Mathf.Approximately(startTime, m_StartTime)) {
 								string undoGroupName = $"AudioClipper.Time {startTime}-{m_EndTime}";
 								Undo.RecordObject(this, undoGroupName);
