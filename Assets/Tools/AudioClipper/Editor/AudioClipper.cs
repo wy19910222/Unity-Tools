@@ -103,7 +103,7 @@ public class AudioClipper : EditorWindow {
 		
 		GUILayout.Space(10);
 		
-		if (GUILayout.Button("保存片段", GUILayout.Height(40))) {
+		if (GUILayout.Button("保存片段", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 2))) {
 			WriteClippedAudio();
 		}
 	}
@@ -141,7 +141,7 @@ public class AudioClipper : EditorWindow {
 
 	private void DrawWaveformField() {
 		EditorGUILayout.BeginHorizontal();
-		GUILayout.Space(2);
+		GUILayout.Space(4);
 		Rect fieldRect = EditorGUILayout.BeginVertical();
 		float duration = m_Clip ? m_Duration : 5.09F;
 		float blockDuration = GetRulerBlockDuration(fieldRect, duration);
@@ -151,7 +151,7 @@ public class AudioClipper : EditorWindow {
 			DrawSelector(rulerRect, waveformRect, blockDuration);
 		}
 		EditorGUILayout.EndVertical();
-		GUILayout.Space(2);
+		GUILayout.Space(4);
 		EditorGUILayout.EndHorizontal();
 	}
 
