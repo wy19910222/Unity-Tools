@@ -42,7 +42,9 @@ public class AudioClipper : EditorWindow {
 	private static readonly Color COLOR_BACKGROUND_GRID = new Color(1, 0.5F, 0, 0.2F);
 	private static readonly Color COLOR_WAVEFORM = new Color(1, 0.5F, 0);
 	private static readonly Color COLOR_SELECTED = new Color(1, 1, 1, 0.2F);
+	private static readonly Color COLOR_SELECTED_DRAGGING = new Color(1, 1, 1, 0.25F);
 	private static readonly Color COLOR_SELECTOR = new Color(0.5F, 1, 1);
+	private static readonly Color COLOR_SELECTOR_DRAGGING = new Color(0, 1, 0.5F);
 	private static readonly Color COLOR_CURRENT = new Color(1, 0, 0);
 
 	private static GUIStyle m_RulerStyle;
@@ -372,7 +374,7 @@ public class AudioClipper : EditorWindow {
 		float selectedEndXOnField = Mathf.RoundToInt(Mathf.Min(clipEndPercentOnField, 1) * waveformRect.width);
 		if (selectedEndXOnField > selectedStartXOnField) {
 			Rect selectedRect = new Rect(waveformRect.x + selectedStartXOnField, waveformRect.y, selectedEndXOnField - selectedStartXOnField, waveformRect.height);
-			EditorGUI.DrawRect(selectedRect, COLOR_SELECTED);
+			EditorGUI.DrawRect(selectedRect, m_DraggingType == DraggingType.START_END_TIMES ? COLOR_SELECTED_DRAGGING : COLOR_SELECTED);
 			selectedRect.y += selectedRect.height - EditorGUIUtility.singleLineHeight;
 			selectedRect.height = EditorGUIUtility.singleLineHeight;
 			EditorGUI.LabelField(selectedRect, EditorGUIUtility.TrTextContent($"时长: {m_ClipEndTime - m_ClipStartTime}s"), "CenteredLabel");
@@ -382,12 +384,12 @@ public class AudioClipper : EditorWindow {
 		Rect clipStartLineRect = new Rect(waveformRect.x + waveformRect.width * clipStartPercentOnField, waveformRect.y, 1, waveformRect.height);
 		bool clipStartLineVisible = clipStartPercentOnField is >= 0 and <= 1;
 		if (clipStartLineVisible) {
-			EditorGUI.DrawRect(clipStartLineRect, COLOR_SELECTOR);
+			EditorGUI.DrawRect(clipStartLineRect, m_DraggingType == DraggingType.START_TIME ? COLOR_SELECTOR_DRAGGING : COLOR_SELECTOR);
 		}
 		Rect clipEndLineRect = new Rect(waveformRect.x + waveformRect.width * clipEndPercentOnField, waveformRect.y, 1, waveformRect.height);
 		bool clipEndLineVisible = clipEndPercentOnField is >= 0 and <= 1;
 		if (clipEndLineVisible) {
-			EditorGUI.DrawRect(clipEndLineRect, COLOR_SELECTOR);
+			EditorGUI.DrawRect(clipEndLineRect, m_DraggingType == DraggingType.END_TIME ? COLOR_SELECTOR_DRAGGING : COLOR_SELECTOR);
 		}
 
 		// 试听进度线
@@ -432,6 +434,7 @@ public class AudioClipper : EditorWindow {
 							m_DragPrevPos = mousePos;
 						}
 					}
+					Repaint();
 				}
 				break;
 			}
@@ -509,7 +512,10 @@ public class AudioClipper : EditorWindow {
 			}
 			case EventType.MouseUp:
 			case EventType.Ignore: {
-				m_DraggingType = DraggingType.NONE;
+				if (m_DraggingType != DraggingType.NONE) {
+					m_DraggingType = DraggingType.NONE;
+					Repaint();
+				}
 				break;
 			}
 			case EventType.ScrollWheel: {
