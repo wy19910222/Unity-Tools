@@ -28,13 +28,13 @@ public class AudioClipper : EditorWindow {
 		window.Show();
 	}
 	
+	private const int WAVEFORM_WIDTH = 2048;
 	private const int WAVEFORM_HEIGHT = 128;
-	private const float BACKGROUND_CELL_WIDTH = 28;	// 需要显示时间，不能太小
+	private const float BACKGROUND_CELL_WIDTH_MAX = 34;	// 需要显示时间，不能太小
 	private const float BACKGROUND_CELL_HEIGHT = 16;
 	private const float RULER_LABEL_HEIGHT = 16;
 	private const float RULER_LINE_HEIGHT = 8;
 	
-	private static readonly Color COLOR_TRANSPARENT = new Color(0, 0, 0, 0);
 	private static readonly Color COLOR_RULER_LONG = Color.white;
 	private static readonly Color COLOR_RULER_SHORT = new Color(1, 1, 1, 0.5F);
 	private static readonly Color COLOR_CHANNEL_BORDER = Color.white;
@@ -51,8 +51,10 @@ public class AudioClipper : EditorWindow {
 	[SerializeField] private AudioClip m_Clip;
 	[SerializeField] private float m_Duration;
 	
-	[SerializeField] private float m_StartTime;
-	[SerializeField] private float m_EndTime;
+	[SerializeField] private float m_ViewStartTime;
+	[SerializeField] private float m_ViewEndTime;
+	[SerializeField] private float m_ClipStartTime;
+	[SerializeField] private float m_ClipEndTime;
 	[SerializeField] private float m_VolumeScale = 1;
 	
 	[SerializeField] private AudioClip m_ClippedClip;
@@ -136,13 +138,17 @@ public class AudioClipper : EditorWindow {
 			m_AudioSource.clip = null;
 			if (newClip != null) {
 				m_Duration = newClip.length;
-				m_StartTime = 0;
-				m_EndTime = m_Duration;
+				m_ViewStartTime = 0;
+				m_ViewEndTime = m_Duration;
+				m_ClipStartTime = 0;
+				m_ClipEndTime = m_Duration;
 				m_VolumeScale = 1;
 			} else {
 				m_Duration = 0;
-				m_StartTime = 0;
-				m_EndTime = m_Duration;
+				m_ViewStartTime = 0;
+				m_ViewEndTime = m_Duration;
+				m_ClipStartTime = 0;
+				m_ClipEndTime = m_Duration;
 				m_VolumeScale = 1;
 			}
 			UpdateWaveformTexture();
@@ -161,12 +167,14 @@ public class AudioClipper : EditorWindow {
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Space(4);
 		Rect fieldRect = EditorGUILayout.BeginVertical();
-		float duration = m_Clip ? m_Duration : 5.09F;
-		float blockDuration = GetRulerBlockDuration(fieldRect, duration);
-		Rect rulerRect = DrawWaveformRuler(fieldRect, duration, blockDuration);
-		Rect waveformRect = DrawWaveform(fieldRect, duration, blockDuration, m_WaveformTextures);
+		DrawWaveformScaler(m_Clip ? m_Duration : 0);
+		float viewDuration = m_Clip ? m_ViewEndTime - m_ViewStartTime : 5.09F;
+		float viewEndTime = m_Clip ? m_ViewEndTime : 5.09F;
+		float blockDuration = GetRulerBlockDuration(fieldRect, m_ViewStartTime, viewEndTime);
+		DrawWaveformRuler(fieldRect.width, m_ViewStartTime, viewEndTime, blockDuration);
+		Rect waveformRect = DrawWaveform(fieldRect.width, m_ViewStartTime, viewEndTime, blockDuration, m_WaveformTextures);
 		if (m_Clip) {
-			DrawSelector(rulerRect, waveformRect, duration, blockDuration);
+			DrawSelector(fieldRect, waveformRect, viewDuration, blockDuration);
 		}
 		EditorGUILayout.EndVertical();
 		GUILayout.Space(4);
@@ -178,15 +186,15 @@ public class AudioClipper : EditorWindow {
 		float prevLabelWidth = EditorGUIUtility.labelWidth;
 		EditorGUIUtility.labelWidth = 50F;
 		EditorGUI.BeginChangeCheck();
-		float startTime = Mathf.Clamp(EditorGUILayout.FloatField("开始时间", m_StartTime, GUILayout.Width(120F)), 0, m_EndTime);
+		float clipStartTime = Mathf.Clamp(EditorGUILayout.FloatField("开始时间", m_ClipStartTime, GUILayout.Width(120F)), 0, m_ClipEndTime);
 		GUILayout.FlexibleSpace();
-		float endTime = Mathf.Clamp(EditorGUILayout.FloatField("结束时间", m_EndTime, GUILayout.Width(120F)), m_StartTime, m_Duration);
+		float clipEndTime = Mathf.Clamp(EditorGUILayout.FloatField("结束时间", m_ClipEndTime, GUILayout.Width(120F)), m_ClipStartTime, m_Duration);
 		if (EditorGUI.EndChangeCheck()) {
-			string undoGroupName = $"AudioClipper.Time {startTime}-{endTime}";
+			string undoGroupName = $"AudioClipper.Time {clipStartTime}-{clipEndTime}";
 			Undo.RecordObject(this, undoGroupName);
 			Undo.SetCurrentGroupName(undoGroupName);
-			m_StartTime = startTime;
-			m_EndTime = endTime;
+			m_ClipStartTime = clipStartTime;
+			m_ClipEndTime = clipEndTime;
 			m_ClippedClip = null;
 			m_AudioSource.clip = null;
 		}
@@ -253,48 +261,65 @@ public class AudioClipper : EditorWindow {
 #endregion
 
 #region Waveform
-	private float GetRulerBlockDuration(Rect fieldRect, float duration) {
-		int blocksMax = Mathf.FloorToInt(fieldRect.width / BACKGROUND_CELL_WIDTH);
-		float[] gaps = {0.01F, 0.02F, 0.05F, 0.1F, 0.2F, 0.5F};
+	private void DrawWaveformScaler(float duration) {
+		EditorGUI.BeginChangeCheck();
+		EditorGUILayout.MinMaxSlider(ref m_ViewStartTime, ref m_ViewEndTime, 0, duration);
+		if (EditorGUI.EndChangeCheck()) {
+			UpdateWaveformTexture();
+		}
+	}
+	
+	private float GetRulerBlockDuration(Rect fieldRect, float viewStartTime, float viewEndTime) {
+		float viewDuration = viewEndTime - viewStartTime;
+		int blocksMax = Mathf.FloorToInt(fieldRect.width / BACKGROUND_CELL_WIDTH_MAX);
+		float[] gaps = {0.001F, 0.002F, 0.005F, 0.01F, 0.02F, 0.05F, 0.1F, 0.2F, 0.5F};
 		float blockDuration = 0;
 		for (int i = 0, length = gaps.Length; i < length; i++) {
 			float gap = gaps[i];
-			if (duration < gap * blocksMax) {
-				blockDuration = gap;
+			if (gap * blocksMax > viewDuration) {
+				blockDuration = gap * 0.5F;
 				break;
 			}
 		}
 		if (blockDuration == 0) {
-			blockDuration = Mathf.Ceil(duration / blocksMax);
+			// 向上取证，让大格子为整秒，小格子为整半秒
+			blockDuration = Mathf.Ceil(viewDuration / blocksMax) * 0.5F;
 		}
 		return blockDuration;
 	}
 
-	private Rect DrawWaveformRuler(Rect fieldRect, float duration, float blockDuration) {
-		float blockCount = duration / blockDuration;
-		float blockWidth = blockDuration / duration * fieldRect.width;
-		Rect rulerRect = GUILayoutUtility.GetRect(fieldRect.width, RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT);
-		for (int i = 1; i < blockCount; i++) {
-			Rect labelRect = new Rect(rulerRect.x + blockWidth * i - BACKGROUND_CELL_WIDTH * 0.5F, rulerRect.y, BACKGROUND_CELL_WIDTH, RULER_LABEL_HEIGHT);
-			EditorGUI.LabelField(labelRect, $"{(blockDuration * i):F2}", m_RulerStyle);
-			Rect longLineRect = new Rect(rulerRect.x + blockWidth * i, rulerRect.y + RULER_LABEL_HEIGHT, 1, RULER_LINE_HEIGHT);
-			EditorGUI.DrawRect(longLineRect, COLOR_RULER_LONG);
+	private void DrawWaveformRuler(float fieldWidth, float viewStartTime, float viewEndTime, float blockDuration) {
+		int blockIndexStart = Mathf.CeilToInt(viewStartTime / blockDuration);
+		int blockIndexEnd = Mathf.FloorToInt(viewEndTime / blockDuration);
+		if (blockIndexStart == 0) {
+			blockIndexStart++;	// 最左端不显示时间（因为显示不下）
 		}
-		blockCount += 0.5F;
-		for (int i = 1; i < blockCount; i++) {
-			Rect shortLineRect = new Rect(rulerRect.x + blockWidth * (i - 0.5F), rulerRect.y + RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT * 0.5F, 1, RULER_LINE_HEIGHT * 0.5F);
-			EditorGUI.DrawRect(shortLineRect, COLOR_RULER_SHORT);
+		if (blockIndexEnd > m_Duration / blockDuration - 0.5F) {
+			blockIndexEnd--;	// 最右端不显示时间（因为显示不下）
 		}
-		return rulerRect;
+		float viewDuration = viewEndTime - viewStartTime;
+		Rect rulerRect = GUILayoutUtility.GetRect(fieldWidth, RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT);
+		for (int i = blockIndexStart; i <= blockIndexEnd; i++) {
+			float time = blockDuration * i;
+			float timeOnView = time - viewStartTime;
+			float xOnField = timeOnView / viewDuration * fieldWidth;
+			if ((i & 1) == 1) {
+				Rect shortLineRect = new Rect(rulerRect.x + xOnField, rulerRect.y + RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT * 0.5F, 1, RULER_LINE_HEIGHT * 0.5F);
+				EditorGUI.DrawRect(shortLineRect, COLOR_RULER_SHORT);
+			} else if (i != 0) {
+				Rect labelRect = new Rect(rulerRect.x + xOnField - BACKGROUND_CELL_WIDTH_MAX * 0.5F, rulerRect.y, BACKGROUND_CELL_WIDTH_MAX, RULER_LABEL_HEIGHT);
+				EditorGUI.LabelField(labelRect, $"{(blockDuration * i).ToString(blockDuration < 0.005F ? "F3" : "F2")}", m_RulerStyle);
+				Rect longLineRect = new Rect(rulerRect.x + xOnField, rulerRect.y + RULER_LABEL_HEIGHT, 1, RULER_LINE_HEIGHT);
+				EditorGUI.DrawRect(longLineRect, COLOR_RULER_LONG);
+			}
+		}
 	}
 
-	private Rect DrawWaveform(Rect fieldRect, float duration, float blockDuration, IReadOnlyList<Texture2D> waveformTextures) {
-		int blockCount = Mathf.FloorToInt(duration / blockDuration);
-		float blockWidth = blockDuration / duration * fieldRect.width;
+	private Rect DrawWaveform(float fieldWidth, float viewStartTime, float viewEndTime, float blockDuration, IReadOnlyList<Texture2D> waveformTextures) {
 		int realWaveformCount = waveformTextures.Count;
 		int waveformCount = Mathf.Max(realWaveformCount, 1);
 		
-		Rect waveformRect = GUILayoutUtility.GetRect(fieldRect.width, WAVEFORM_HEIGHT * waveformCount);
+		Rect waveformRect = GUILayoutUtility.GetRect(fieldWidth, WAVEFORM_HEIGHT * waveformCount);
 		for (int i = 0; i < waveformCount; i++) {
 			// 画背景色
 			float yTop = waveformRect.y + WAVEFORM_HEIGHT * i;
@@ -315,8 +340,20 @@ public class AudioClipper : EditorWindow {
 			}
 		}
 		// 画网格纵线
-		for (int i = 1; i <= blockCount; i++) {
-			Rect lineRect = new Rect(waveformRect.x + blockWidth * i, waveformRect.y, 1, waveformRect.height);
+		int blockIndexStart = Mathf.CeilToInt(viewStartTime / blockDuration);
+		int blockIndexEnd = Mathf.FloorToInt(viewEndTime / blockDuration);
+		if (blockIndexStart == 0) {
+			blockIndexStart++;	// 最左端不显示时间（因为显示不下）
+		}
+		if (blockIndexEnd > m_Duration / blockDuration - 0.5F) {
+			blockIndexEnd--;	// 最右端不显示时间（因为显示不下）
+		}
+		float viewDuration = viewEndTime - viewStartTime;
+		for (int i = blockIndexStart; i <= blockIndexEnd; i++) {
+			float time = blockDuration * i;
+			float timeOnView = time - viewStartTime;
+			float xOnField = timeOnView / viewDuration * fieldWidth;
+			Rect lineRect = new Rect(waveformRect.x + xOnField, waveformRect.y, 1, waveformRect.height);
 			EditorGUI.DrawRect(lineRect, COLOR_BACKGROUND_GRID);
 		}
 		// 画波形图
@@ -327,48 +364,73 @@ public class AudioClipper : EditorWindow {
 		return waveformRect;
 	}
 
-	private void DrawSelector(Rect rulerRect, Rect waveformRect, float duration, float blockDuration) {
-		float start = m_StartTime / duration;
-		float end = m_EndTime / duration;
-		Rect selectedRect = new Rect(waveformRect.x + waveformRect.width * start, waveformRect.y, waveformRect.width * (end - start), waveformRect.height);
-		EditorGUI.DrawRect(selectedRect, COLOR_SELECTED);
-		selectedRect.y += selectedRect.height - EditorGUIUtility.singleLineHeight;
-		selectedRect.height = EditorGUIUtility.singleLineHeight;
-		EditorGUI.LabelField(selectedRect, EditorGUIUtility.TrTextContent($"时长: {m_EndTime - m_StartTime}s"), "CenteredLabel");
-		
-		Rect startLineRect = new Rect(waveformRect.x + waveformRect.width * start, waveformRect.y, 1, waveformRect.height);
-		EditorGUI.DrawRect(startLineRect, COLOR_SELECTOR);
-		Rect endLineRect = new Rect(waveformRect.x + waveformRect.width * end, waveformRect.y, 1, waveformRect.height);
-		EditorGUI.DrawRect(endLineRect, COLOR_SELECTOR);
+	private void DrawSelector(Rect fieldRect, Rect waveformRect, float viewDuration, float blockDuration) {
+		// 高亮的选中区域
+		float clipStartPercentOnField = (m_ClipStartTime - m_ViewStartTime) / (m_ViewEndTime - m_ViewStartTime);
+		float clipEndPercentOnField = (m_ClipEndTime - m_ViewStartTime) / (m_ViewEndTime - m_ViewStartTime);
+		int selectedStartXOnField = Mathf.RoundToInt(Mathf.Max(clipStartPercentOnField, 0) * waveformRect.width);
+		float selectedEndXOnField = Mathf.RoundToInt(Mathf.Min(clipEndPercentOnField, 1) * waveformRect.width);
+		if (selectedEndXOnField > selectedStartXOnField) {
+			Rect selectedRect = new Rect(waveformRect.x + selectedStartXOnField, waveformRect.y, selectedEndXOnField - selectedStartXOnField, waveformRect.height);
+			EditorGUI.DrawRect(selectedRect, COLOR_SELECTED);
+			selectedRect.y += selectedRect.height - EditorGUIUtility.singleLineHeight;
+			selectedRect.height = EditorGUIUtility.singleLineHeight;
+			EditorGUI.LabelField(selectedRect, EditorGUIUtility.TrTextContent($"时长: {m_ClipEndTime - m_ClipStartTime}s"), "CenteredLabel");
+		}
 
-		if (m_AudioSource.clip && m_AudioSource.time > 0 && m_AudioSource.time < duration) {
-			float currentTime = m_StartTime + m_AudioSource.time;
-			float current = currentTime / duration;
-			Rect currentLineRect = new Rect(waveformRect.x + waveformRect.width * current, waveformRect.y, 1, waveformRect.height);
-			EditorGUI.DrawRect(currentLineRect, COLOR_CURRENT);
-			Color prevColor = GUI.contentColor;
-			GUI.contentColor = COLOR_CURRENT;
-			Rect currentLabelRect = new Rect(currentLineRect.x + 2, currentLineRect.y, 40, EditorGUIUtility.singleLineHeight - 2);
-			EditorGUI.LabelField(currentLabelRect, $"{currentTime:F3}");
-			GUI.contentColor = prevColor;
+		// 选中区域的边界线
+		Rect clipStartLineRect = new Rect(waveformRect.x + waveformRect.width * clipStartPercentOnField, waveformRect.y, 1, waveformRect.height);
+		bool clipStartLineVisible = clipStartPercentOnField is >= 0 and <= 1;
+		if (clipStartLineVisible) {
+			EditorGUI.DrawRect(clipStartLineRect, COLOR_SELECTOR);
+		}
+		Rect clipEndLineRect = new Rect(waveformRect.x + waveformRect.width * clipEndPercentOnField, waveformRect.y, 1, waveformRect.height);
+		bool clipEndLineVisible = clipEndPercentOnField is >= 0 and <= 1;
+		if (clipEndLineVisible) {
+			EditorGUI.DrawRect(clipEndLineRect, COLOR_SELECTOR);
+		}
+
+		// 试听进度线
+		if (m_AudioSource.clip && m_AudioSource.time > 0 && m_AudioSource.time < viewDuration) {
+			float currentTime = m_ClipStartTime + m_AudioSource.time;
+			float currentPercentOnField = (currentTime - m_ViewStartTime) / (m_ViewEndTime - m_ViewStartTime);
+			if (currentPercentOnField is >= 0 and <= 1) {
+				Rect currentLineRect = new Rect(waveformRect.x + waveformRect.width * currentPercentOnField, waveformRect.y, 1, waveformRect.height);
+				EditorGUI.DrawRect(currentLineRect, COLOR_CURRENT);
+				Color prevColor = GUI.contentColor;
+				GUI.contentColor = COLOR_CURRENT;
+				Rect currentLabelRect = new Rect(currentLineRect.x + 2, currentLineRect.y, 40, EditorGUIUtility.singleLineHeight - 2);
+				EditorGUI.LabelField(currentLabelRect, $"{currentTime:F3}");
+				GUI.contentColor = prevColor;
+			}
 		}
 
 		switch (Event.current.type) {
 			case EventType.MouseDown: {
 				Vector2 mousePos = Event.current.mousePosition;
-				if (mousePos.y >= rulerRect.yMin && mousePos.y <= waveformRect.yMax) {
-					float middle = (startLineRect.x + endLineRect.x) * 0.5F;
-					float temp1 = Mathf.Min(startLineRect.x + 12, middle);
-					float temp2 = Mathf.Max(endLineRect.x - 12, middle);
-					if (mousePos.x > startLineRect.x - 12 && mousePos.x < temp1) {
-						m_DraggingType = DraggingType.START_TIME;
-						m_DragPrevPos = mousePos;
+				if (mousePos.y >= fieldRect.y && mousePos.y <= fieldRect.y + fieldRect.height) {
+					float middle = (clipStartLineRect.x + clipEndLineRect.x) * 0.5F;
+					float temp1 = Mathf.Min(clipStartLineRect.x + 12, middle);
+					if (!clipStartLineVisible) {
+						temp1 = waveformRect.x;
+					}
+					float temp2 = Mathf.Max(clipEndLineRect.x - 12, middle);
+					if (!clipEndLineVisible) {
+						temp2 = waveformRect.x + waveformRect.width;
+					}
+					if (mousePos.x > clipStartLineRect.x - 12 && mousePos.x < temp1) {
+						if (clipStartLineVisible) {
+							m_DraggingType = DraggingType.START_TIME;
+							m_DragPrevPos = mousePos;
+						}
 					} else if (mousePos.x >= temp1 && mousePos.x <= temp2) {
 						m_DraggingType = DraggingType.START_END_TIMES;
 						m_DragPrevPos = mousePos;
-					} else if (mousePos.x >= temp2 && mousePos.x < endLineRect.x + 12) {
-						m_DraggingType = DraggingType.END_TIME;
-						m_DragPrevPos = mousePos;
+					} else if (mousePos.x >= temp2 && mousePos.x < clipEndLineRect.x + 12) {
+						if (clipEndLineVisible) {
+							m_DraggingType = DraggingType.END_TIME;
+							m_DragPrevPos = mousePos;
+						}
 					}
 				}
 				break;
@@ -376,69 +438,64 @@ public class AudioClipper : EditorWindow {
 			case EventType.MouseDrag: {
 				if (m_DraggingType is not DraggingType.NONE) {
 					Vector2 mousePos = Event.current.mousePosition;
+					float deltaX = mousePos.x - m_DragPrevPos.x;
 					switch (m_DraggingType) {
 						case DraggingType.START_TIME: {
-							float nextStartLineX = mousePos.x - m_DragPrevPos.x + startLineRect.x;
+							float newClipStartLineX = clipStartLineRect.x + deltaX;
+							float newClipStartTime = (newClipStartLineX - waveformRect.x) / waveformRect.width * (m_ViewEndTime - m_ViewStartTime) + m_ViewStartTime;
 							if (!Event.current.control) {
-								float blockHalfWidth = waveformRect.width / duration * blockDuration * 0.5F;
-								float halfBlockCountF = (nextStartLineX - waveformRect.x) / blockHalfWidth;
-								float halfBlockCountI = Mathf.RoundToInt(halfBlockCountF);
-								if (Mathf.Abs(halfBlockCountF - halfBlockCountI) < 0.2F) {
-									nextStartLineX = waveformRect.x + halfBlockCountI * blockHalfWidth;
-								} else if (waveformRect.width / blockHalfWidth - halfBlockCountF < 0.2F) {
-									nextStartLineX = waveformRect.x + waveformRect.width;
+								float blockCountF = newClipStartTime / blockDuration;
+								float blockCountI = Mathf.RoundToInt(blockCountF);
+								if (Mathf.Abs(blockCountF - blockCountI) < 0.2F) {
+									newClipStartTime = blockDuration * blockCountI;
+								} else if (m_Duration / blockDuration - blockCountF < 0.2F) {
+									newClipStartTime = m_Duration;
 								}
 							}
-							nextStartLineX = Mathf.Clamp(nextStartLineX, waveformRect.x, endLineRect.x);
-							mousePos.x = nextStartLineX - startLineRect.x + m_DragPrevPos.x;
-							float deltaX = mousePos.x - m_DragPrevPos.x;
-							float startTime = m_StartTime + deltaX / waveformRect.width * duration;
-							// 0的时候莫名其妙会变成很小的接近0的数，先+1再-1可以变成0
-							float temp = startTime + 1;
-							startTime = temp - 1;
-							if (!Mathf.Approximately(startTime, m_StartTime)) {
-								string undoGroupName = $"AudioClipper.Time {startTime}-{m_EndTime}";
+							newClipStartTime = Mathf.Clamp(newClipStartTime, 0, m_ClipEndTime);
+							newClipStartLineX = (newClipStartTime - m_ViewStartTime) / (m_ViewEndTime - m_ViewStartTime) * waveformRect.width + waveformRect.x;
+							mousePos.x = m_DragPrevPos.x + newClipStartLineX - clipStartLineRect.x;
+							if (!Mathf.Approximately(newClipStartTime, m_ClipStartTime)) {
+								string undoGroupName = $"AudioClipper.Time {newClipStartTime}-{m_ClipEndTime}";
 								Undo.RecordObject(this, undoGroupName);
 								Undo.SetCurrentGroupName(undoGroupName);
-								m_StartTime = startTime;
+								m_ClipStartTime = newClipStartTime;
 							}
 							break;
 						}
 						case DraggingType.START_END_TIMES: {
-							float deltaX = mousePos.x - m_DragPrevPos.x;
-							float deltaTime = Mathf.Clamp(deltaX / waveformRect.width * duration, -m_StartTime, duration - m_EndTime);
-							float startTime = m_StartTime + deltaTime;
-							float endTime = m_EndTime + deltaTime;
-							if (!Mathf.Approximately(startTime, m_StartTime) || !Mathf.Approximately(endTime, m_EndTime)) {
+							float deltaTime = Mathf.Clamp(deltaX / waveformRect.width * (m_ViewEndTime - m_ViewStartTime), -m_ClipStartTime, m_Duration - m_ClipEndTime);
+							float startTime = m_ClipStartTime + deltaTime;
+							float endTime = m_ClipEndTime + deltaTime;
+							if (!Mathf.Approximately(startTime, m_ClipStartTime) || !Mathf.Approximately(endTime, m_ClipEndTime)) {
 								string undoGroupName = $"AudioClipper.Time {startTime}-{endTime}";
 								Undo.RecordObject(this, undoGroupName);
 								Undo.SetCurrentGroupName(undoGroupName);
-								m_StartTime = startTime;
-								m_EndTime = endTime;
+								m_ClipStartTime = startTime;
+								m_ClipEndTime = endTime;
 							}
 							break;
 						}
 						case DraggingType.END_TIME: {
-							float nextEndLineX = mousePos.x - m_DragPrevPos.x + endLineRect.x;
+							float newClipEndLineX = clipEndLineRect.x + deltaX;
+							float newClipEndTime = (newClipEndLineX - waveformRect.x) / waveformRect.width * (m_ViewEndTime - m_ViewStartTime) + m_ViewStartTime;
 							if (!Event.current.control) {
-								float blockHalfWidth = waveformRect.width / duration * blockDuration * 0.5F;
-								float halfBlockCountF = (nextEndLineX - waveformRect.x) / blockHalfWidth;
-								float halfBlockCountI = Mathf.RoundToInt(halfBlockCountF);
-								if (Mathf.Abs(halfBlockCountF - halfBlockCountI) < 0.2F) {
-									nextEndLineX = waveformRect.x + halfBlockCountI * blockHalfWidth;
-								} else if (waveformRect.width / blockHalfWidth - halfBlockCountF < 0.2F) {
-									nextEndLineX = waveformRect.x + waveformRect.width;
+								float blockCountF = newClipEndTime / blockDuration;
+								float blockCountI = Mathf.RoundToInt(blockCountF);
+								if (Mathf.Abs(blockCountF - blockCountI) < 0.2F) {
+									newClipEndTime = blockDuration * blockCountI;
+								} else if (m_Duration / blockDuration - blockCountF < 0.2F) {
+									newClipEndTime = m_Duration;
 								}
 							}
-							nextEndLineX = Mathf.Clamp(nextEndLineX, startLineRect.x, waveformRect.x + waveformRect.width);
-							mousePos.x = nextEndLineX - endLineRect.x + m_DragPrevPos.x;
-							float deltaX = mousePos.x - m_DragPrevPos.x;
-							float endTime = m_EndTime + deltaX / waveformRect.width * duration;
-							if (!Mathf.Approximately(endTime, m_EndTime)) {
-								string undoGroupName = $"AudioClipper.Time {m_StartTime}-{endTime}";
+							newClipEndTime = Mathf.Clamp(newClipEndTime, m_ClipStartTime, m_Duration);
+							newClipEndLineX = (newClipEndTime - m_ViewStartTime) / (m_ViewEndTime - m_ViewStartTime) * waveformRect.width + waveformRect.x;
+							mousePos.x = m_DragPrevPos.x + newClipEndLineX - clipEndLineRect.x;
+							if (!Mathf.Approximately(newClipEndTime, m_ClipEndTime)) {
+								string undoGroupName = $"AudioClipper.Time {m_ClipStartTime}-{newClipEndTime}";
 								Undo.RecordObject(this, undoGroupName);
 								Undo.SetCurrentGroupName(undoGroupName);
-								m_EndTime = endTime;
+								m_ClipEndTime = newClipEndTime;
 							}
 							break;
 						}
@@ -451,9 +508,25 @@ public class AudioClipper : EditorWindow {
 				break;
 			}
 			case EventType.MouseUp:
-			case EventType.Ignore:
+			case EventType.Ignore: {
 				m_DraggingType = DraggingType.NONE;
 				break;
+			}
+			case EventType.ScrollWheel: {
+				if (m_DraggingType == DraggingType.NONE) {
+					Vector2 mousePos = Event.current.mousePosition;
+					if (mousePos.y >= fieldRect.y && mousePos.y <= fieldRect.y + fieldRect.height && 
+							mousePos.x >= fieldRect.x && mousePos.x <= fieldRect.x + fieldRect.width) {
+						float scrollValue = Event.current.delta.y;
+						float mouseTime = Mathf.Lerp(m_ViewStartTime, m_ViewEndTime, (mousePos.x - fieldRect.x) / fieldRect.width);
+						m_ViewStartTime = Mathf.Max(Mathf.LerpUnclamped(mouseTime, m_ViewStartTime, 1 + scrollValue * 0.1F), 0);
+						m_ViewEndTime = Mathf.Min(Mathf.LerpUnclamped(mouseTime, m_ViewEndTime, 1 + scrollValue * 0.1F), m_Duration);
+						UpdateWaveformTexture();
+						Repaint();
+					}
+				}
+				break;
+			}
 		}
 	}
 #endregion
@@ -461,10 +534,9 @@ public class AudioClipper : EditorWindow {
 #region Preview
 	private void PlayClippedAudio() {
 		if (m_Clip != null) {
-			if (m_EndTime > m_StartTime) {
-				Debug.LogError(m_EndTime - m_StartTime);
+			if (m_ClipEndTime > m_ClipStartTime) {
 				if (m_ClippedClip == null) {
-					m_ClippedClip = ClipAudio(m_Clip, m_StartTime, m_EndTime, m_VolumeScale);
+					m_ClippedClip = ClipAudio(m_Clip, m_ClipStartTime, m_ClipEndTime, m_VolumeScale);
 				}
 				m_AudioSource.clip = m_ClippedClip;
 				m_AudioSource.Play();
@@ -488,45 +560,105 @@ public class AudioClipper : EditorWindow {
 #region WaveformTexture
 	private void UpdateWaveformTexture() {
 		foreach (Texture2D waveformTexture in m_WaveformTextures) {
-			m_TexturePool.Push(waveformTexture);
+			if (waveformTexture.height == WAVEFORM_HEIGHT) {
+				m_TexturePool.Push(waveformTexture);
+			}
 		}
-		m_WaveformTextures = m_Clip == null ? Array.Empty<Texture2D>() : GenerateWaveTextures(m_Clip, WAVEFORM_HEIGHT);
+		m_WaveformTextures = m_Clip == null ? Array.Empty<Texture2D>() : GenerateWaveTextures(m_Clip, m_ViewStartTime, m_ViewEndTime);
 	}
 
-	private Texture2D[] GenerateWaveTextures(AudioClip clip, int height, int width = 2048) {
+	private Texture2D[] GenerateWaveTextures(AudioClip clip, float startTime, float endTime, int width = WAVEFORM_WIDTH, int height = WAVEFORM_HEIGHT) {
 		int channels = clip.channels;
-		int samples = clip.samples;
-		float[] data = new float[samples * channels];
-		clip.GetData(data, 0);
+		int frequency = clip.frequency;
+		int startSample = (int) (startTime * frequency);
+		int endSample = (int) (endTime * frequency);
+		int lengthSamples = endSample - startSample;
+		int lengthSamplesExt = Mathf.Min(lengthSamples + 1, clip.samples);	// 再加一个采样点，避免放大到单点连线时，最右端采样点缺失导致少一段
 		
 		Texture2D[] waveformTextures = new Texture2D[channels];
-		Color[] colors = new Color[width * height];
+		if (lengthSamples <= 0) {
+			// 如果长度为0，则返回空白图片
+			Color[] colors = new Color[width * height];
+			for (int channelIndex = 0; channelIndex < channels; channelIndex++) {
+				Texture2D waveformTexture = m_TexturePool.Count > 0 ? m_TexturePool.Pop() : new Texture2D(width, height, TextureFormat.RGBA32, false);
+				waveformTexture.SetPixels(colors);
+				waveformTexture.Apply();
+				waveformTextures[channelIndex] = waveformTexture;
+			}
+			return waveformTextures;
+		}
+		
+		// 绘制波形图
+		float[] data = new float[Mathf.Min(lengthSamples + 1, clip.samples) * channels];
+		clip.GetData(data, startSample);
 		for (int channelIndex = 0; channelIndex < channels; channelIndex++) {
 			Texture2D waveformTexture = m_TexturePool.Count > 0 ? m_TexturePool.Pop() : new Texture2D(width, height, TextureFormat.RGBA32, false);
-			float samplePerPixel = (float) samples / width;
-			for (int x = 0; x < width; x++) {
-				float sampleValueMax = -float.MaxValue;
-				float sampleValueMin = float.MaxValue;
-				int sampleStart = Mathf.FloorToInt(x * samplePerPixel);
-				int sampleEnd = Mathf.FloorToInt((x + 1) * samplePerPixel);
-				for (int sampleIndex = sampleStart; sampleIndex <= sampleEnd && sampleIndex < samples; sampleIndex++) {
+			Color[] colors = new Color[width * height];
+			float pixelPerSample = (float) width / lengthSamples;
+			if (pixelPerSample < 1) {
+				// 遍历横向像素，每个横向像素绘制从最低采样点到最高采样点的柱状图
+				for (int x = 0; x < width; x++) {
+					float sampleValueMin = 1;
+					float sampleValueMax = -1;
+					int sampleStart = Mathf.FloorToInt(x / pixelPerSample);
+					int sampleEnd = Mathf.Min(Mathf.FloorToInt((x + 1) / pixelPerSample), lengthSamples - 1);
+					for (int sampleIndex = sampleStart; sampleIndex <= sampleEnd; sampleIndex++) {
+						float sampleValue = data[sampleIndex * channels + channelIndex] * m_VolumeScale;
+						if (sampleValue > sampleValueMax) sampleValueMax = sampleValue;
+						if (sampleValue < sampleValueMin) sampleValueMin = sampleValue;
+					}
+					int yMax = Mathf.Clamp((int) ((sampleValueMax * 0.5F + 0.5F) * height), 0, height - 1);
+					int yMin = Mathf.Clamp((int) ((sampleValueMin * 0.5F + 0.5F) * height), 0, height - 1);
+					for (int y = yMin; y <= yMax; y++) {
+						int colorIndex = y * width + x;
+						colors[colorIndex] = COLOR_WAVEFORM;
+					}
+				}
+			} else {
+				// 遍历采样点，绘制采样点，再把采样点连起来
+				int colorLength = width * height;
+				for (int sampleIndex = 0, prevX = 0, prevY = 0; sampleIndex < lengthSamplesExt; sampleIndex++) {
 					float sampleValue = data[sampleIndex * channels + channelIndex] * m_VolumeScale;
-					if (sampleValue > sampleValueMax) sampleValueMax = sampleValue;
-					if (sampleValue < sampleValueMin) sampleValueMin = sampleValue;
-				}
-				int heightValueMax = Mathf.Clamp((int) ((sampleValueMax * 0.5F + 0.5F) * height), 0, height - 1);
-				int heightValueMin = Mathf.Clamp((int) ((sampleValueMin * 0.5F + 0.5F) * height), 0, height - 1);
-				for (int y = 0; y < heightValueMin; y++) {
+					int x = Mathf.RoundToInt(pixelPerSample * sampleIndex);
+					int y = Mathf.Clamp((int) ((sampleValue * 0.5F + 0.5F) * height), 0, height - 1);
 					int colorIndex = y * width + x;
-					colors[colorIndex] = COLOR_TRANSPARENT;
-				}
-				for (int y = heightValueMin; y <= heightValueMax; y++) {
-					int colorIndex = y * width + x;
-					colors[colorIndex] = COLOR_WAVEFORM;
-				}
-				for (int y = heightValueMax + 1; y < height; y++) {
-					int colorIndex = y * width + x;
-					colors[colorIndex] = COLOR_TRANSPARENT;
+					if (colorIndex < colorLength) {
+						colors[colorIndex] = COLOR_WAVEFORM;
+					}
+					// 当每个采样点占地超过2r+1像素时，将采样点绘制成边长为2r+1的方块
+					int[] radius = { 3, 2, 1 };
+					foreach (int _radius in radius) {
+						if (pixelPerSample > _radius + _radius + 1) {
+							for (int dy = -_radius; dy <= _radius; dy++) {
+								for (int dx = -_radius; dx <= _radius; dx++) {
+									int _colorIndex = (y + dy) * width + x + dx;
+									if (_colorIndex >= 0 && _colorIndex < colorLength) {
+										colors[_colorIndex] = COLOR_WAVEFORM;
+									}
+								}
+							}
+							break;
+						}
+					}
+					// 将每个采样点连接起来
+					if (sampleIndex > 0) {
+						if (Mathf.Abs(x - prevX) > Mathf.Abs(y - prevY)) {
+							for (int _x = prevX + 1; _x < x; _x++) {
+								int _y = (int) Mathf.Lerp(prevY, y, (float) (_x - prevX) / (x - prevX));
+								int _colorIndex = _y * width + _x;
+								colors[_colorIndex] = COLOR_WAVEFORM;
+							}
+						} else {
+							(int yMin, int yMax) = y - prevY < 0 ? (y, prevY) : (prevY, y);
+							for (int _y = yMin + 1; _y < yMax; _y++) {
+								int _x = (int) Mathf.Lerp(prevX, x, (float) (_y - prevY) / (y - prevY));
+								int _colorIndex = _y * width + _x;
+								colors[_colorIndex] = COLOR_WAVEFORM;
+							}
+						}
+					}
+					prevX = x;
+					prevY = y;
 				}
 			}
 			waveformTexture.SetPixels(colors);
@@ -540,9 +672,9 @@ public class AudioClipper : EditorWindow {
 #region Write
 	private void WriteClippedAudio() {
 		if (m_Clip != null) {
-			if (m_EndTime > m_StartTime) {
+			if (m_ClipEndTime > m_ClipStartTime) {
 				if (m_ClippedClip == null) {
-					m_ClippedClip = ClipAudio(m_Clip, m_StartTime, m_EndTime, m_VolumeScale);
+					m_ClippedClip = ClipAudio(m_Clip, m_ClipStartTime, m_ClipEndTime, m_VolumeScale);
 				}
 				string srcFilePath = AssetDatabase.GetAssetPath(m_Clip);
 				string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
@@ -561,25 +693,25 @@ public class AudioClipper : EditorWindow {
 #endregion
 
 #region Clip
-	private static AudioClip ClipAudio(AudioClip clip, float start, float end, float volumeScale) {
+	private static AudioClip ClipAudio(AudioClip clip, float startTime, float endTime, float volumeScale) {
 		if (!clip) {
 			throw new NullReferenceException("Clip is none.");
 		}
-		if (start > end) {
+		if (startTime > endTime) {
 			throw new ArgumentException("Argument 'end' is less than 'start'.");
 		}
-		if (start < 0) {
+		if (startTime < 0) {
 			throw new OverflowException("Argument 'start' is less than 0.");
 		}
-		if (end > clip.length) {
+		if (endTime > clip.length) {
 			throw new OverflowException("Argument 'end' is greater than original length.");
 		}
 		volumeScale = Mathf.Max(volumeScale, 0);
 		
 		int channels = clip.channels;
 		int frequency = clip.frequency;
-		int startSample = (int) (start * frequency);
-		int endSample = (int) (end * frequency);
+		int startSample = (int) (startTime * frequency);
+		int endSample = (int) (endTime * frequency);
 		int lengthSamples = endSample - startSample;
 		
 		int newDataLength = lengthSamples * channels;
