@@ -96,7 +96,7 @@ public class AudioClipper : EditorWindow {
 
 	private void ShowButton(Rect rect) {
 		if (GUI.Button(rect, EditorGUIUtility.TrIconContent("_Help"), "IconButton")) {
-			PopupWindow.Show(rect, new PopupContent(260, EditorGUIUtility.singleLineHeight * 5, popupRect => {
+			PopupWindow.Show(rect, new PopupContent(260, 100, popupRect => {
 				popupRect.x += 6;
 				EditorGUI.LabelField(
 						popupRect,
@@ -104,6 +104,7 @@ public class AudioClipper : EditorWindow {
 						"拖动右「边界线」可调整结束时间。\n" +
 						"拖动中间「高亮区域」可整体调整选中时间段。\n" +
 						"拖动时按住「Ctrl键」可忽略吸附效果。\n" +
+						"滚动鼠标「滚轮」可缩放波形图。\n" +
 						"调整后的音量可保存至文件。"
 				);
 			}));
