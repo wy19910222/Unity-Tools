@@ -93,8 +93,7 @@
 ## 音频剪辑器
 
 [**AudioClipper**](Assets/Tools/AudioClipper)  
-支持展示AudioClip对象的波形图，从中截取片段，试听并保存为wav文件。  
-如需保存为mp3、ogg等其他文件，可自行接入其他相关库。  
+支持展示AudioClip对象的波形图，从中截取片段，试听并保存为wav、mp3、ogg文件。  
 ![AudioClipper](Captures/AudioClipper.gif)
 * 展示带标尺的波形图。
 * 可在波形图中选中截取区域，并支持拖动区域。

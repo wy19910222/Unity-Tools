@@ -9,6 +9,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using NAudio.Lame;
+using NAudio.Wave.WZT;
+using OggVorbis;
 
 public static class AudioClipWriter {
 	public static void WriteToFile(string filePath, AudioClip clip, int bitsPerSample) {
@@ -23,6 +26,10 @@ public static class AudioClipWriter {
 	public static void WriteToFile(string filePath, float[] data, int bitsPerSample, int channels, int frequency) {
 		if (filePath.ToLower().EndsWith(".wav")) {
 			WavWriter.Write(filePath, data, bitsPerSample, channels, frequency);
+		} else if (filePath.ToLower().EndsWith(".mp3")) {
+			Mp3Writer.Write(filePath, data, bitsPerSample, channels, frequency);
+		} else if (filePath.ToLower().EndsWith(".ogg")) {
+			OggWriter.Write(filePath, data, channels, frequency);
 		} else {
 			// 要写入什么格式自己接入
 			Debug.LogError("Unsupported file format.");	
@@ -36,10 +43,8 @@ public static class AudioClipWriter {
 			WriteData(fs, data, bitsPerSample / 8);
 		}
 
-		private static void WriteHeader(Stream stream, int bytesPerSample, int channels, int frequency, int samples) {
+		public static void WriteHeader(Stream stream, int bytesPerSample, int channels, int frequency, int samples) {
 			int dataLength = samples * channels * bytesPerSample;
-
-			// stream.Seek(0, SeekOrigin.Begin);
 
 			byte[] riff = System.Text.Encoding.UTF8.GetBytes("RIFF");
 			stream.Write(riff, 0, 4);
@@ -83,17 +88,30 @@ public static class AudioClipWriter {
 			stream.Write(subChunk2, 0, 4);
 		}
 
-		private static void WriteData(Stream fileStream, IReadOnlyList<float> data, int bytesPerSample) {
-			byte[] bytesData = new byte[data.Count * bytesPerSample];
+		public static void WriteData(Stream stream, IEnumerable<float> data, int bytesPerSample) {
 			long floatToIntFactor = (1L << bytesPerSample * 8 - 1) - 1;
-			for (int i = 0; i < data.Count; i++) {
-				long value = (long) (data[i] * floatToIntFactor);
-				int index = i * bytesPerSample;
+			foreach (var f in data) {
+				long value = (long) (f * floatToIntFactor);
 				for (int j = 0; j < bytesPerSample; j++) {
-					bytesData[index + j] = (byte) (value >> j * 8);
+					stream.WriteByte((byte) (value >> j * 8));
 				}
 			}
-			fileStream.Write(bytesData, 0, bytesData.Length);
+		}
+	}
+
+	public static class Mp3Writer {
+		public static void Write(string filePath, float[] data, int bitsPerSample, int channels, int frequency) {
+			int blockAlign = channels * bitsPerSample / 8;
+			WaveFormat format = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm,
+					frequency, channels, frequency * blockAlign, blockAlign, bitsPerSample);
+			using LameMP3FileWriter writer = new LameMP3FileWriter(filePath, format, LAMEPreset.ABR_128);
+			WavWriter.WriteData(writer, data, bitsPerSample / 8);
+		}
+	}
+
+	public static class OggWriter {
+		public static void Write(string filePath, float[] data, int channels, int frequency) {
+			VorbisPlugin.Save(filePath, data, (short) channels, frequency);
 		}
 	}
 }
