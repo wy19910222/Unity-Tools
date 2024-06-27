@@ -319,7 +319,7 @@ public class AudioClipper : EditorWindow {
 		EditorGUI.BeginChangeCheck();
 		float prevLabelWidth = EditorGUIUtility.labelWidth;
 		EditorGUIUtility.labelWidth = 30F;
-		float newTrimThreshold = EditorGUILayout.Slider("阈值", m_TrimThreshold, 0, m_MaxVolume - 0.01F);
+		float newTrimThreshold = EditorGUILayout.Slider("阈值", m_TrimThreshold, 0, m_MaxVolume);
 		if (EditorGUI.EndChangeCheck()) {
 			string undoGroupName = $"AudioClipper.TrimThreshold {newTrimThreshold}";
 			Undo.RecordObject(this, undoGroupName);
@@ -826,7 +826,7 @@ public class AudioClipper : EditorWindow {
 				for (int i = 0; i < samples; i++) {
 					bool b = false;
 					for (int j = 0; j < channels; j++) {
-						if (Mathf.Abs(data[channels * i + j]) > trimThreshold) {
+						if (Mathf.Abs(data[channels * i + j]) >= trimThreshold) {
 							b = true;
 							break;
 						}
@@ -839,7 +839,7 @@ public class AudioClipper : EditorWindow {
 				for (int i = samples - 1; i >= 0; i--) {
 					bool b = false;
 					for (int j = 0; j < channels; j++) {
-						if (Mathf.Abs(data[channels * i + j]) > trimThreshold) {
+						if (Mathf.Abs(data[channels * i + j]) >= trimThreshold) {
 							b = true;
 							break;
 						}
