@@ -67,7 +67,11 @@ public class AudioClipper : EditorWindow {
 	
 	private DraggingType m_DraggingType;
 	private Vector2 m_DragPrevPos;
-	
+
+	private void Awake() {
+		UpdateWaveformTexture();
+	}
+
 	private void OnEnable() {
 		m_AudioSource = EditorUtility.CreateGameObjectWithHideFlags("[AudioClipper]", HideFlags.HideAndDontSave, typeof(AudioSource)).GetComponent<AudioSource>();
 		m_TexStop ??= CreateTexStop();
@@ -361,8 +365,10 @@ public class AudioClipper : EditorWindow {
 		}
 		// 画波形图
 		for (int i = 0; i < realWaveformCount; i++) {
-			Rect rect = new Rect(waveformRect.x, waveformRect.y + WAVEFORM_HEIGHT * i, waveformRect.width, WAVEFORM_HEIGHT);
-			GUI.DrawTexture(rect, waveformTextures[i]);
+			if (waveformTextures[i]) {
+				Rect rect = new Rect(waveformRect.x, waveformRect.y + WAVEFORM_HEIGHT * i, waveformRect.width, WAVEFORM_HEIGHT);
+				GUI.DrawTexture(rect, waveformTextures[i]);
+			}
 		}
 		return waveformRect;
 	}
@@ -567,7 +573,7 @@ public class AudioClipper : EditorWindow {
 #region WaveformTexture
 	private void UpdateWaveformTexture() {
 		foreach (Texture2D waveformTexture in m_WaveformTextures) {
-			if (waveformTexture.height == WAVEFORM_HEIGHT) {
+			if (waveformTexture && waveformTexture.height == WAVEFORM_HEIGHT) {
 				m_TexturePool.Push(waveformTexture);
 			}
 		}
