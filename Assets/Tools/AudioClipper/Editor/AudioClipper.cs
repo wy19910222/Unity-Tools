@@ -2,7 +2,7 @@
  * @Author: wangyun
  * @CreateTime: 2024-06-21 16:02:40 059
  * @LastEditor: wangyun
- * @EditTime: 2024-06-21 16:02:40 062
+ * @EditTime: 2024-06-27 21:32:42 639
  */
 
 using System;
@@ -47,11 +47,16 @@ public class AudioClipper : EditorWindow {
 	private static readonly Color COLOR_SELECTOR_DRAGGING = new Color(0, 1, 0.5F);
 	private static readonly Color COLOR_CURRENT = new Color(1, 0, 0);
 
+	public static readonly string[] FILE_FORMATS = { "WAV", "MP3", "OGG" };
+	public static readonly int[] BITS_PER_SAMPLES = { 8, 16, 24, 32 };
+	public static readonly int[] MP3_QUALITIES = { 64, 96, 128, 160, 256 };
+
 	private static GUIStyle m_RulerStyle;
 	private static Texture2D m_TexStop;
 
 	[SerializeField] private AudioClip m_Clip;
 	[SerializeField] private float m_Duration;
+	[SerializeField] private float m_MaxVolume;
 	
 	[SerializeField] private float m_ViewStartTime;
 	[SerializeField] private float m_ViewEndTime;
@@ -59,9 +64,17 @@ public class AudioClipper : EditorWindow {
 	[SerializeField] private float m_ClipEndTime;
 	[SerializeField] private float m_VolumeScale = 1;
 	
+	[SerializeField] private bool m_Trim;
+	[SerializeField] private float m_TrimThreshold;
+	
 	[SerializeField] private AudioClip m_ClippedClip;
 	[SerializeField] private AudioSource m_AudioSource;
 	[SerializeField] private Texture2D[] m_WaveformTextures = Array.Empty<Texture2D>();
+
+	[SerializeField] private string m_FileFormat = "WAV";
+	[SerializeField] private int m_BitsPerSample = 16;
+	[SerializeField] private int m_Mp3Quality = 128;
+	[SerializeField] private float m_OggQuality = 0.4F;
 	
 	private readonly Stack<Texture2D> m_TexturePool = new Stack<Texture2D>();
 	
@@ -130,19 +143,24 @@ public class AudioClipper : EditorWindow {
 		
 		GUILayout.Space(10);
 		
-		if (GUILayout.Button("保存片段", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 2))) {
-			WriteClippedAudio();
-		}
+		DrawTrimField();
+		
+		GUILayout.Space(10);
+		
+		DrawSaveField();
 	}
 
 #region OnGUI
 	private void DrawAudioClipField() {
 		AudioClip newClip = EditorGUILayout.ObjectField("声音源文件", m_Clip, typeof(AudioClip), false) as AudioClip;
 		if (newClip != m_Clip) {
-			Undo.RecordObject(this, $"AudioClipper.Clip {(newClip ? newClip.name : "null")}");
+			Undo.RecordObject(this, $"AudioClipper.Clip {(newClip != null ? newClip.name : "null")}");
 			m_Clip = newClip;
 			m_ClippedClip = null;
 			m_AudioSource.clip = null;
+			m_MaxVolume = GetMaxVolume(m_Clip);
+			m_Trim = false;
+			m_TrimThreshold = 0;
 			if (newClip != null) {
 				m_Duration = newClip.length;
 				m_ViewStartTime = 0;
@@ -150,6 +168,17 @@ public class AudioClipper : EditorWindow {
 				m_ClipStartTime = 0;
 				m_ClipEndTime = m_Duration;
 				m_VolumeScale = 1;
+				string srcPathLower = AssetDatabase.GetAssetPath(newClip).ToUpper();
+				if (srcPathLower.EndsWith(".MP3")) {
+					m_FileFormat = "MP3";
+				} else if (srcPathLower.EndsWith(".OGG")) {
+					m_FileFormat = "OGG";
+				} else {
+					m_FileFormat = "WAV";
+				}
+				m_BitsPerSample = 16;
+				m_Mp3Quality = 128;
+				m_OggQuality = 0.4F;
 			} else {
 				m_Duration = 0;
 				m_ViewStartTime = 0;
@@ -157,6 +186,10 @@ public class AudioClipper : EditorWindow {
 				m_ClipStartTime = 0;
 				m_ClipEndTime = m_Duration;
 				m_VolumeScale = 1;
+				m_FileFormat = "WAV";
+				m_BitsPerSample = 16;
+				m_Mp3Quality = 128;
+				m_OggQuality = 0.4F;
 			}
 			UpdateWaveformTexture();
 		}
@@ -247,7 +280,7 @@ public class AudioClipper : EditorWindow {
 				popupRect.width = (popupRect.width - BORDER - BORDER) / scale;
 				EditorGUI.BeginChangeCheck();
 				GUIUtility.ScaleAroundPivot(Vector2.one * scale, pivotPoint);
-				float newVolume = EditorGUI.Slider(popupRect, m_VolumeScale, 0, 2);
+				float newVolume = EditorGUI.Slider(popupRect, m_VolumeScale, 0, 2 / m_MaxVolume);
 				GUIUtility.ScaleAroundPivot(Vector2.one / scale, pivotPoint);
 				if (EditorGUI.EndChangeCheck()) {
 					string undoGroupName = $"AudioClipper.VolumeScale {newVolume}";
@@ -264,6 +297,81 @@ public class AudioClipper : EditorWindow {
 
 		GUILayout.FlexibleSpace();
 		EditorGUILayout.EndHorizontal();
+	}
+
+	private void DrawTrimField() {
+		EditorGUILayout.BeginHorizontal();
+		bool newTrim = GUILayout.Toggle(m_Trim, "裁剪首尾空白", "Button", GUILayout.Width(100F));
+		if (newTrim != m_Trim) {
+			string undoGroupName = $"AudioClipper.Trim {newTrim}";
+			Undo.RecordObject(this, undoGroupName);
+			m_Trim = newTrim;
+			if (m_Trim) {
+				(m_ClipStartTime, m_ClipEndTime) = GetClipRangeForTrim(m_Clip, m_TrimThreshold);
+			} else {
+				m_TrimThreshold = 0;
+			}
+		}
+		
+		GUILayout.Space(20F);
+		
+		EditorGUI.BeginDisabledGroup(!m_Trim);
+		EditorGUI.BeginChangeCheck();
+		float prevLabelWidth = EditorGUIUtility.labelWidth;
+		EditorGUIUtility.labelWidth = 30F;
+		float newTrimThreshold = EditorGUILayout.Slider("阈值", m_TrimThreshold, 0, m_MaxVolume - 0.01F);
+		if (EditorGUI.EndChangeCheck()) {
+			string undoGroupName = $"AudioClipper.TrimThreshold {newTrimThreshold}";
+			Undo.RecordObject(this, undoGroupName);
+			Undo.SetCurrentGroupName(undoGroupName);
+			m_TrimThreshold = newTrimThreshold;
+			(m_ClipStartTime, m_ClipEndTime) = GetClipRangeForTrim(m_Clip, m_TrimThreshold);
+		}
+		EditorGUIUtility.labelWidth = prevLabelWidth;
+		EditorGUI.EndDisabledGroup();
+		EditorGUILayout.EndHorizontal();
+	}
+
+	private void DrawSaveField() {
+		int fileFormatIndex = Array.IndexOf(FILE_FORMATS, m_FileFormat);
+		int newFileFormatIndex = EditorGUILayout.Popup("保存为", fileFormatIndex, FILE_FORMATS);
+		if (newFileFormatIndex != fileFormatIndex) {
+			Undo.RecordObject(this, $"AudioClipper.FileFormat {FILE_FORMATS[newFileFormatIndex]}");
+			m_FileFormat = FILE_FORMATS[newFileFormatIndex];
+		}
+
+		if (m_FileFormat is "WAV" or "MP3") {
+			int bitsPerSampleIndex = Array.IndexOf(BITS_PER_SAMPLES, m_BitsPerSample);
+			int newBitsPerSampleIndex = EditorGUILayout.Popup("位深度", bitsPerSampleIndex, Array.ConvertAll(BITS_PER_SAMPLES, b=> b + ""));
+			if (newBitsPerSampleIndex != bitsPerSampleIndex) {
+				Undo.RecordObject(this, $"AudioClipper.BitsPerSample {BITS_PER_SAMPLES[newBitsPerSampleIndex]}");
+				m_BitsPerSample = BITS_PER_SAMPLES[newBitsPerSampleIndex];
+			}
+		}
+		switch (m_FileFormat) {
+			case "MP3":
+				int mp3QualityIndex = Array.IndexOf(MP3_QUALITIES, m_Mp3Quality);
+				int newMp3QualityIndex = EditorGUILayout.Popup("比特率", mp3QualityIndex, Array.ConvertAll(MP3_QUALITIES, q=> q + "Kbps"));
+				if (newMp3QualityIndex != mp3QualityIndex) {
+					Undo.RecordObject(this, $"AudioClipper.Mp3Quality {MP3_QUALITIES[newMp3QualityIndex]}");
+					m_Mp3Quality = MP3_QUALITIES[newMp3QualityIndex];
+				}
+				break;
+			case "OGG":
+				EditorGUILayout.BeginHorizontal();
+				int oggQualityPercent = Mathf.RoundToInt(m_OggQuality * 100);
+				int newOggQualityPercent = EditorGUILayout.IntSlider("比特率", oggQualityPercent, 0, 100);
+				EditorGUILayout.LabelField("%", GUILayout.Width(12F));
+				if (newOggQualityPercent != oggQualityPercent) {
+					Undo.RecordObject(this, $"AudioClipper.Mp3Quality {newOggQualityPercent * 0.01F}");
+					m_OggQuality = newOggQualityPercent * 0.01F;
+				}
+				EditorGUILayout.EndHorizontal();
+				break;
+		}
+		if (GUILayout.Button("保存片段", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 2))) {
+			WriteClippedAudio();
+		}
 	}
 #endregion
 
@@ -470,6 +578,8 @@ public class AudioClipper : EditorWindow {
 								Undo.RecordObject(this, undoGroupName);
 								Undo.SetCurrentGroupName(undoGroupName);
 								m_ClipStartTime = newClipStartTime;
+								m_Trim = false;
+								m_TrimThreshold = 0;
 							}
 							break;
 						}
@@ -483,6 +593,8 @@ public class AudioClipper : EditorWindow {
 								Undo.SetCurrentGroupName(undoGroupName);
 								m_ClipStartTime = startTime;
 								m_ClipEndTime = endTime;
+								m_Trim = false;
+								m_TrimThreshold = 0;
 							}
 							break;
 						}
@@ -506,6 +618,8 @@ public class AudioClipper : EditorWindow {
 								Undo.RecordObject(this, undoGroupName);
 								Undo.SetCurrentGroupName(undoGroupName);
 								m_ClipEndTime = newClipEndTime;
+								m_Trim = false;
+								m_TrimThreshold = 0;
 							}
 							break;
 						}
@@ -682,6 +796,66 @@ public class AudioClipper : EditorWindow {
 	}
 #endregion
 
+#region Trim
+	private float GetMaxVolume(AudioClip clip) {
+		if (clip) {
+			float[] data = new float[clip.samples * clip.channels];
+			if (clip.GetData(data, 0)) {
+				float maxVolume = 0;
+				foreach (float value in data) {
+					float absValue = Mathf.Abs(value);
+					if (absValue > maxVolume) {
+						maxVolume = absValue;
+					}
+				}
+				return maxVolume;
+			}
+		}
+		return 1;
+	}
+
+	private (float startTime, float endTime) GetClipRangeForTrim(AudioClip clip, float trimThreshold) {
+		if (clip) {
+			float startTime = 0;
+			float endTime = clip.length;
+			int samples = clip.samples;
+			int channels = clip.channels;
+			float[] data = new float[samples * channels];
+			if (clip.GetData(data, 0)) {
+				float clipFrequency = clip.frequency;
+				for (int i = 0; i < samples; i++) {
+					bool b = false;
+					for (int j = 0; j < channels; j++) {
+						if (data[channels * i + j] > trimThreshold) {
+							b = true;
+							break;
+						}
+					}
+					if (b) {
+						startTime = i / clipFrequency;
+						break;
+					}
+				}
+				for (int i = samples - 1; i >= 0; i--) {
+					bool b = false;
+					for (int j = 0; j < channels; j++) {
+						if (data[channels * i + j] > trimThreshold) {
+							b = true;
+							break;
+						}
+					}
+					if (b) {
+						endTime = i / clipFrequency;
+						break;
+					}
+				}
+			}
+			return (startTime, endTime);
+		}
+		return (0, 0);
+	}
+#endregion
+
 #region Write
 	private void WriteClippedAudio() {
 		if (m_Clip != null) {
@@ -691,9 +865,18 @@ public class AudioClipper : EditorWindow {
 				}
 				string srcFilePath = AssetDatabase.GetAssetPath(m_Clip);
 				string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
-				string filePath = EditorUtility.SaveFilePanel("保存剪辑的音频", directory, m_Clip.name + "_New", "wav");
+				string filePath = EditorUtility.SaveFilePanel("保存剪辑的音频", directory, m_Clip.name + "_New", m_FileFormat.ToLower());
 				if (!string.IsNullOrEmpty(filePath)) {
-					AudioClipWriter.WriteToFile(filePath, m_ClippedClip, 16);
+					string pathUpper = filePath.ToUpper();
+					if (pathUpper.EndsWith("WAV")) {
+						AudioClipWriter.WriteWAV(filePath, m_ClippedClip, m_BitsPerSample);
+					} else if (pathUpper.EndsWith("MP3")) {
+						AudioClipWriter.WriteMP3(filePath, m_ClippedClip, m_BitsPerSample, m_Mp3Quality);
+					} else if (pathUpper.EndsWith("OGG")) {
+						AudioClipWriter.WriteOGG(filePath, m_ClippedClip, m_OggQuality);
+					} else {
+						Debug.LogError("Unsupported file format.");
+					}
 					AssetDatabase.Refresh();
 				}
 			} else {

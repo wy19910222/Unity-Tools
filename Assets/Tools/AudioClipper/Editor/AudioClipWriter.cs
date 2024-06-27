@@ -2,7 +2,7 @@
  * @Author: wangyun
  * @CreateTime: 2024-06-23 02:11:12 149
  * @LastEditor: wangyun
- * @EditTime: 2024-06-23 02:11:12 153
+ * @EditTime: 2024-06-27 21:32:42 639
  */
 
 using System;
@@ -14,25 +14,30 @@ using NAudio.Wave.WZT;
 using OggVorbis;
 
 public static class AudioClipWriter {
-	public static void WriteToFile(string filePath, AudioClip clip, int bitsPerSample) {
+	public static void WriteWAV(string filePath, AudioClip clip, int bitsPerSample) {
 		float[] data = new float[clip.samples * clip.channels];
 		if (clip.GetData(data, 0)) {
-			WriteToFile(filePath, data, bitsPerSample, clip.channels, clip.frequency);
+			WavWriter.Write(filePath, data, bitsPerSample, clip.channels, clip.frequency);
 		} else {
 			Debug.LogError("Get clip data failed.");	
 		}
 	}
 	
-	public static void WriteToFile(string filePath, float[] data, int bitsPerSample, int channels, int frequency) {
-		if (filePath.ToLower().EndsWith(".wav")) {
-			WavWriter.Write(filePath, data, bitsPerSample, channels, frequency);
-		} else if (filePath.ToLower().EndsWith(".mp3")) {
-			Mp3Writer.Write(filePath, data, bitsPerSample, channels, frequency);
-		} else if (filePath.ToLower().EndsWith(".ogg")) {
-			OggWriter.Write(filePath, data, channels, frequency);
+	public static void WriteMP3(string filePath, AudioClip clip, int bitsPerSample, int mp3Quality) {
+		float[] data = new float[clip.samples * clip.channels];
+		if (clip.GetData(data, 0)) {
+			Mp3Writer.Write(filePath, data, bitsPerSample, clip.channels, clip.frequency, mp3Quality);
 		} else {
-			// 要写入什么格式自己接入
-			Debug.LogError("Unsupported file format.");	
+			Debug.LogError("Get clip data failed.");	
+		}
+	}
+	
+	public static void WriteOGG(string filePath, AudioClip clip, float oggQuality) {
+		float[] data = new float[clip.samples * clip.channels];
+		if (clip.GetData(data, 0)) {
+			OggWriter.Write(filePath, data, clip.channels, clip.frequency, oggQuality);
+		} else {
+			Debug.LogError("Get clip data failed.");	
 		}
 	}
 
@@ -100,18 +105,18 @@ public static class AudioClipWriter {
 	}
 
 	public static class Mp3Writer {
-		public static void Write(string filePath, float[] data, int bitsPerSample, int channels, int frequency) {
+		public static void Write(string filePath, float[] data, int bitsPerSample, int channels, int frequency, int quality) {
 			int blockAlign = channels * bitsPerSample / 8;
 			WaveFormat format = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm,
 					frequency, channels, frequency * blockAlign, blockAlign, bitsPerSample);
-			using LameMP3FileWriter writer = new LameMP3FileWriter(filePath, format, LAMEPreset.ABR_128);
+			using LameMP3FileWriter writer = new LameMP3FileWriter(filePath, format, (LAMEPreset) quality);
 			WavWriter.WriteData(writer, data, bitsPerSample / 8);
 		}
 	}
 
 	public static class OggWriter {
-		public static void Write(string filePath, float[] data, int channels, int frequency) {
-			VorbisPlugin.Save(filePath, data, (short) channels, frequency);
+		public static void Write(string filePath, float[] data, int channels, int frequency, float quality) {
+			VorbisPlugin.Save(filePath, data, (short) channels, frequency, quality);
 		}
 	}
 }
