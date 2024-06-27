@@ -822,30 +822,30 @@ public class AudioClipper : EditorWindow {
 			int channels = clip.channels;
 			float[] data = new float[samples * channels];
 			if (clip.GetData(data, 0)) {
-				float clipFrequency = clip.frequency;
+				float frequency = clip.frequency;
 				for (int i = 0; i < samples; i++) {
 					bool b = false;
 					for (int j = 0; j < channels; j++) {
-						if (data[channels * i + j] > trimThreshold) {
+						if (Mathf.Abs(data[channels * i + j]) > trimThreshold) {
 							b = true;
 							break;
 						}
 					}
 					if (b) {
-						startTime = i / clipFrequency;
+						startTime = i / frequency;
 						break;
 					}
 				}
 				for (int i = samples - 1; i >= 0; i--) {
 					bool b = false;
 					for (int j = 0; j < channels; j++) {
-						if (data[channels * i + j] > trimThreshold) {
+						if (Mathf.Abs(data[channels * i + j]) > trimThreshold) {
 							b = true;
 							break;
 						}
 					}
 					if (b) {
-						endTime = i / clipFrequency;
+						endTime = i / frequency;
 						break;
 					}
 				}
