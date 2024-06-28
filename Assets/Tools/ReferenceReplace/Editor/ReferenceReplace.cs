@@ -2,7 +2,7 @@
  * @Author: wangyun
  * @CreateTime: 2022-06-06 13:07:54 746
  * @LastEditor: wangyun
- * @EditTime: 2022-07-27 12:01:17 718
+ * @EditTime: 2024-06-29 00:55:12 339
  */
 
 using System;
@@ -166,23 +166,23 @@ public class ReferenceReplace : EditorWindow {
 			string fromGUID = AssetDatabase.AssetPathToGUID(fromPath);
 			string toPath = AssetDatabase.GetAssetPath(map.to);
 			string toGUID = AssetDatabase.AssetPathToGUID(toPath);
-			pairs.Add($"{{\"Item1\":\"{fromGUID}\",\"Item2\":\"{toGUID}\"}}");
+			pairs.Add($"{{\"from\":\"{fromGUID}\",\"to\":\"{toGUID}\"}}");
 		}
 		sb.Append(string.Join(",", pairs));
 		sb.Append("]");
 		string json = sb.ToString();
-		// [{"Item1":"26512af483b2a2c468a185b4aab5d1a5","Item2":"26512af483b2a2c468a185b4aab5d1a5"}]
+		// [{"from":"26512af483b2a2c468a185b4aab5d1a5","to":"26512af483b2a2c468a185b4aab5d1a5"}]
 		EditorPrefs.SetString("ReferenceReplace.Maps", json);
 	}
 	private void LoadMaps() {
 		m_ReplaceMaps.Clear();
-		// [{"Item1":"26512af483b2a2c468a185b4aab5d1a5","Item2":"26512af483b2a2c468a185b4aab5d1a5"}]
+		// [{"from":"26512af483b2a2c468a185b4aab5d1a5","to":"26512af483b2a2c468a185b4aab5d1a5"}]
 		string json = EditorPrefs.GetString("ReferenceReplace.Maps", "{}");
 		string pairs = json.Length < 2 ? string.Empty : json.Substring(1, json.Length - 2);
 		if (pairs != string.Empty) {
 			foreach (string pair in Regex.Split(pairs, "(?<=}),(?={)")) {
-				string fromGUID = pair.Substring("{\"Item1\":\"".Length, 32);
-				string toGUID = pair.Substring("{\"Item1\":\"".Length + 32 + "\",\"Item2\":\"".Length, 32);
+				string fromGUID = Regex.Match(pair, "(?<=\"from\":\")\\w{0,32}(?=\")").Value;
+				string toGUID = Regex.Match(pair, "(?<=\"to\":\")\\w{0,32}(?=\")").Value;
 				string fromPath = AssetDatabase.GUIDToAssetPath(fromGUID);
 				UObject from = AssetDatabase.LoadAssetAtPath<UObject>(fromPath);
 				string toPath = AssetDatabase.GUIDToAssetPath(toGUID);
@@ -193,61 +193,103 @@ public class ReferenceReplace : EditorWindow {
 	}
 
 	private void Replace(bool clone) {
+		if (EditorSettings.serializationMode != SerializationMode.ForceText) {
+			if (EditorUtility.DisplayDialog("警告", "当前序列化模式非「Force Text」，是否将Asset Serialization Mode设置成「Force Text」？", "确定", "取消")) {
+				// SettingsService.OpenProjectSettings("Project/Editor");
+				// // GetWindow<ProjectSettingsWindow>().m_SearchText = "Mode";
+				// Type editorType = typeof(Editor).Assembly.GetType("UnityEditor.ProjectSettingsWindow");
+				// EditorWindow projectSettingsWindow = GetWindow(editorType);
+				// FieldInfo searchTextFI = editorType?.BaseType?.GetField("m_SearchText", BindingFlags.Instance | BindingFlags.NonPublic);
+				// searchTextFI?.SetValue(projectSettingsWindow, "Mode");
+				EditorSettings.serializationMode = SerializationMode.ForceText;
+			}
+			return;
+		}
+		
 		string targetPath = AssetDatabase.GetAssetPath(m_Target);
 		if (!string.IsNullOrEmpty(targetPath)) {
-			FileInfo file = new FileInfo(targetPath);
-			string text;
-			
-			// 读取
-			using (FileStream fs = file.OpenRead()) {
-				using (MemoryStream ms = new MemoryStream()) {
-					var bytesTemp = new byte[4096];
-					int readLength;
-					while ((readLength = fs.Read(bytesTemp, 0, 4096)) > 0) {
-						ms.Write(bytesTemp, 0, readLength);
-					}
-					ms.Flush();
-					text = Encoding.UTF8.GetString(ms.ToArray());
-				}
-			}
-
-			// 克隆
-			if (clone) {
-				int pointIndex = targetPath.LastIndexOf('.');
-				if (pointIndex == -1) {
-					pointIndex = targetPath.Length;
-				}
-				string fileName = targetPath.Substring(0, pointIndex) + "_Clone";
-				string fileExt = targetPath.Substring(pointIndex);
-				targetPath = fileName + fileExt;
-				for (int i = 1; File.Exists(targetPath); i++) {
-					targetPath = fileName + "_" + i + fileExt;
-				}
-				file = new FileInfo(targetPath);
-			}
-
-			// 替换
-			foreach (var map in m_ReplaceMaps) {
-				if (map.from && map.to) {
-					string fromPath = AssetDatabase.GetAssetPath(map.from);
-					string fromGUID = AssetDatabase.AssetPathToGUID(fromPath);
-					string toPath = AssetDatabase.GetAssetPath(map.to);
-					string toGUID = AssetDatabase.AssetPathToGUID(toPath);
-					if (!string.IsNullOrEmpty(fromGUID) && !string.IsNullOrEmpty(toGUID)) {
-						text = text.Replace(fromGUID, toGUID);
+			int count = 0;
+			if (Directory.Exists(targetPath)) {
+				// 如果是文件夹，则遍历操作文件夹内所有文件
+				string outputDir = targetPath;
+				if (clone) {
+					string dirPath = targetPath + "_Clone";
+					outputDir = dirPath;
+					for (int i = 1; Directory.Exists(outputDir) || File.Exists(outputDir); i++) {
+						outputDir = dirPath + "_" + i;
 					}
 				}
+				string[] filePaths = Directory.GetFiles(targetPath, "*", SearchOption.AllDirectories);
+				foreach (string filePath in filePaths) {
+					string outputPath = filePath;
+					if (clone) {
+						outputPath = outputDir + outputPath.Substring(targetPath.Length);
+					}
+					if (ReplaceInFile(filePath, outputPath)) {
+						count++;
+					}
+				}
+			} else if (File.Exists(targetPath)) {
+				// 如果是文件，则操作该文件
+				string outputPath = targetPath;
+				if (clone) {
+					int pointIndex = outputPath.LastIndexOf('.');
+					if (pointIndex == -1) {
+						pointIndex = outputPath.Length;
+					}
+					string filePathNoExt = outputPath.Substring(0, pointIndex) + "_Clone";
+					string fileExt = outputPath.Substring(pointIndex);
+					outputPath = filePathNoExt + fileExt;
+					for (int i = 1; Directory.Exists(outputPath) || File.Exists(outputPath); i++) {
+						outputPath = filePathNoExt + "_" + i + fileExt;
+					}
+				}
+				if (ReplaceInFile(targetPath, outputPath)) {
+					count++;
+				}
 			}
-			
-			// 写入
-			using (FileStream fs = file.OpenWrite()) {
-				byte[] bytes = Encoding.UTF8.GetBytes(text); 
-				fs.Write(bytes, 0, bytes.Length); 
-				fs.Flush();
-			}
-
 			// 刷新
 			AssetDatabase.Refresh();
+			Debug.Log($"替换完成，{count}个资源被改动。");
 		}
+	}
+
+	private bool ReplaceInFile(string srcFilePath, string dstFilePath) {
+		// 检查是不是YAML语法的文本文件
+		foreach (string line in File.ReadLines(srcFilePath)) {
+			if (!line.StartsWith("%YAML")) {
+				return false;
+			}
+			break;
+		}
+		// 读取
+		string text = File.ReadAllText(srcFilePath);
+		// 替换
+		bool done = false;
+		foreach (var map in m_ReplaceMaps) {
+			if (map.from && map.to) {
+				string fromPath = AssetDatabase.GetAssetPath(map.from);
+				string fromGUID = AssetDatabase.AssetPathToGUID(fromPath);
+				string toPath = AssetDatabase.GetAssetPath(map.to);
+				string toGUID = AssetDatabase.AssetPathToGUID(toPath);
+				if (!string.IsNullOrEmpty(fromGUID) && !string.IsNullOrEmpty(toGUID)) {
+					done = done || text.Contains(fromGUID);
+					text = text.Replace(fromGUID, toGUID);
+				}
+			}
+		}
+		// 写入
+		if (done) {
+			FileInfo file = new FileInfo(dstFilePath);
+			DirectoryInfo dir = file.Directory;
+			if (dir != null) {
+				if (!dir.Exists) {
+					dir.Create();
+				}
+				File.WriteAllText(dstFilePath, text);
+				return true;
+			}
+		}
+		return false;
 	}
 }
