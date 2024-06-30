@@ -15,29 +15,39 @@ using OggVorbis;
 
 public static class AudioClipWriter {
 	public static void WriteWAV(string filePath, AudioClip clip, int bitsPerSample) {
-		float[] data = new float[clip.samples * clip.channels];
-		if (clip.GetData(data, 0)) {
-			WavWriter.Write(filePath, data, bitsPerSample, clip.channels, clip.frequency);
-		} else {
-			Debug.LogError("Get clip data failed.");	
+		if (GetClipData(clip, out float[] data)) {
+			WriteWAV(filePath, data, bitsPerSample, clip.channels, clip.frequency);
 		}
+	}
+	public static void WriteWAV(string filePath, float[] data, int bitsPerSample, int channels, int frequency) {
+		WavWriter.Write(filePath, data, bitsPerSample, channels, frequency);
 	}
 	
 	public static void WriteMP3(string filePath, AudioClip clip, int bitsPerSample, int mp3Quality) {
-		float[] data = new float[clip.samples * clip.channels];
-		if (clip.GetData(data, 0)) {
-			Mp3Writer.Write(filePath, data, bitsPerSample, clip.channels, clip.frequency, mp3Quality);
-		} else {
-			Debug.LogError("Get clip data failed.");	
+		if (GetClipData(clip, out float[] data)) {
+			WriteMP3(filePath, data, bitsPerSample, clip.channels, clip.frequency, mp3Quality);
 		}
+	}
+	public static void WriteMP3(string filePath, float[] data, int bitsPerSample, int channels, int frequency, int mp3Quality) {
+		Mp3Writer.Write(filePath, data, bitsPerSample, channels, frequency, mp3Quality);
 	}
 	
 	public static void WriteOGG(string filePath, AudioClip clip, float oggQuality) {
-		float[] data = new float[clip.samples * clip.channels];
-		if (clip.GetData(data, 0)) {
-			OggWriter.Write(filePath, data, clip.channels, clip.frequency, oggQuality);
+		if (GetClipData(clip, out float[] data)) {
+			WriteOGG(filePath, data, clip.channels, clip.frequency, oggQuality);
+		}
+	}
+	public static void WriteOGG(string filePath, float[] data, int channels, int frequency, float oggQuality) {
+		OggWriter.Write(filePath, data, channels, frequency, oggQuality);
+	}
+	
+	public static bool GetClipData(AudioClip clip, out float[] data, int offsetSamples = 0) {
+		data = new float[clip.samples * clip.channels];
+		if (clip.GetData(data, offsetSamples)) {
+			return true;
 		} else {
-			Debug.LogError("Get clip data failed.");	
+			Debug.LogError("Get clip data failed.");
+			return false;
 		}
 	}
 
