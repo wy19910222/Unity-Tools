@@ -101,3 +101,12 @@
 * 可试听截取的片段。
 * 可缩放音量，并在波形图中展示出来。
 * 可保存片段到WAV、Mp3、Ogg等音频文件。
+
+## 音频音量统一器
+
+[**AudioVolumeUnify**](Assets/Tools/AudioClipper/Editor/AudioVolumeUnify.cs)  
+本工具用于将多个音频统一音量，支持WAV、MP3、OGG三种格式。  
+![AudioVolumeUnify](Captures/AudioVolumeUnify.jpg)
+* 可选择某个音频的音量作为统一音量，也可以自己设置统一音量。
+* 支持以统一音量试音每个音频。
+* 输出文件与源文件格式相同，也可以直接覆盖源文件。
