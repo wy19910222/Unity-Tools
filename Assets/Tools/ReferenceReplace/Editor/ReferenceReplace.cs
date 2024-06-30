@@ -250,7 +250,9 @@ public class ReferenceReplace : EditorWindow {
 			}
 			// 刷新
 			AssetDatabase.Refresh();
-			Debug.Log($"替换完成，{count}个资源被改动。");
+			string text = $"替换完成，{count}个资源被{(clone ? "复制" : "改动")}。";
+			ShowNotification(new GUIContent(text), 1);
+			Debug.Log(text);
 		}
 	}
 
