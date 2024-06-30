@@ -47,9 +47,9 @@ public class AudioClipper : EditorWindow {
 	private static readonly Color COLOR_SELECTOR_DRAGGING = new Color(0, 1, 0.5F);
 	private static readonly Color COLOR_CURRENT = new Color(1, 0, 0);
 
-	public static readonly string[] FILE_FORMATS = { "WAV", "MP3", "OGG" };
-	public static readonly int[] BITS_PER_SAMPLES = { 8, 16, 24, 32 };
-	public static readonly int[] MP3_QUALITIES = { 64, 96, 128, 160, 256 };
+	private static readonly string[] FILE_FORMATS = { "WAV", "MP3", "OGG" };
+	private static readonly int[] BITS_PER_SAMPLES = { 8, 16, 24, 32 };
+	private static readonly int[] MP3_QUALITIES = { 64, 96, 128, 160, 256, 320 };
 
 	private static GUIStyle m_RulerStyle;
 	private static Texture2D m_TexStop;
@@ -83,10 +83,10 @@ public class AudioClipper : EditorWindow {
 
 	private void Awake() {
 		UpdateWaveformTexture();
+		m_AudioSource = EditorUtility.CreateGameObjectWithHideFlags("[AudioClipper]", HideFlags.HideAndDontSave, typeof(AudioSource)).GetComponent<AudioSource>();
 	}
 
 	private void OnEnable() {
-		m_AudioSource = EditorUtility.CreateGameObjectWithHideFlags("[AudioClipper]", HideFlags.HideAndDontSave, typeof(AudioSource)).GetComponent<AudioSource>();
 		m_TexStop ??= CreateTexStop();
 		Undo.undoRedoPerformed += () => {
 			m_ClippedClip = null;
@@ -112,7 +112,7 @@ public class AudioClipper : EditorWindow {
 	}
 
 	private void ShowButton(Rect rect) {
-		if (GUI.Button(rect, EditorGUIUtility.TrIconContent("_Help"), "IconButton")) {
+		if (GUI.Button(rect, EditorGUIUtility.IconContent("_Help"), "IconButton")) {
 			PopupWindow.Show(rect, new PopupContent(260, 100, popupRect => {
 				popupRect.x += 6;
 				EditorGUI.LabelField(
@@ -360,7 +360,7 @@ public class AudioClipper : EditorWindow {
 			case "OGG":
 				EditorGUILayout.BeginHorizontal();
 				int oggQualityPercent = Mathf.RoundToInt(m_OggQuality * 100);
-				int newOggQualityPercent = EditorGUILayout.IntSlider("比特率", oggQualityPercent, 0, 100);
+				int newOggQualityPercent = EditorGUILayout.IntSlider("品质", oggQualityPercent, 0, 100);
 				EditorGUILayout.LabelField("%", GUILayout.Width(12F));
 				if (newOggQualityPercent != oggQualityPercent) {
 					Undo.RecordObject(this, $"AudioClipper.Mp3Quality {newOggQualityPercent * 0.01F}");
