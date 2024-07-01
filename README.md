@@ -91,8 +91,17 @@
 * 支持在3D模式下，样条线完整的编辑功能。
 
 ## 音频剪辑器
+### UPM Git URL
+GitHub
+```
+git@github.com:wy19910222/Unity-UPMTest.git?path=Assets/Tools/AudioEditor
+```
+Gitee  
+```
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
+```
 
-[**AudioClipper**](Assets/Tools/AudioClipper)  
+[**AudioClipper**](Assets/Tools/AudioEditor/Editor/AudioClipper.cs)  
 支持展示AudioClip对象的波形图，从中截取片段，试听并保存为wav、mp3、ogg文件。  
 ![AudioClipper](Captures/AudioClipper.gif)
 * 展示带标尺的波形图。
@@ -102,9 +111,7 @@
 * 可缩放音量，并在波形图中展示出来。
 * 可保存片段到WAV、Mp3、Ogg等音频文件。
 
-## 音频音量统一器
-
-[**AudioVolumeUnify**](Assets/Tools/AudioClipper/Editor/AudioVolumeUnify.cs)  
+[**AudioVolumeUnify**](Assets/Tools/AudioEditor/Editor/AudioVolumeUnify.cs)  
 本工具用于将多个音频统一音量，支持WAV、MP3、OGG三种格式。  
 ![AudioVolumeUnify](Captures/AudioVolumeUnify.jpg)
 * 可选择某个音频的音量作为统一音量，也可以自己设置统一音量。
