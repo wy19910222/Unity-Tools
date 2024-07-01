@@ -92,12 +92,12 @@ public class ReferenceReplace : EditorWindow {
 	}
 
 	private void OnGUI() {
-		m_ScrollPos = GUILayout.BeginScrollView(m_ScrollPos, GUILayout.ExpandHeight(false));
+		m_ScrollPos = EditorGUILayout.BeginScrollView(m_ScrollPos, GUILayout.ExpandHeight(false));
 		Undo.RecordObject(this, "Maps");
 		m_List.DoLayoutList();
-		GUILayout.EndScrollView();
+		EditorGUILayout.EndScrollView();
 		GUILayout.Space(-2F);
-		GUILayout.BeginHorizontal();
+		EditorGUILayout.BeginHorizontal();
 		if (GUILayout.Button("清空列表")) {
 			Undo.RecordObject(this, "Maps.Clear");
 			m_ReplaceMaps.Clear();
@@ -147,14 +147,14 @@ public class ReferenceReplace : EditorWindow {
 			}
 		}
 
-		GUILayout.BeginHorizontal(GUILayout.Height(EditorGUIUtility.singleLineHeight * 2));
+		EditorGUILayout.BeginHorizontal(GUILayout.Height(EditorGUIUtility.singleLineHeight * 2));
 		if (GUILayout.Button("生成副本并替换")) {
 			Replace(true);
 		}
 		if (GUILayout.Button("直接替换", GUILayout.Width(80F))) {
 			Replace(false);
 		}
-		GUILayout.EndHorizontal();
+		EditorGUILayout.EndHorizontal();
 	}
 
 	private void SaveMaps() {

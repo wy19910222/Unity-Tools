@@ -179,11 +179,11 @@ public class AudioVolumeUnify : EditorWindow {
 	}
 
 	private void OnGUI() {
-		m_ScrollPos = GUILayout.BeginScrollView(m_ScrollPos, GUILayout.ExpandHeight(false));
+		m_ScrollPos = EditorGUILayout.BeginScrollView(m_ScrollPos, GUILayout.ExpandHeight(false));
 		m_List.DoLayoutList();
-		GUILayout.EndScrollView();
+		EditorGUILayout.EndScrollView();
 		GUILayout.Space(-2F);
-		GUILayout.BeginHorizontal();
+		EditorGUILayout.BeginHorizontal();
 		if (GUILayout.Button("清空列表")) {
 			Undo.RecordObject(this, "AudioVolumeUnify.ListClear");
 			m_InfoList.Clear();
@@ -278,7 +278,7 @@ public class AudioVolumeUnify : EditorWindow {
 			EditorGUILayout.EndHorizontal();
 		}
 		
-		GUILayout.BeginHorizontal(GUILayout.Height(EditorGUIUtility.singleLineHeight * 2));
+		EditorGUILayout.BeginHorizontal();
 		if (GUILayout.Button("生成副本")) {
 			WriteAll(true);
 		}
@@ -290,7 +290,7 @@ public class AudioVolumeUnify : EditorWindow {
 				}
 			}
 		}
-		GUILayout.EndHorizontal();
+		EditorGUILayout.EndHorizontal();
 	}
 	
 	private void PlayAudio(AudioClip clip, float volumeScale) {
