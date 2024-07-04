@@ -1067,26 +1067,26 @@ public class EasySplinePath2DPlusEditor : Editor {
 
 	private void init() {
 		Texture[] texts = {
-			EditorGUIUtility.Load("EasySplinePath2D/node.png") as Texture, // 1
-			EditorGUIUtility.Load("EasySplinePath2D/nodo_auto.png") as Texture, // 2
-			EditorGUIUtility.Load("EasySplinePath2D/nodo_control.png") as Texture, // 3
-			EditorGUIUtility.Load("EasySplinePath2D/nodo_control_free.png") as Texture, // 4
-			EditorGUIUtility.Load("EasySplinePath2D/control.png") as Texture, // 5
-			EditorGUIUtility.Load("EasySplinePath2D/add.png") as Texture, // 6
-			EditorGUIUtility.Load("EasySplinePath2D/curve.png") as Texture, // 7
-			EditorGUIUtility.Load("EasySplinePath2D/rect.png") as Texture, // 8
-			EditorGUIUtility.Load("EasySplinePath2D/boton_recto.png") as Texture, // 9
-			EditorGUIUtility.Load("EasySplinePath2D/boton_recto_u.png") as Texture, // 10
-			EditorGUIUtility.Load("EasySplinePath2D/mode_auto.png") as Texture, // 11
-			EditorGUIUtility.Load("EasySplinePath2D/mode_auto_u.png") as Texture, // 12
-			EditorGUIUtility.Load("EasySplinePath2D/mode_lock.png") as Texture, // 13
-			EditorGUIUtility.Load("EasySplinePath2D/mode_lock_u.png") as Texture, // 14
-			EditorGUIUtility.Load("EasySplinePath2D/mode_free.png") as Texture, // 15
-			EditorGUIUtility.Load("EasySplinePath2D/mode_free_u.png") as Texture, // 16
-			EditorGUIUtility.Load("EasySplinePath2D/corner_mode_anchor.png") as Texture, // 17
-			EditorGUIUtility.Load("EasySplinePath2D/mode_corner_u.png") as Texture, // 18
-			EditorGUIUtility.Load("EasySplinePath2D/node_delete.png") as Texture, // 19
-			EditorGUIUtility.Load("EasySplinePath2D/node_selected.png") as Texture, // 20
+			Resources.Load<Texture>("EasySplinePath2D/node"),					// 1
+			Resources.Load<Texture>("EasySplinePath2D/nodo_auto"),				// 2
+			Resources.Load<Texture>("EasySplinePath2D/nodo_control"),			// 3
+			Resources.Load<Texture>("EasySplinePath2D/nodo_control_free"),		// 4
+			Resources.Load<Texture>("EasySplinePath2D/control"),				// 5
+			Resources.Load<Texture>("EasySplinePath2D/add"),					// 6
+			Resources.Load<Texture>("EasySplinePath2D/curve"),					// 7
+			Resources.Load<Texture>("EasySplinePath2D/rect"),					// 8
+			Resources.Load<Texture>("EasySplinePath2D/boton_recto"),			// 9
+			Resources.Load<Texture>("EasySplinePath2D/boton_recto_u"),			// 10
+			Resources.Load<Texture>("EasySplinePath2D/mode_auto"),				// 11
+			Resources.Load<Texture>("EasySplinePath2D/mode_auto_u"),			// 12
+			Resources.Load<Texture>("EasySplinePath2D/mode_lock"),				// 13
+			Resources.Load<Texture>("EasySplinePath2D/mode_lock_u"),			// 14
+			Resources.Load<Texture>("EasySplinePath2D/mode_free"),				// 15
+			Resources.Load<Texture>("EasySplinePath2D/mode_free_u"),			// 16
+			Resources.Load<Texture>("EasySplinePath2D/corner_mode_anchor"),		// 17
+			Resources.Load<Texture>("EasySplinePath2D/mode_corner_u"),			// 18
+			Resources.Load<Texture>("EasySplinePath2D/node_delete"),			// 19
+			Resources.Load<Texture>("EasySplinePath2D/node_selected"),			// 20
 		};
 
 		textures = texts;
