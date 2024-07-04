@@ -119,7 +119,7 @@
 * 使用Unity Package Manager安装：  
 ```
 GitHub：
-git@github.com:wy19910222/Unity-UPMTest.git?path=Assets/Tools/AudioEditor
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
 
 Gitee：
 git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
