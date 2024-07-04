@@ -92,7 +92,7 @@
 
 ### 使用方法
 1. 购买AssetStore上正版的 [**EasySplinePath2D**](https://assetstore.unity.com/packages/tools/utilities/easy-spline-path-2d-127710) 插件，
-  或将 [**EasySplinePath2D**](Assets/Tools/EasySplinePath2D) 和文件夹拷贝至项目中（该文件夹只用于配合EasySplinePath2DPlus，商业化使用请购买正版）。
+  或将 [**EasySplinePath2D**](Assets/Tools/EasySplinePath2D) 文件夹拷贝至项目中（该文件夹只用于配合EasySplinePath2DPlus，商业化使用请购买正版）。
 2. 将 [**EasySplinePath2DPlus**](Assets/Tools/EasySplinePath2DPlus) 文件夹拷贝至项目中。
 
 
