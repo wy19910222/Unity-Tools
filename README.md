@@ -90,20 +90,17 @@
 * Scene窗口视角缩放时，节点图标跟着一起缩放，使节点图标看起来像是个3D场景中的物体。  
 * 支持在3D模式下，样条线完整的编辑功能。
 
+### 使用方法
+1. 购买AssetStore上正版的 [**EasySplinePath2D**](https://assetstore.unity.com/packages/tools/utilities/easy-spline-path-2d-127710) 插件，
+  或将 [**EasySplinePath2D**](Assets/Tools/EasySplinePath2D) 和文件夹拷贝至项目中（该文件夹只用于配合EasySplinePath2DPlus，商业化使用请购买正版）。
+2. 将 [**EasySplinePath2DPlus**](Assets/Tools/EasySplinePath2DPlus) 文件夹拷贝至项目中。
+
+
 ## 音频剪辑器
-### UPM Git URL
-GitHub
-```
-git@github.com:wy19910222/Unity-UPMTest.git?path=Assets/Tools/AudioEditor
-```
-Gitee  
-```
-git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
-```
 
 [**AudioClipper**](Assets/Tools/AudioEditor/Editor/AudioClipper.cs)  
 支持展示AudioClip对象的波形图，从中截取片段，试听并保存为wav、mp3、ogg文件。  
-![AudioClipper](Packages/LocalPackages/AudioEditor/Captures~/AudioClipper.gif)
+![AudioClipper](Assets/Tools/AudioEditor/Captures~/AudioClipper.gif)
 * 展示带标尺的波形图。
 * 可在波形图中选中截取区域，并支持拖动区域。
 * 可根据阈值裁剪收尾空白。
@@ -113,7 +110,18 @@ git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
 
 [**AudioVolumeUnify**](Assets/Tools/AudioEditor/Editor/AudioVolumeUnify.cs)  
 本工具用于将多个音频统一音量，支持WAV、MP3、OGG三种格式。  
-![AudioVolumeUnify](Packages/LocalPackages/AudioEditor/Captures~/AudioVolumeUnify.jpg)
+![AudioVolumeUnify](Assets/Tools/AudioEditor/Captures~/AudioVolumeUnify.jpg)
 * 可选择某个音频的音量作为统一音量，也可以自己设置统一音量。
 * 支持以统一音量试音每个音频。
 * 输出文件与源文件格式相同，也可以直接覆盖源文件。
+
+### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-UPMTest.git?path=Assets/Tools/AudioEditor
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
+```
+* 直接将 [**AudioEditor**](Assets/Tools/AudioEditor) 文件夹拷贝至项目中。
