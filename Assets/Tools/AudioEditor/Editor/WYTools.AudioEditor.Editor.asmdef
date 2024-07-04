@@ -1,5 +1,5 @@
 {
-    "name": "WY.AudioEditor.Editor",
+    "name": "WYTools.AudioEditor.Editor",
     "rootNamespace": "",
     "references": [
         "GUID:6369f65a3f137eb448c3456fdbf498ff"

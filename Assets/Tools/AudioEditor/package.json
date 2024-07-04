@@ -1,0 +1,7 @@
+{
+  "name": "com.wy.tools.audio_editor",
+  "displayName": "WYTools.AudioEditor",
+  "version": "0.1.0",
+  "unity": "2021.3",
+  "description": "AudioClipper:\u5c55\u793aAudioClip\u5bf9\u8c61\u7684\u6ce2\u5f62\u56fe\uff0c\u4ece\u4e2d\u622a\u53d6\u7247\u6bb5\uff0c\u8bd5\u542c\u5e76\u4fdd\u5b58\u4e3aWAV\u3001MP3\u3001OGG\u6587\u4ef6\u3002\nAudioVolumeUnify:\u5c06\u591a\u4e2a\u97f3\u9891\u7edf\u4e00\u97f3\u91cf\uff0c\u4fdd\u5b58\u4e3aWAV\u3001MP3\u3001OGG\u6587\u4ef6\u3002"
+}

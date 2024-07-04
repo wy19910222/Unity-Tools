@@ -21,6 +21,14 @@ public class AudioVolumeUnify : EditorWindow {
 		window.Show();
 	}
 	
+	private const float List_THUMB_WIDTH = 14;
+	private const float List_ADD_BUTTON_WIDTH = 30;
+	
+	private const float List_VOLUME_WIDTH = 70;
+	private const float List_VOLUME_SCALE_WIDTH = 80;
+	private const float List_SET_BASE_BUTTON_WIDTH = 40;
+	private const float List_PLAY_BUTTON_WIDTH = 40;
+	
 	private static readonly int[] BITS_PER_SAMPLES = { 8, 16, 24, 32 };
 	private static readonly int[] MP3_QUALITIES = { 64, 96, 128, 160, 256 };
 	private static readonly Color TIME_SCALE_COLOR = new Color(0.4F, 0.6F, 0.9F);
@@ -49,107 +57,22 @@ public class AudioVolumeUnify : EditorWindow {
 	}
 
 	private void OnEnable() {
-		Undo.undoRedoPerformed += Repaint;
-		m_List ??= new ReorderableList(m_InfoList, typeof(AudioInfo), true, true, true, true) {
-			drawHeaderCallback = rect => {
-				const float THUMB_WIDTH = 15;
-				const float ADD_BUTTON_WIDTH = 30;
-				const float SET_BASE_BUTTON_WIDTH = 40;
-				const float PLAY_BUTTON_WIDTH = 40;
-				const float VOLUME_WIDTH = 70;
-				const float VOLUME_SCALE_WIDTH = 80;
-				float AUDIO_WIDTH = (rect.width - 2 - THUMB_WIDTH - ADD_BUTTON_WIDTH + 7) - VOLUME_WIDTH - VOLUME_SCALE_WIDTH - SET_BASE_BUTTON_WIDTH - PLAY_BUTTON_WIDTH;
-		
-				Rect audioRect = new Rect(rect.x + THUMB_WIDTH, rect.y, AUDIO_WIDTH, rect.height);
-				EditorGUI.LabelField(audioRect, "音频");
-		
-				Rect volumeRect = new Rect(rect.x + THUMB_WIDTH + AUDIO_WIDTH, rect.y, VOLUME_WIDTH, rect.height);
-				EditorGUI.LabelField(volumeRect, "音量");
-		
-				Rect volumeScaleRect = new Rect(rect.x + THUMB_WIDTH + AUDIO_WIDTH + VOLUME_WIDTH, rect.y, VOLUME_SCALE_WIDTH, rect.height);
-				EditorGUI.LabelField(volumeScaleRect, "音量缩放");
-		
-				Rect tailRect = new Rect(rect.x + rect.width - 1 - ADD_BUTTON_WIDTH + 7, rect.y - 1, ADD_BUTTON_WIDTH, rect.height + 2);
-				if (GUI.Button(tailRect, "+")) {
-					Undo.RecordObject(this, "AudioVolumeUnify.ListAdd");
-					m_InfoList.Add(new AudioInfo());
-				}
-			},
-			drawElementCallback = (rect, index, _, _) => {
-				const float ADD_BUTTON_WIDTH = 30;
-				const float SET_BASE_BUTTON_WIDTH = 40;
-				const float PLAY_BUTTON_WIDTH = 40;
-				const float VOLUME_WIDTH = 70;
-				const float VOLUME_SCALE_WIDTH = 80;
-				float AUDIO_WIDTH = (rect.width - ADD_BUTTON_WIDTH + 7) - VOLUME_WIDTH - VOLUME_SCALE_WIDTH - SET_BASE_BUTTON_WIDTH - PLAY_BUTTON_WIDTH;
-		
-				AudioInfo info = m_InfoList[index];
-				float x = rect.x;
-				Rect audioRect = new Rect(x, rect.y + 1, AUDIO_WIDTH - 2, rect.height - 2);
-				AudioClip newClip = EditorGUI.ObjectField(audioRect, info.clip, typeof(AudioClip), true) as AudioClip;
-				if (newClip != info.clip) {
-					Undo.RecordObject(this, "AudioVolumeUnify.ListModify");
-					info.clip = newClip;
-					info.volume = GetMaxVolume(newClip);
-				}
-				x += AUDIO_WIDTH;
-				
-				Rect volumeRect = new Rect(x, rect.y + 1, VOLUME_WIDTH, rect.height - 2);
-				EditorGUI.LabelField(volumeRect, info.volume + "");
-				x += VOLUME_WIDTH;
-				
-				Rect volumeScaleRect = new Rect(x, rect.y + 1, VOLUME_SCALE_WIDTH, rect.height - 2);
-				if (info.volume != 0) {
-					Color prevColor = GUI.contentColor;
-					GUI.contentColor = TIME_SCALE_COLOR;
-					EditorGUI.LabelField(volumeScaleRect, info.volume == 0 ? "" : "× " + m_UnifiedVolume / info.volume);
-					GUI.contentColor = prevColor;
-				}
-				x += VOLUME_SCALE_WIDTH;
-				
-				Rect setBaseRect = new Rect(x, rect.y + 1, SET_BASE_BUTTON_WIDTH, rect.height - 2);
-				bool isBase = Mathf.Approximately(info.volume, m_UnifiedVolume);
-				bool newIsBase = GUI.Toggle(setBaseRect, isBase, "基准", "Button");
-				if (newIsBase && !isBase) {
-					Undo.RecordObject(this, "AudioVolumeUnify.UnifiedVolume");
-					m_UnifiedVolume = info.volume;
-				}
-				x += SET_BASE_BUTTON_WIDTH;
-				
-				Rect playRect = new Rect(x, rect.y + 1, PLAY_BUTTON_WIDTH, rect.height - 2);
-				if (m_AudioSource.isPlaying && m_AudioSource.clip == info.clip) {
-					if (GUI.Button(playRect, "停止")) {
-						StopAudio();
-					}
-				} else {
-					if (GUI.Button(playRect, "试听")) {
-						PlayAudio(info.clip, info.volume == 0 ? 1 : m_UnifiedVolume / info.volume);
-					}
-				}
-				x += PLAY_BUTTON_WIDTH;
-		
-				Rect tailRect = new Rect(x + 1, rect.y + 1, ADD_BUTTON_WIDTH - 2, rect.height - 2);
-				if (GUI.Button(tailRect, "×")) {
-					Undo.RecordObject(this, "AudioVolumeUnify.ListRemove");
-					EditorApplication.delayCall += () => {
-						m_InfoList.RemoveAt(index);
-						Repaint();
-					};
-				}
-			},
+		m_List ??= new ReorderableList(m_InfoList, typeof(AudioInfo), true, true, false, false) {
+			drawHeaderCallback = DrawListHeader,
+			drawElementCallback = DrawListElement,
 			elementHeight = 20, footerHeight = 0
 		};
+		Undo.undoRedoPerformed += Repaint;
 	}
 
 	private void OnDisable() {
 		Undo.undoRedoPerformed -= Repaint;
 	}
 
+	// 试听结束后需要刷新按钮
 	private bool m_WillRepaint;
-
 	private void Update() {
 		if (m_AudioSource.isPlaying) {
-			Repaint();
 			m_WillRepaint = true;
 		} else if (m_WillRepaint) {
 			Repaint();
@@ -179,15 +102,30 @@ public class AudioVolumeUnify : EditorWindow {
 	}
 
 	private void OnGUI() {
+		DrawList();
+
+		GUILayout.Space(5);
+
+		DrawUnifiedVolume();
+
+		GUILayout.Space(5);
+
+		DrawSaveField();
+	}
+	
+	private void DrawList() {
 		m_ScrollPos = EditorGUILayout.BeginScrollView(m_ScrollPos, GUILayout.ExpandHeight(false));
 		m_List.DoLayoutList();
 		EditorGUILayout.EndScrollView();
+		
 		GUILayout.Space(-2F);
+		
 		EditorGUILayout.BeginHorizontal();
 		if (GUILayout.Button("清空列表")) {
 			Undo.RecordObject(this, "AudioVolumeUnify.ListClear");
 			m_InfoList.Clear();
 		}
+
 		if (GUILayout.Button("选中对象加入列表")) {
 			Undo.RecordObject(this, "AudioVolumeUnify.ListAddRange");
 			List<AudioClip> newAudioList = new List<AudioClip>();
@@ -207,7 +145,7 @@ public class AudioVolumeUnify : EditorWindow {
 					if (m_TempDict.ContainsKey(clip)) {
 						m_TempDict[clip].volume = GetMaxVolume(clip);
 					} else {
-						m_TempDict[clip] = new AudioInfo() { clip = clip, volume = GetMaxVolume(clip) };
+						m_TempDict[clip] = new AudioInfo() {clip = clip, volume = GetMaxVolume(clip)};
 						countNew++;
 					}
 				}
@@ -220,9 +158,100 @@ public class AudioVolumeUnify : EditorWindow {
 			}
 		}
 		EditorGUILayout.EndHorizontal();
-		
-		GUILayout.Space(5);
+	}
 
+	private void DrawListHeader(Rect rect) {
+		// Header比Element左右各宽1像素，在这里对齐一下
+		rect.x += 1;
+		rect.width -= 2;
+		
+		float thumbWidth = m_List.draggable ? List_THUMB_WIDTH : 0;
+		float headerWidth = rect.width + 7;	// 右边空白处也用起来
+		// 左端拖拽区域宽度 + 音频对象宽度 + 音量和音量缩放的宽度 + “基准”“试听”两个按钮宽度 + 右端添加按钮宽度
+		float audioWidth = headerWidth - thumbWidth - List_ADD_BUTTON_WIDTH
+				- List_PLAY_BUTTON_WIDTH - List_SET_BASE_BUTTON_WIDTH - List_VOLUME_WIDTH - List_VOLUME_SCALE_WIDTH;
+		
+		Rect audioRect = new Rect(rect.x + thumbWidth, rect.y, audioWidth, rect.height);
+		EditorGUI.LabelField(audioRect, "音频");
+		
+		Rect volumeRect = new Rect(rect.x + thumbWidth + audioWidth, rect.y, List_VOLUME_WIDTH, rect.height);
+		EditorGUI.LabelField(volumeRect, "音量");
+		
+		Rect volumeScaleRect = new Rect(rect.x + thumbWidth + audioWidth + List_VOLUME_WIDTH, rect.y, List_VOLUME_SCALE_WIDTH, rect.height);
+		EditorGUI.LabelField(volumeScaleRect, "音量缩放");
+		
+		Rect tailRect = new Rect(rect.x + headerWidth - List_ADD_BUTTON_WIDTH, rect.y - 1, List_ADD_BUTTON_WIDTH, rect.height + 2);
+		if (GUI.Button(tailRect, "+")) {
+			Undo.RecordObject(this, "AudioVolumeUnify.ListAdd");
+			m_InfoList.Add(new AudioInfo());
+		}
+	}
+	
+	private void DrawListElement(Rect rect, int index, bool isActive, bool isFocused) {
+		// Element上下各空1像素
+		rect.y += 1;
+		rect.height -= 2;
+		
+		float elementWidth = rect.width + 7;	// 右边空白处也用起来
+		// 左端音频对象宽度 + 音量和音量缩放的宽度 + “基准”“试听”两个按钮宽度 + 右端添加按钮宽度（删除按钮与添加按钮居中对齐但窄2像素，所以这里按添加按钮算宽度）
+		float audioWidth = elementWidth - List_ADD_BUTTON_WIDTH
+				- List_PLAY_BUTTON_WIDTH - List_SET_BASE_BUTTON_WIDTH - List_VOLUME_WIDTH - List_VOLUME_SCALE_WIDTH;
+
+		AudioInfo info = m_InfoList[index];
+		float x = rect.x;
+		Rect audioRect = new Rect(x, rect.y, audioWidth - 2, rect.height);
+		AudioClip newClip = EditorGUI.ObjectField(audioRect, info.clip, typeof(AudioClip), true) as AudioClip;
+		if (newClip != info.clip) {
+			Undo.RecordObject(this, "AudioVolumeUnify.ListModify");
+			info.clip = newClip;
+			info.volume = GetMaxVolume(newClip);
+		}
+		
+		x += audioWidth;
+		Rect volumeRect = new Rect(x, rect.y, List_VOLUME_WIDTH, rect.height);
+		EditorGUI.LabelField(volumeRect, info.volume + "");
+		
+		x += List_VOLUME_WIDTH;
+		Rect volumeScaleRect = new Rect(x, rect.y, List_VOLUME_SCALE_WIDTH, rect.height);
+		if (info.volume != 0) {
+			Color prevColor = GUI.contentColor;
+			GUI.contentColor = TIME_SCALE_COLOR;
+			EditorGUI.LabelField(volumeScaleRect, info.volume == 0 ? "" : "× " + m_UnifiedVolume / info.volume);
+			GUI.contentColor = prevColor;
+		}
+		
+		x += List_VOLUME_SCALE_WIDTH;
+		Rect setBaseRect = new Rect(x, rect.y, List_SET_BASE_BUTTON_WIDTH, rect.height);
+		bool isBase = Mathf.Approximately(info.volume, m_UnifiedVolume);
+		bool newIsBase = GUI.Toggle(setBaseRect, isBase, "基准", "Button");
+		if (newIsBase && !isBase) {
+			Undo.RecordObject(this, "AudioVolumeUnify.UnifiedVolume");
+			m_UnifiedVolume = info.volume;
+		}
+		
+		x += List_SET_BASE_BUTTON_WIDTH;
+		Rect playRect = new Rect(x, rect.y, List_PLAY_BUTTON_WIDTH, rect.height);
+		if (m_AudioSource.isPlaying && m_AudioSource.clip == info.clip) {
+			if (GUI.Button(playRect, "停止")) {
+				StopAudio();
+			}
+		} else {
+			if (GUI.Button(playRect, "试听")) {
+				PlayAudio(info.clip, info.volume == 0 ? 1 : m_UnifiedVolume / info.volume);
+			}
+		}
+
+		Rect tailRect = new Rect(rect.x + elementWidth - List_ADD_BUTTON_WIDTH + 1, rect.y, List_ADD_BUTTON_WIDTH - 2, rect.height);
+		if (GUI.Button(tailRect, "×")) {
+			Undo.RecordObject(this, "AudioVolumeUnify.ListRemove");
+			EditorApplication.delayCall += () => {
+				m_InfoList.RemoveAt(index);
+				Repaint();
+			};
+		}
+	}
+
+	private void DrawUnifiedVolume() {
 		float prevFieldWidth = EditorGUIUtility.fieldWidth;
 		EditorGUIUtility.fieldWidth = 80F;
 		EditorGUI.BeginChangeCheck();
@@ -232,9 +261,9 @@ public class AudioVolumeUnify : EditorWindow {
 			m_UnifiedVolume = newUnifiedVolume;
 		}
 		EditorGUIUtility.fieldWidth = prevFieldWidth;
-		
-		GUILayout.Space(5);
+	}
 
+	private void DrawSaveField() {
 		List<string> filePaths = m_InfoList.ConvertAll(info => AssetDatabase.GetAssetPath(info.clip));
 		bool wavExist = false;
 		bool mp3Exist = false;
@@ -252,20 +281,24 @@ public class AudioVolumeUnify : EditorWindow {
 
 		if (wavExist || mp3Exist) {
 			int bitsPerSampleIndex = Array.IndexOf(BITS_PER_SAMPLES, m_BitsPerSample);
-			int newBitsPerSampleIndex = EditorGUILayout.Popup("位深度", bitsPerSampleIndex, Array.ConvertAll(BITS_PER_SAMPLES, b=> b + ""));
+			int newBitsPerSampleIndex =
+					EditorGUILayout.Popup("位深度", bitsPerSampleIndex, Array.ConvertAll(BITS_PER_SAMPLES, b => b + ""));
 			if (newBitsPerSampleIndex != bitsPerSampleIndex) {
 				Undo.RecordObject(this, $"AudioClipper.BitsPerSample {BITS_PER_SAMPLES[newBitsPerSampleIndex]}");
 				m_BitsPerSample = BITS_PER_SAMPLES[newBitsPerSampleIndex];
 			}
 		}
+
 		if (mp3Exist) {
 			int mp3QualityIndex = Array.IndexOf(MP3_QUALITIES, m_Mp3Quality);
-			int newMp3QualityIndex = EditorGUILayout.Popup("MP3平均比特率", mp3QualityIndex, Array.ConvertAll(MP3_QUALITIES, q=> q + "Kbps"));
+			int newMp3QualityIndex =
+					EditorGUILayout.Popup("MP3平均比特率", mp3QualityIndex, Array.ConvertAll(MP3_QUALITIES, q => q + "Kbps"));
 			if (newMp3QualityIndex != mp3QualityIndex) {
 				Undo.RecordObject(this, $"AudioClipper.Mp3Quality {MP3_QUALITIES[newMp3QualityIndex]}");
 				m_Mp3Quality = MP3_QUALITIES[newMp3QualityIndex];
 			}
 		}
+
 		if (oggExist) {
 			EditorGUILayout.BeginHorizontal();
 			int oggQualityPercent = Mathf.RoundToInt(m_OggQuality * 100);
@@ -277,7 +310,7 @@ public class AudioVolumeUnify : EditorWindow {
 			}
 			EditorGUILayout.EndHorizontal();
 		}
-		
+
 		EditorGUILayout.BeginHorizontal();
 		if (GUILayout.Button("生成副本")) {
 			WriteAll(true);
