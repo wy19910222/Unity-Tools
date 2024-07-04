@@ -6,7 +6,7 @@
 
 [**BatchRename**](Assets/Tools/BatchRename)  
 支持重命名GameObject和Asset。  
-![BatchRename](Captures/BatchRename.gif)  
+![BatchRename](Assets/Tools/BatchRename/Captures~/BatchRename.gif)  
 * **整体：** 重命名为新的名称。  
 * **替换：** 将原名中的一部分替换成别的字符串。  
 * **「正则表达式」复选按钮：** 整体重命名时，用来将与原名匹配到的字符串插入到新名称中，替换重命名时，用来匹配需要替换的内容。  
