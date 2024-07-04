@@ -84,7 +84,7 @@
 
 [**EasySplinePath2DPlus**](Assets/Tools/EasySplinePath2DPlus)  
 在EasySplinePath2D插件的基础上，实现样条线的2.5D化（支持z轴移动、x轴旋转和y轴旋转）。  
-![EasySplinePath2DPlus](Captures/EasySplinePath2DPlus.gif)  
+![EasySplinePath2DPlus](Assets/Tools/EasySplinePath2DPlus/Captures~/EasySplinePath2DPlus.gif)  
 * 支持z轴移动，意味着可以放到3D场景中了。  
 * 支持x轴旋转和y轴旋转，意味着可以将样条线水平放置。  
 * Scene窗口视角缩放时，节点图标跟着一起缩放，使节点图标看起来像是个3D场景中的物体。  
