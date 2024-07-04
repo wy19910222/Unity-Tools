@@ -2,5 +2,5 @@
   "name": "com.wy.tools.audio_editor",
   "displayName": "WYTools.AudioEditor",
   "version": "0.1.0",
-  "description": "AudioClipper:展示AudioClip对象的波形图，从中截取片段，试听并保存为WAV、MP3、OGG文件。\nAudioVolumeUnify:将多个音频统一音量，保存为WAV、MP3、OGG文件。"
+  "description": "AudioClipper：\n展示AudioClip对象的波形图，从中截取片段，试听并保存为WAV、MP3、OGG文件。\nAudioVolumeUnify：\n将多个音频统一音量，保存为WAV、MP3、OGG文件。"
 }
