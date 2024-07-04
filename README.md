@@ -116,12 +116,4 @@
 * 输出文件与源文件格式相同，也可以直接覆盖源文件。
 
 ### 使用方法
-* 使用Unity Package Manager安装：  
-```
-GitHub：
-git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
-
-Gitee：
-git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
-```
 * 直接将 [**AudioEditor**](Assets/Tools/AudioEditor) 文件夹拷贝至项目中。
