@@ -57,11 +57,13 @@ public class AudioVolumeUnify : EditorWindow {
 	}
 
 	private void OnEnable() {
-		m_List ??= new ReorderableList(m_InfoList, typeof(AudioInfo), true, true, false, false) {
-			drawHeaderCallback = DrawListHeader,
-			drawElementCallback = DrawListElement,
-			elementHeight = 20, footerHeight = 0
-		};
+		if (m_List == null) {
+			m_List = new ReorderableList(m_InfoList, typeof(AudioInfo), true, true, false, false) {
+				drawHeaderCallback = DrawListHeader,
+				drawElementCallback = DrawListElement,
+				elementHeight = 20, footerHeight = 0
+			};
+		}
 		Undo.undoRedoPerformed += Repaint;
 	}
 
