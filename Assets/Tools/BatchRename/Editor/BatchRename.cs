@@ -152,7 +152,7 @@ public class BatchRename : EditorWindow {
 					EditorGUILayout.BeginHorizontal();
 					{
 						EditorGUILayout.LabelField(new GUIContent(""), "CN EntryInfoIconSmall", ICON_WIDTH_OPTION);
-						EditorGUILayout.LabelField("使用 /pattern/ 插入要与原始名称进行匹配的正则表达式\n如 /.*/_Clone 表示原始名称后面加上“_Clone", DOUBLE_HEIGHT_OPTION);
+						EditorGUILayout.LabelField("使用 /pattern/ 插入要与原始名称进行匹配的正则表达式\n如 /.*/_Clone 表示原始名称后面加上“_Clone”", DOUBLE_HEIGHT_OPTION);
 					}
 					EditorGUILayout.EndHorizontal();
 				} else {
