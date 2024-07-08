@@ -34,6 +34,7 @@ public class AudioClipper : EditorWindow {
 	private const float BACKGROUND_CELL_HEIGHT = 16;
 	private const float RULER_LABEL_HEIGHT = 16;
 	private const float RULER_LINE_HEIGHT = 8;
+	private const float DRAGGABLE_EXT_THICKNESS = 10F;	// 拖动响应范围往外扩展距离
 	
 	private static readonly Color COLOR_RULER_LONG = Color.white;
 	private static readonly Color COLOR_RULER_SHORT = new Color(1, 1, 1, 0.5F);
@@ -41,8 +42,8 @@ public class AudioClipper : EditorWindow {
 	private static readonly Color COLOR_BACKGROUND = Color.black;
 	private static readonly Color COLOR_BACKGROUND_GRID = new Color(1, 0.5F, 0, 0.2F);
 	private static readonly Color COLOR_WAVEFORM = new Color(1, 0.5F, 0);
-	private static readonly Color COLOR_SELECTED = new Color(1, 1, 1, 0.2F);
-	private static readonly Color COLOR_SELECTED_DRAGGING = new Color(1, 1, 1, 0.25F);
+	private static readonly Color COLOR_UNSELECTED = new Color(0, 0, 0, 0.7F);
+	private static readonly Color COLOR_SELECTED_DRAGGING = new Color(1, 1, 1, 0.15F);
 	private static readonly Color COLOR_SELECTOR = new Color(0.5F, 1, 1);
 	private static readonly Color COLOR_SELECTOR_DRAGGING = new Color(0, 1, 0.5F);
 	private static readonly Color COLOR_CURRENT = new Color(1, 0, 0);
@@ -488,8 +489,14 @@ public class AudioClipper : EditorWindow {
 		int selectedStartXOnField = Mathf.RoundToInt(Mathf.Max(clipStartPercentOnField, 0) * waveformRect.width);
 		float selectedEndXOnField = Mathf.RoundToInt(Mathf.Min(clipEndPercentOnField, 1) * waveformRect.width);
 		if (selectedEndXOnField > selectedStartXOnField) {
+			Rect unselectedRect1 = new Rect(waveformRect.x, waveformRect.y, selectedStartXOnField, waveformRect.height);
+			EditorGUI.DrawRect(unselectedRect1, COLOR_UNSELECTED);
+			Rect unselectedRect2 = new Rect(waveformRect.x + selectedEndXOnField, waveformRect.y, waveformRect.width - selectedEndXOnField, waveformRect.height);
+			EditorGUI.DrawRect(unselectedRect2, COLOR_UNSELECTED);
 			Rect selectedRect = new Rect(waveformRect.x + selectedStartXOnField, waveformRect.y, selectedEndXOnField - selectedStartXOnField, waveformRect.height);
-			EditorGUI.DrawRect(selectedRect, m_DraggingType == DraggingType.START_END_TIMES ? COLOR_SELECTED_DRAGGING : COLOR_SELECTED);
+			if (m_DraggingType == DraggingType.START_END_TIMES) {
+				EditorGUI.DrawRect(selectedRect, COLOR_SELECTED_DRAGGING);
+			}
 			selectedRect.y += selectedRect.height - EditorGUIUtility.singleLineHeight;
 			selectedRect.height = EditorGUIUtility.singleLineHeight;
 			EditorGUI.LabelField(selectedRect, EditorGUIUtility.TrTextContent($"时长: {m_ClipEndTime - m_ClipStartTime}s"), "CenteredLabel");
@@ -522,20 +529,49 @@ public class AudioClipper : EditorWindow {
 			}
 		}
 
+		switch (m_DraggingType) {
+			case DraggingType.START_TIME:
+			case DraggingType.END_TIME:
+				EditorGUIUtility.AddCursorRect(position, MouseCursor.ResizeHorizontal);
+				break;
+			case DraggingType.START_END_TIMES:
+				EditorGUIUtility.AddCursorRect(position, MouseCursor.Pan);
+				break;
+			default:
+				Rect cursorRectStartEnd = new Rect(waveformRect.x + selectedStartXOnField + DRAGGABLE_EXT_THICKNESS, waveformRect.y,
+						selectedEndXOnField - selectedStartXOnField - DRAGGABLE_EXT_THICKNESS - DRAGGABLE_EXT_THICKNESS, waveformRect.height);
+				EditorGUIUtility.AddCursorRect(cursorRectStartEnd, MouseCursor.Pan);
+				if (clipStartLineVisible) {
+					Rect cursorRectStart = clipStartLineRect;
+					cursorRectStart.x -= DRAGGABLE_EXT_THICKNESS;
+					cursorRectStart.width += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
+					cursorRectStart.xMax = Mathf.Min(cursorRectStart.xMax, (clipStartLineRect.x + clipEndLineRect.x) * 0.5F);
+					EditorGUIUtility.AddCursorRect(cursorRectStart, MouseCursor.ResizeHorizontal);
+				}
+				if (clipEndLineVisible) {
+					Rect cursorRectEnd = clipEndLineRect;
+					cursorRectEnd.x -= DRAGGABLE_EXT_THICKNESS;
+					cursorRectEnd.width += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
+					cursorRectEnd.xMin = Mathf.Max(cursorRectEnd.xMin, (clipStartLineRect.x + clipEndLineRect.x) * 0.5F);
+					EditorGUIUtility.AddCursorRect(cursorRectEnd, MouseCursor.ResizeHorizontal);
+				}
+				break;
+		}
+
 		switch (Event.current.type) {
 			case EventType.MouseDown: {
 				Vector2 mousePos = Event.current.mousePosition;
 				if (mousePos.y >= fieldRect.y && mousePos.y <= fieldRect.y + fieldRect.height) {
 					float middle = (clipStartLineRect.x + clipEndLineRect.x) * 0.5F;
-					float temp1 = Mathf.Min(clipStartLineRect.x + 12, middle);
+					float temp1 = Mathf.Min(clipStartLineRect.x + DRAGGABLE_EXT_THICKNESS, middle);
 					if (!clipStartLineVisible) {
 						temp1 = waveformRect.x;
 					}
-					float temp2 = Mathf.Max(clipEndLineRect.x - 12, middle);
+					float temp2 = Mathf.Max(clipEndLineRect.x - DRAGGABLE_EXT_THICKNESS, middle);
 					if (!clipEndLineVisible) {
 						temp2 = waveformRect.x + waveformRect.width;
 					}
-					if (mousePos.x > clipStartLineRect.x - 12 && mousePos.x < temp1) {
+					if (mousePos.x > clipStartLineRect.x - DRAGGABLE_EXT_THICKNESS && mousePos.x < temp1) {
 						if (clipStartLineVisible) {
 							m_DraggingType = DraggingType.START_TIME;
 							m_DragPrevPos = mousePos;
@@ -543,7 +579,7 @@ public class AudioClipper : EditorWindow {
 					} else if (mousePos.x >= temp1 && mousePos.x <= temp2) {
 						m_DraggingType = DraggingType.START_END_TIMES;
 						m_DragPrevPos = mousePos;
-					} else if (mousePos.x >= temp2 && mousePos.x < clipEndLineRect.x + 12) {
+					} else if (mousePos.x >= temp2 && mousePos.x < clipEndLineRect.x + DRAGGABLE_EXT_THICKNESS) {
 						if (clipEndLineVisible) {
 							m_DraggingType = DraggingType.END_TIME;
 							m_DragPrevPos = mousePos;
