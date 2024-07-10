@@ -78,7 +78,6 @@ public class ImageCropping : EditorWindow {
 	}
 
 	private void OnGUI() {
-		// EditorGUILayout.EnumPopup(m_ResizeType);
 		DrawTargetField();
 		DrawCroppingRectField();
 		DrawCanvasField();
