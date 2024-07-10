@@ -41,7 +41,7 @@ public class ImageCropping : EditorWindow {
 		[InspectorName("四边边距")]
 		BORDER = 2,
 	}
-	
+
 	private const float RULER_THICKNESS = 18F;	// 标尺的宽度
 	private const float SCROLL_BAR_THICKNESS = 16F;	// 滚动条的宽度
 	private const float SCROLL_BAR_PRECISION = 1000F;	// 缩放精度（最小为缩放到1像素）
@@ -52,19 +52,19 @@ public class ImageCropping : EditorWindow {
 	private const float BLANK_DELTA_WITH_CANVAS = 100F;	// 当纹理尺寸大于画布，空白部分相对于画布宽度
 	private const float SCALE_MAX = 32F;	// 最大缩放倍数（最小为缩放到1像素）
 	private const float AUTO_SCROLL_SPEED = 300F;	// 鼠标拖动裁剪框到边缘外时，自动滚动的速度
-	
+
 	private static readonly Color SCROLL_BAR_BG_COLOR = new Color(0.25F, 0.25F, 0.25F);
 
 	[SerializeField] private Texture2D m_Tex;
 	[SerializeField] private RectInt m_CroppingRect;
-	
+
 	[SerializeField] private RectType m_RectType;
 	[SerializeField] private float m_Scale = 1;
 	[SerializeField] private float m_ContentX;
 	[SerializeField] private float m_ContentY;
-	
+
 	private Rect m_CanvasRect;
-	
+
 	private readonly List<(Rect, ResizeType)> m_ResizeRects = new List<(Rect, ResizeType)>();
 	private ResizeType m_ResizeType;
 	private Vector2 m_DragPrevPos;
@@ -173,17 +173,17 @@ public class ImageCropping : EditorWindow {
 
 	private void DrawCanvasField() {
 		Rect rect = EditorGUILayout.BeginVertical(GUILayout.ExpandHeight(true));
-		
+
 		Rect horizontalRulerRect = new Rect(rect.x + RULER_THICKNESS, rect.y, rect.width - RULER_THICKNESS - SCROLL_BAR_THICKNESS, RULER_THICKNESS);
 		Rect verticalRulerRect = new Rect(rect.x, rect.y + RULER_THICKNESS, RULER_THICKNESS, rect.height - RULER_THICKNESS - SCROLL_BAR_THICKNESS);
 		Rect verticalBarRect = new Rect(rect.xMax - SCROLL_BAR_THICKNESS, rect.y, SCROLL_BAR_THICKNESS, rect.height - SCROLL_BAR_THICKNESS);
 		Rect horizontalBarRect = new Rect(rect.x, rect.yMax - SCROLL_BAR_THICKNESS, rect.width - SCROLL_BAR_THICKNESS, SCROLL_BAR_THICKNESS);
-		
+
 		EditorGUI.DrawRect(horizontalRulerRect, SCROLL_BAR_BG_COLOR);
 		EditorGUI.DrawRect(verticalRulerRect, SCROLL_BAR_BG_COLOR);
 		EditorGUI.DrawRect(verticalBarRect, SCROLL_BAR_BG_COLOR);
 		EditorGUI.DrawRect(horizontalBarRect, SCROLL_BAR_BG_COLOR);
-		
+
 		Rect canvasRect = new Rect(horizontalRulerRect.x, verticalRulerRect.y, horizontalRulerRect.width, verticalRulerRect.height);
 		if (Event.current.type == EventType.Repaint) {
 			m_CanvasRect = canvasRect;
@@ -197,7 +197,7 @@ public class ImageCropping : EditorWindow {
 			float contentHeight = m_Tex.height * m_Scale - Mathf.Min(borderBottom, 0) - Mathf.Min(borderTop, 0);
 			DrawCanvas(canvasRect, contentWidth, contentHeight, borderLeft, borderTop);
 			DrawScrollBar(horizontalBarRect, verticalBarRect, contentWidth, contentHeight);
-			
+
 			Rect scaleLabelRect = new Rect(horizontalBarRect.x, horizontalBarRect.y, 0, horizontalBarRect.height);
 			if (horizontalBarRect.width > SCALE_VISIBLE_H_BAR_WIDTH_MIN) {
 				scaleLabelRect.width = SCALE_LABEL_WIDTH;
@@ -265,23 +265,23 @@ public class ImageCropping : EditorWindow {
 				ShowNotification(EditorGUIUtility.TrTextContent("剪裁区域不能为空！"), 1);
 				return;
 			}
-			
+
 			Color[] srcColors = GetScrTexturePixels();
 			if (srcColors == null) {
 				return;
 			}
-			
+
 			Color[] colors = CopyPixels(srcColors, m_Tex.width, m_Tex.height, m_CroppingRect);
 			Texture2D tex = new Texture2D(croppingWidth, croppingHeight, TextureFormat.RGBA32, false);
 			tex.SetPixels(colors);
 			tex.Apply();
-			
+
 			string srcFilePath = AssetDatabase.GetAssetPath(m_Tex);
 			string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
 			string filePath = EditorUtility.SaveFilePanel("保存裁剪后的纹理", directory, m_Tex.name + "_New", "png");
 			byte[] bytes = tex.EncodeToPNG();
 			File.WriteAllBytes(filePath, bytes);
-			
+
 			AssetDatabase.Refresh();
 		}
 	}
@@ -331,34 +331,34 @@ public class ImageCropping : EditorWindow {
 	private const float CROPPING_RECT_BOLD_LENGTH = 10F;	// 粗线长度
 	private void DrawCroppingRect(Rect rect) {
 		m_ResizeRects.Clear();
-		
+
 		float boldLengthH = Mathf.Min(CROPPING_RECT_BOLD_LENGTH, rect.width * 0.5F);
 		float boldLengthV = Mathf.Min(CROPPING_RECT_BOLD_LENGTH, rect.height * 0.5F);
-		
+
 		#region 边框
 		Rect topLineRect = new Rect(rect.x + boldLengthH, rect.y, rect.width - boldLengthH - boldLengthH, 1);
 		EditorGUI.DrawRect(topLineRect, Color.cyan);
 		topLineRect.y -= DRAGGABLE_EXT_THICKNESS;
 		topLineRect.height += DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((topLineRect, ResizeType.TOP));
-		
+
 		Rect bottomLineRect = new Rect(rect.x + boldLengthH, rect.yMax - 1, rect.width - boldLengthH - boldLengthH, 1);
 		EditorGUI.DrawRect(bottomLineRect, Color.cyan);
 		bottomLineRect.height += DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((bottomLineRect, ResizeType.BOTTOM));
-		
+
 		Rect leftLineRect = new Rect(rect.x, rect.y + boldLengthV, 1, rect.height - boldLengthV - boldLengthV);
 		EditorGUI.DrawRect(leftLineRect, Color.cyan);
 		leftLineRect.x -= DRAGGABLE_EXT_THICKNESS;
 		leftLineRect.width += DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((leftLineRect, ResizeType.LEFT));
-		
+
 		Rect rightLineRect = new Rect(rect.xMax - 1, rect.y + boldLengthV, 1, rect.height - boldLengthV - boldLengthV);
 		EditorGUI.DrawRect(rightLineRect, Color.cyan);
 		rightLineRect.width += DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((rightLineRect, ResizeType.RIGHT));
 		#endregion
-		
+
 		#region 12条加粗线段
 		Rect topLeftRect = new Rect(rect.x, rect.y, boldLengthH, CROPPING_RECT_BOLD_THICKNESS);
 		EditorGUI.DrawRect(topLeftRect, Color.cyan);
@@ -367,7 +367,7 @@ public class ImageCropping : EditorWindow {
 		topLeftRect.y -= DRAGGABLE_EXT_THICKNESS;
 		topLeftRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((topLeftRect, ResizeType.TOP_LEFT));
-		
+
 		Rect topRightRect = new Rect(rect.xMax - boldLengthH, rect.y, boldLengthH, CROPPING_RECT_BOLD_THICKNESS);
 		EditorGUI.DrawRect(topRightRect, Color.cyan);
 		topRightRect.x -= DRAGGABLE_EXT_THICKNESS;
@@ -375,13 +375,13 @@ public class ImageCropping : EditorWindow {
 		topRightRect.y -= DRAGGABLE_EXT_THICKNESS;
 		topRightRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((topRightRect, ResizeType.TOP_RIGHT));
-		
+
 		Rect topCenterRect = new Rect(rect.x + (rect.width - boldLengthH) / 2, rect.y, boldLengthH, CROPPING_RECT_BOLD_THICKNESS);
 		EditorGUI.DrawRect(topCenterRect, Color.cyan);
 		topCenterRect.y -= DRAGGABLE_EXT_THICKNESS;
 		topCenterRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((topCenterRect, ResizeType.TOP));
-		
+
 		Rect bottomLeftRect = new Rect(rect.x, rect.yMax - CROPPING_RECT_BOLD_THICKNESS, boldLengthH, CROPPING_RECT_BOLD_THICKNESS);
 		EditorGUI.DrawRect(bottomLeftRect, Color.cyan);
 		bottomLeftRect.x -= DRAGGABLE_EXT_THICKNESS;
@@ -389,7 +389,7 @@ public class ImageCropping : EditorWindow {
 		bottomLeftRect.y -= DRAGGABLE_EXT_THICKNESS;
 		bottomLeftRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((bottomLeftRect, ResizeType.BOTTOM_LEFT));
-		
+
 		Rect bottomRightRect = new Rect(rect.xMax - boldLengthH, rect.yMax - CROPPING_RECT_BOLD_THICKNESS, boldLengthH, CROPPING_RECT_BOLD_THICKNESS);
 		EditorGUI.DrawRect(bottomRightRect, Color.cyan);
 		bottomRightRect.x -= DRAGGABLE_EXT_THICKNESS;
@@ -397,12 +397,12 @@ public class ImageCropping : EditorWindow {
 		bottomRightRect.y -= DRAGGABLE_EXT_THICKNESS;
 		bottomRightRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((bottomRightRect, ResizeType.BOTTOM_RIGHT));
-		
+
 		Rect bottomCenterRect = new Rect(rect.x + (rect.width - boldLengthH) / 2, rect.yMax - CROPPING_RECT_BOLD_THICKNESS, boldLengthH, CROPPING_RECT_BOLD_THICKNESS);
 		EditorGUI.DrawRect(bottomCenterRect, Color.cyan);
 		bottomCenterRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((bottomCenterRect, ResizeType.BOTTOM));
-		
+
 		Rect leftTopRect = new Rect(rect.x, rect.y, CROPPING_RECT_BOLD_THICKNESS, boldLengthV);
 		EditorGUI.DrawRect(leftTopRect, Color.cyan);
 		leftTopRect.x -= DRAGGABLE_EXT_THICKNESS;
@@ -410,7 +410,7 @@ public class ImageCropping : EditorWindow {
 		leftTopRect.y -= DRAGGABLE_EXT_THICKNESS;
 		leftTopRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((leftTopRect, ResizeType.TOP_LEFT));
-		
+
 		Rect leftBottomRect = new Rect(rect.x, rect.yMax - boldLengthV, CROPPING_RECT_BOLD_THICKNESS, boldLengthV);
 		EditorGUI.DrawRect(leftBottomRect, Color.cyan);
 		leftBottomRect.x -= DRAGGABLE_EXT_THICKNESS;
@@ -418,13 +418,13 @@ public class ImageCropping : EditorWindow {
 		leftBottomRect.y -= DRAGGABLE_EXT_THICKNESS;
 		leftBottomRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((leftBottomRect, ResizeType.BOTTOM_LEFT));
-		
+
 		Rect leftCenterRect = new Rect(rect.x, rect.y + (rect.height - boldLengthV) / 2, CROPPING_RECT_BOLD_THICKNESS, boldLengthV);
 		EditorGUI.DrawRect(leftCenterRect, Color.cyan);
 		leftCenterRect.x -= DRAGGABLE_EXT_THICKNESS;
 		leftCenterRect.width += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((leftCenterRect, ResizeType.LEFT));
-		
+
 		Rect rightTopRect = new Rect(rect.xMax - CROPPING_RECT_BOLD_THICKNESS, rect.y, CROPPING_RECT_BOLD_THICKNESS, boldLengthV);
 		EditorGUI.DrawRect(rightTopRect, Color.cyan);
 		rightTopRect.x -= DRAGGABLE_EXT_THICKNESS;
@@ -432,7 +432,7 @@ public class ImageCropping : EditorWindow {
 		rightTopRect.y -= DRAGGABLE_EXT_THICKNESS;
 		rightTopRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((rightTopRect, ResizeType.TOP_RIGHT));
-		
+
 		Rect rightBottomRect = new Rect(rect.xMax - CROPPING_RECT_BOLD_THICKNESS, rect.yMax - boldLengthV, CROPPING_RECT_BOLD_THICKNESS, boldLengthV);
 		EditorGUI.DrawRect(rightBottomRect, Color.cyan);
 		rightBottomRect.x -= DRAGGABLE_EXT_THICKNESS;
@@ -440,7 +440,7 @@ public class ImageCropping : EditorWindow {
 		rightBottomRect.y -= DRAGGABLE_EXT_THICKNESS;
 		rightBottomRect.height += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((rightBottomRect, ResizeType.BOTTOM_RIGHT));
-		
+
 		Rect rightCenterRect = new Rect(rect.xMax - CROPPING_RECT_BOLD_THICKNESS, rect.y + (rect.height - boldLengthV) / 2, CROPPING_RECT_BOLD_THICKNESS, boldLengthV);
 		EditorGUI.DrawRect(rightCenterRect, Color.cyan);
 		rightCenterRect.x -= DRAGGABLE_EXT_THICKNESS;
@@ -482,7 +482,7 @@ public class ImageCropping : EditorWindow {
 	private void DrawScaleLabel(Rect scaleLabelRect) {
 		EditorGUI.LabelField(scaleLabelRect, $"{Mathf.Round(m_Scale * 10000) / 100}%", (GUIStyle) "CenteredLabel");
 	}
-	
+
 	private void SetCursorRect() {
 		switch (m_ResizeType) {
 			case ResizeType.TOP_LEFT:
@@ -531,7 +531,7 @@ public class ImageCropping : EditorWindow {
 				break;
 		}
 	}
-	
+
 	private void HandleMouseEvent(Rect scrollWheelRect) {
 		switch (Event.current.type) {
 			case EventType.ScrollWheel: {
@@ -575,88 +575,110 @@ public class ImageCropping : EditorWindow {
 					mousePos.y -= m_CanvasRect.y;
 					float deltaX = mousePos.x - m_DragPrevPos.x;
 					float deltaY = mousePos.y - m_DragPrevPos.y;
-					if (m_ResizeType is ResizeType.TOP_LEFT or ResizeType.LEFT or ResizeType.BOTTOM_LEFT) {
-						int croppingXMin = m_CroppingRect.xMin;
-						int newCroppingXMin = Mathf.RoundToInt(croppingXMin + deltaX / m_Scale);
-						mousePos.x = m_DragPrevPos.x + (newCroppingXMin - croppingXMin) * m_Scale;
+					switch (m_ResizeType) {
+						case ResizeType.TOP_LEFT:
+						case ResizeType.LEFT:
+						case ResizeType.BOTTOM_LEFT: {
+							int croppingXMin = m_CroppingRect.xMin;
+							int newCroppingXMin = Mathf.RoundToInt(croppingXMin + deltaX / m_Scale);
+							mousePos.x = m_DragPrevPos.x + (newCroppingXMin - croppingXMin) * m_Scale;
 
-						int overflowValue = 0;
-						int croppingXMax = m_CroppingRect.xMax;
-						if (newCroppingXMin > croppingXMax) {
-							overflowValue = newCroppingXMin - croppingXMax;
-							newCroppingXMin = croppingXMax;
-						}
-						m_CroppingRect.xMin = newCroppingXMin;
-						if (croppingXMin < 0 || newCroppingXMin < 0) {
-							m_ContentX += (Mathf.Min(newCroppingXMin, 0) - Mathf.Min(croppingXMin, 0)) * m_Scale;
-						}
-						if (overflowValue != 0) {
-							newCroppingXMin += overflowValue;
-							m_CroppingRect.xMax = newCroppingXMin;
-							m_ResizeType += ResizeType.RIGHT - ResizeType.LEFT;
-						}
-					} else if (m_ResizeType is ResizeType.TOP_RIGHT or ResizeType.RIGHT or ResizeType.BOTTOM_RIGHT) {
-						int croppingXMax = m_CroppingRect.xMax;
-						int newCroppingXMax = Mathf.RoundToInt(croppingXMax + deltaX / m_Scale);
-						mousePos.x = m_DragPrevPos.x + (newCroppingXMax - croppingXMax) * m_Scale;
-						
-						int overflowValue = 0;
-						int croppingXMin = m_CroppingRect.xMin;
-						if (newCroppingXMax < croppingXMin) {
-							overflowValue = newCroppingXMax - croppingXMin;
-							newCroppingXMax = croppingXMin;
-						}
-						m_CroppingRect.xMax = newCroppingXMax;
-						if (overflowValue != 0) {
-							newCroppingXMax += overflowValue;
-							m_CroppingRect.xMin = newCroppingXMax;
-							m_ResizeType += ResizeType.LEFT - ResizeType.RIGHT;
-							if (croppingXMin < 0 || newCroppingXMax < 0) {
-								m_ContentX += (Mathf.Min(newCroppingXMax, 0) - Mathf.Min(croppingXMin, 0)) * m_Scale;
+							int overflowValue = 0;
+							int croppingXMax = m_CroppingRect.xMax;
+							if (newCroppingXMin > croppingXMax) {
+								overflowValue = newCroppingXMin - croppingXMax;
+								newCroppingXMin = croppingXMax;
 							}
+							m_CroppingRect.xMin = newCroppingXMin;
+							if (croppingXMin < 0 || newCroppingXMin < 0) {
+								m_ContentX += (Mathf.Min(newCroppingXMin, 0) - Mathf.Min(croppingXMin, 0)) * m_Scale;
+							}
+
+							if (overflowValue != 0) {
+								newCroppingXMin += overflowValue;
+								m_CroppingRect.xMax = newCroppingXMin;
+								m_ResizeType += ResizeType.RIGHT - ResizeType.LEFT;
+							}
+							break;
+						}
+						case ResizeType.TOP_RIGHT:
+						case ResizeType.RIGHT:
+						case ResizeType.BOTTOM_RIGHT: {
+							int croppingXMax = m_CroppingRect.xMax;
+							int newCroppingXMax = Mathf.RoundToInt(croppingXMax + deltaX / m_Scale);
+							mousePos.x = m_DragPrevPos.x + (newCroppingXMax - croppingXMax) * m_Scale;
+
+							int overflowValue = 0;
+							int croppingXMin = m_CroppingRect.xMin;
+							if (newCroppingXMax < croppingXMin) {
+								overflowValue = newCroppingXMax - croppingXMin;
+								newCroppingXMax = croppingXMin;
+							}
+							m_CroppingRect.xMax = newCroppingXMax;
+
+							if (overflowValue != 0) {
+								newCroppingXMax += overflowValue;
+								m_CroppingRect.xMin = newCroppingXMax;
+								m_ResizeType += ResizeType.LEFT - ResizeType.RIGHT;
+								if (croppingXMin < 0 || newCroppingXMax < 0) {
+									m_ContentX += (Mathf.Min(newCroppingXMax, 0) - Mathf.Min(croppingXMin, 0)) * m_Scale;
+								}
+							}
+							break;
 						}
 					}
-					if (m_ResizeType is ResizeType.TOP_LEFT or ResizeType.TOP or ResizeType.TOP_RIGHT) {
-						int croppingYMax = m_CroppingRect.yMax;
-						int newCroppingYMax = Mathf.RoundToInt(croppingYMax + -deltaY / m_Scale);
-						mousePos.y = m_DragPrevPos.y + -(newCroppingYMax - croppingYMax) * m_Scale;
-						
-						int overflowValue = 0;
-						int croppingYMin = m_CroppingRect.yMin;
-						if (newCroppingYMax < croppingYMin) {
-							overflowValue = newCroppingYMax - croppingYMin;
-							newCroppingYMax = croppingYMin;
-						}
-						m_CroppingRect.yMax = newCroppingYMax;
-						int texHeight = m_Tex.height;
-						if (croppingYMax > texHeight || newCroppingYMax > texHeight) {
-							m_ContentY -= (Mathf.Max(newCroppingYMax, texHeight) - Mathf.Max(croppingYMax, texHeight)) * m_Scale;
-						}
-						if (overflowValue != 0) {
-							newCroppingYMax += overflowValue;
-							m_CroppingRect.yMin = newCroppingYMax;
-							m_ResizeType += ResizeType.BOTTOM - ResizeType.TOP;
-						}
-					} else if (m_ResizeType is ResizeType.BOTTOM_LEFT or ResizeType.BOTTOM or ResizeType.BOTTOM_RIGHT) {
-						int croppingYMin = m_CroppingRect.yMin;
-						int newCroppingYMin = Mathf.RoundToInt(croppingYMin + -deltaY / m_Scale);
-						mousePos.y = m_DragPrevPos.y + -(newCroppingYMin - croppingYMin) * m_Scale;
-						
-						int overflowValue = 0;
-						int croppingYMax = m_CroppingRect.yMax;
-						if (newCroppingYMin > croppingYMax) {
-							overflowValue = newCroppingYMin - croppingYMax;
-							newCroppingYMin = croppingYMax;
-						}
-						m_CroppingRect.yMin = newCroppingYMin;
-						if (overflowValue != 0) {
-							newCroppingYMin += overflowValue;
-							m_CroppingRect.yMax = newCroppingYMin;
-							m_ResizeType += ResizeType.TOP - ResizeType.BOTTOM;
-							int texHeight = m_Tex.height;
-							if (croppingYMax > texHeight || newCroppingYMin > texHeight) {
-								m_ContentY -= (Mathf.Max(newCroppingYMin, texHeight) - Mathf.Max(croppingYMax, texHeight)) * m_Scale;
+					switch (m_ResizeType) {
+						case ResizeType.TOP_LEFT:
+						case ResizeType.TOP:
+						case ResizeType.TOP_RIGHT: {
+							int croppingYMax = m_CroppingRect.yMax;
+							int newCroppingYMax = Mathf.RoundToInt(croppingYMax + -deltaY / m_Scale);
+							mousePos.y = m_DragPrevPos.y + -(newCroppingYMax - croppingYMax) * m_Scale;
+
+							int overflowValue = 0;
+							int croppingYMin = m_CroppingRect.yMin;
+							if (newCroppingYMax < croppingYMin) {
+								overflowValue = newCroppingYMax - croppingYMin;
+								newCroppingYMax = croppingYMin;
 							}
+							m_CroppingRect.yMax = newCroppingYMax;
+							int texHeight = m_Tex.height;
+							if (croppingYMax > texHeight || newCroppingYMax > texHeight) {
+								m_ContentY -= (Mathf.Max(newCroppingYMax, texHeight) - Mathf.Max(croppingYMax, texHeight)) * m_Scale;
+							}
+
+							if (overflowValue != 0) {
+								newCroppingYMax += overflowValue;
+								m_CroppingRect.yMin = newCroppingYMax;
+								m_ResizeType += ResizeType.BOTTOM - ResizeType.TOP;
+							}
+							break;
+						}
+						case ResizeType.BOTTOM_LEFT:
+						case ResizeType.BOTTOM:
+						case ResizeType.BOTTOM_RIGHT: {
+							int croppingYMin = m_CroppingRect.yMin;
+							int newCroppingYMin = Mathf.RoundToInt(croppingYMin + -deltaY / m_Scale);
+							mousePos.y = m_DragPrevPos.y + -(newCroppingYMin - croppingYMin) * m_Scale;
+
+							int overflowValue = 0;
+							int croppingYMax = m_CroppingRect.yMax;
+							if (newCroppingYMin > croppingYMax) {
+								overflowValue = newCroppingYMin - croppingYMax;
+								newCroppingYMin = croppingYMax;
+							}
+							m_CroppingRect.yMin = newCroppingYMin;
+
+							if (overflowValue != 0) {
+								newCroppingYMin += overflowValue;
+								m_CroppingRect.yMax = newCroppingYMin;
+								m_ResizeType += ResizeType.TOP - ResizeType.BOTTOM;
+								int texHeight = m_Tex.height;
+								if (croppingYMax > texHeight || newCroppingYMin > texHeight) {
+									m_ContentY -= (Mathf.Max(newCroppingYMin, texHeight) - Mathf.Max(croppingYMax, texHeight)) * m_Scale;
+								}
+							}
+							break;
 						}
 					}
 					if (m_ResizeType is ResizeType.CENTER) {
@@ -720,7 +742,7 @@ public class ImageCropping : EditorWindow {
 			case ResizeType.BOTTOM_LEFT: {
 				int croppingXMin = m_CroppingRect.xMin;
 				int newCroppingXMin = croppingXMin + deltaCroppingX;
-				
+
 				int overflowValue = 0;
 				int croppingXMax = m_CroppingRect.xMax;
 				if (newCroppingXMin > croppingXMax) {
@@ -731,7 +753,7 @@ public class ImageCropping : EditorWindow {
 				if (croppingXMin > 0 || newCroppingXMin > 0) {
 					m_ContentX -= (Mathf.Max(newCroppingXMin, 0) - Mathf.Max(croppingXMin, 0)) * m_Scale;
 				}
-				
+
 				if (overflowValue != 0) {
 					m_CroppingRect.xMax += overflowValue;
 					m_ResizeType += ResizeType.RIGHT - ResizeType.LEFT;
@@ -744,7 +766,7 @@ public class ImageCropping : EditorWindow {
 			case ResizeType.BOTTOM_RIGHT: {
 				int croppingXMax = m_CroppingRect.xMax;
 				int newCroppingXMax = croppingXMax + deltaCroppingX;
-				
+
 				int overflowValue = 0;
 				int croppingXMin = m_CroppingRect.xMin;
 				if (newCroppingXMax < croppingXMin) {
@@ -753,7 +775,7 @@ public class ImageCropping : EditorWindow {
 				}
 				m_CroppingRect.xMax = newCroppingXMax;
 				m_ContentX -= (newCroppingXMax - croppingXMax) * m_Scale;
-				
+
 				if (overflowValue != 0) {
 					newCroppingXMax += overflowValue;
 					m_CroppingRect.xMin = newCroppingXMax;
@@ -773,7 +795,7 @@ public class ImageCropping : EditorWindow {
 			case ResizeType.TOP_RIGHT: {
 				int croppingYMax = m_CroppingRect.yMax;
 				int newCroppingYMax = croppingYMax + deltaCroppingY;
-				
+
 				int overflowValue = 0;
 				int croppingYMin = m_CroppingRect.yMin;
 				if (newCroppingYMax < croppingYMin) {
@@ -785,7 +807,7 @@ public class ImageCropping : EditorWindow {
 				if (croppingYMax < texHeight || newCroppingYMax < texHeight) {
 					m_ContentY += (Mathf.Max(newCroppingYMax, 0) - Mathf.Max(croppingYMax, 0)) * m_Scale;
 				}
-				
+
 				if (overflowValue != 0) {
 					m_CroppingRect.yMin += overflowValue;
 					m_ResizeType += ResizeType.BOTTOM - ResizeType.TOP;
@@ -798,7 +820,7 @@ public class ImageCropping : EditorWindow {
 			case ResizeType.BOTTOM_RIGHT: {
 				int croppingYMin = m_CroppingRect.yMin;
 				int newCroppingYMin = croppingYMin + deltaCroppingY;
-				
+
 				int overflowValue = 0;
 				int croppingYMax = m_CroppingRect.yMax;
 				if (newCroppingYMin > croppingYMax) {
@@ -807,7 +829,7 @@ public class ImageCropping : EditorWindow {
 				}
 				m_CroppingRect.yMin = newCroppingYMin;
 				m_ContentY += (newCroppingYMin - croppingYMin) * m_Scale;
-				
+
 				if (overflowValue != 0) {
 					newCroppingYMin += overflowValue;
 					m_CroppingRect.yMax = newCroppingYMin;
