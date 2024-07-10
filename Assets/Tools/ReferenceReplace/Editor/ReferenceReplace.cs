@@ -251,7 +251,7 @@ public class ReferenceReplace : EditorWindow {
 			// 刷新
 			AssetDatabase.Refresh();
 			string text = $"替换完成，{count}个资源被{(clone ? "复制" : "改动")}。";
-			ShowNotification(new GUIContent(text), 1);
+			ShowNotification(EditorGUIUtility.TrTextContent(text), 1);
 			Debug.Log(text);
 		}
 	}

@@ -81,8 +81,8 @@ public class ImageCropping : EditorWindow {
 		DrawTargetField();
 		DrawCroppingRectField();
 		DrawCanvasField();
-		DrawZoomButtonsField();
-		DrawSaveField();
+		DrawZoomField();
+		DrawWriteField();
 	}
 
 	#region OnGUI
@@ -217,7 +217,7 @@ public class ImageCropping : EditorWindow {
 		EditorGUILayout.EndVertical();
 	}
 
-	private void DrawZoomButtonsField() {
+	private void DrawZoomField() {
 		EditorGUILayout.BeginHorizontal();
 		EditorGUILayout.LabelField("快捷缩放", GUILayout.Width(EditorGUIUtility.labelWidth - 2F));
 		if (GUILayout.Button("100%")) {
