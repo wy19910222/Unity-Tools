@@ -26,6 +26,7 @@ public class ImageCropping : EditorWindow {
 		TOP = 2,
 		TOP_RIGHT = 3,
 		LEFT = 4,
+		CENTER = 5,
 		RIGHT = 6,
 		BOTTOM_LEFT = 7,
 		BOTTOM = 8,
@@ -500,6 +501,9 @@ public class ImageCropping : EditorWindow {
 			case ResizeType.RIGHT:
 				EditorGUIUtility.AddCursorRect(position, MouseCursor.ResizeHorizontal);
 				break;
+			case ResizeType.CENTER:
+				EditorGUIUtility.AddCursorRect(position, MouseCursor.Pan);
+				break;
 			case ResizeType.NONE:
 				foreach ((Rect resizeRect, ResizeType type) element in m_ResizeRects) {
 					Rect resizeRect = element.resizeRect;
@@ -548,12 +552,18 @@ public class ImageCropping : EditorWindow {
 				if (mousePos.x >= m_CanvasRect.x && mousePos.x <= m_CanvasRect.xMax && mousePos.y >= m_CanvasRect.y && mousePos.y <= m_CanvasRect.yMax) {
 					mousePos.x -= m_CanvasRect.x;
 					mousePos.y -= m_CanvasRect.y;
+					bool isResize = false;
 					foreach ((Rect resizeRect, ResizeType type) in m_ResizeRects) {
 						if (resizeRect.Contains(mousePos)) {
+							isResize = true;
 							m_ResizeType = type;
 							m_DragPrevPos = mousePos;
 							break;
 						}
+					}
+					if (!isResize) {
+						m_ResizeType = ResizeType.CENTER;
+						m_DragPrevPos = mousePos;
 					}
 				}
 				break;
@@ -648,6 +658,10 @@ public class ImageCropping : EditorWindow {
 								m_ContentY -= (Mathf.Max(newCroppingYMin, texHeight) - Mathf.Max(croppingYMax, texHeight)) * m_Scale;
 							}
 						}
+					}
+					if (m_ResizeType is ResizeType.CENTER) {
+						m_ContentX += deltaX;
+						m_ContentY += deltaY;
 					}
 					m_DragPrevPos = mousePos;
 					Repaint();
