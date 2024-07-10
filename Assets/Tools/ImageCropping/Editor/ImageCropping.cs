@@ -264,24 +264,20 @@ public class ImageCropping : EditorWindow {
 				ShowNotification(EditorGUIUtility.TrTextContent("剪裁区域不能为空！"), 1);
 				return;
 			}
-
-			Color[] srcColors = GetScrTexturePixels();
-			if (srcColors == null) {
-				return;
-			}
-
-			Color[] colors = CopyPixels(srcColors, m_Tex.width, m_Tex.height, m_CroppingRect);
-			Texture2D tex = new Texture2D(croppingWidth, croppingHeight, TextureFormat.RGBA32, false);
-			tex.SetPixels(colors);
-			tex.Apply();
-
 			string srcFilePath = AssetDatabase.GetAssetPath(m_Tex);
 			string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
 			string filePath = EditorUtility.SaveFilePanel("保存裁剪后的纹理", directory, m_Tex.name + "_New", "png");
-			byte[] bytes = tex.EncodeToPNG();
-			File.WriteAllBytes(filePath, bytes);
-
-			AssetDatabase.Refresh();
+			if (!string.IsNullOrEmpty(filePath)) {
+				Color[] srcColors = GetTexturePixels(m_Tex);
+				Color[] colors = CopyPixels(srcColors, m_Tex.width, m_Tex.height, m_CroppingRect);
+				Texture2D tex = new Texture2D(croppingWidth, croppingHeight, TextureFormat.RGBA32, false);
+				tex.SetPixels(colors);
+				tex.Apply();
+				
+				byte[] bytes = tex.EncodeToPNG();
+				File.WriteAllBytes(filePath, bytes);
+				AssetDatabase.Refresh();
+			}
 		}
 	}
 
@@ -843,28 +839,6 @@ public class ImageCropping : EditorWindow {
 		}
 	}
 
-	private Color[] GetScrTexturePixels() {
-		TextureImporter importer = null;
-		if (!m_Tex.isReadable) {
-			if (!EditorUtility.DisplayDialog("警告", "源文件是不可读的，是否临时转为可读？", "确定", "取消")) {
-				return null;
-			}
-			importer = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(m_Tex)) as TextureImporter;
-			if (!importer) {
-				ShowNotification(EditorGUIUtility.TrTextContent("临时转为可读失败！"), 1);
-				return null;
-			}
-			importer.isReadable = true;
-			importer.SaveAndReimport();
-		}
-		Color[] colors = m_Tex.GetPixels();
-		if (importer) {
-			importer.isReadable = false;
-			importer.SaveAndReimport();
-		}
-		return colors;
-	}
-
 	private static Color[] CopyPixels(IReadOnlyList<Color> srcColors, int texWidth, int texHeight, RectInt croppingRect) {
 		Color[] colors = new Color[croppingRect.width * croppingRect.height];
 		for (int y = 0; y < croppingRect.height; y++) {
@@ -896,6 +870,23 @@ public class ImageCropping : EditorWindow {
 			}
 		}
 		return colors;
+	}
+
+	private static Color[] GetTexturePixels(Texture2D tex) {
+		if (!tex.isReadable) {
+			RenderTexture rt = RenderTexture.GetTemporary(tex.width, tex.height, 0);
+			Graphics.Blit(tex, rt);
+
+			RenderTexture prevRT = RenderTexture.active;
+			RenderTexture.active = rt;
+			Texture2D tempTex = new Texture2D(tex.width, tex.height, tex.format, false);
+			tempTex.ReadPixels(new Rect(0, 0, tex.width, tex.height), 0, 0, false);
+			tempTex.Apply();
+			RenderTexture.active = prevRT;
+			
+			tex = tempTex;
+		}
+		return tex.GetPixels();
 	}
 
 	public static string GetEnumInspectorName(object enumValue) {
