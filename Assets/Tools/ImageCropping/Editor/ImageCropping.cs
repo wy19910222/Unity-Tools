@@ -230,14 +230,14 @@ public class ImageCropping : EditorWindow {
 		if (GUILayout.Button("图像适应屏幕")) {
 			int texWidth = m_Tex.width;
 			int texHeight = m_Tex.height;
-			int xMin = Mathf.Min(m_CroppingRect.xMin, 0);
-			int yMin = Mathf.Min(m_CroppingRect.yMin, 0);
 			m_Scale = Mathf.Min((m_CanvasRect.width - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / texWidth,
 					(m_CanvasRect.height - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / texHeight);
 			float texX = (m_CanvasRect.width - texWidth * m_Scale) * 0.5F;
 			float texY = (m_CanvasRect.height - texHeight * m_Scale) * 0.5F;
-			m_ContentX = texX + xMin * m_Scale;
-			m_ContentY = texY + yMin * m_Scale;
+			float borderLeft = m_CroppingRect.xMin * m_Scale;
+			float borderTop = (texHeight - m_CroppingRect.yMax) * m_Scale;
+			m_ContentX = texX + Mathf.Min(borderLeft, 0);
+			m_ContentY = texY + Mathf.Min(borderTop, 0);
 		}
 		if (GUILayout.Button("整体适应屏幕")) {
 			int texWidth = m_Tex.width;
@@ -256,7 +256,7 @@ public class ImageCropping : EditorWindow {
 		EditorGUILayout.EndHorizontal();
 	}
 
-	private void DrawSaveField() {
+	private void DrawWriteField() {
 		if (GUILayout.Button("保存")) {
 			int croppingWidth = m_CroppingRect.width;
 			int croppingHeight = m_CroppingRect.height;
