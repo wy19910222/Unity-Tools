@@ -901,7 +901,7 @@ public class AudioClipper : EditorWindow {
 				}
 				string srcFilePath = AssetDatabase.GetAssetPath(m_Clip);
 				string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
-				string filePath = EditorUtility.SaveFilePanel("保存剪辑的音频", directory, m_Clip.name + "_New", m_FileFormat.ToLower());
+				string filePath = EditorUtility.SaveFilePanel("保存剪辑后的音频", directory, m_Clip.name + "_New", m_FileFormat.ToLower());
 				if (!string.IsNullOrEmpty(filePath)) {
 					string pathUpper = filePath.ToUpper();
 					if (pathUpper.EndsWith("WAV")) {
