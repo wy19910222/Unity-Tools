@@ -244,63 +244,74 @@ public class ImageCropping : EditorWindow {
 				Color[] colors = GetTexturePixels(m_Tex);
 				int width = m_Tex.width;
 				int height = m_Tex.height;
-				int trimX = 0;
-				for (int x = 0; x < width; x++) {
-					bool willBreak = false;
-					for (int y = 0; y < height; y++) {
-						if (colors[y * width + x].a > 0) {
-							trimX = x;
-							willBreak = true;
-							break;
-						}
-					}
-					if (willBreak) {
-						break;
-					}
-				}
-				int trimY = 0;
-				for (int y = 0; y < height; y++) {
-					bool willBreak = false;
+				if (m_QuickCroppingLeft) {
+					int trimXMin = 0;
 					for (int x = 0; x < width; x++) {
-						if (colors[y * width + x].a > 0) {
-							trimY = y;
-							willBreak = true;
+						bool willBreak = false;
+						for (int y = 0; y < height; y++) {
+							if (colors[y * width + x].a > 0) {
+								trimXMin = x;
+								willBreak = true;
+								break;
+							}
+						}
+						if (willBreak) {
 							break;
 						}
 					}
-					if (willBreak) {
-						break;
-					}
+					m_CroppingRect.xMin = trimXMin;
 				}
-				int trimWidth = width - trimX;
-				for (int x = width - 1; x >= 0; x--) {
-					bool willBreak = false;
+				if (m_QuickCroppingBottom) {
+					int trimYMin = 0;
 					for (int y = 0; y < height; y++) {
-						if (colors[y * width + x].a > 0) {
-							trimWidth = x + 1 - trimX;
-							willBreak = true;
+						bool willBreak = false;
+						for (int x = 0; x < width; x++) {
+							if (colors[y * width + x].a > 0) {
+								trimYMin = y;
+								willBreak = true;
+								break;
+							}
+						}
+						if (willBreak) {
 							break;
 						}
 					}
-					if (willBreak) {
-						break;
-					}
+					m_CroppingRect.yMin = trimYMin;
 				}
-				int trimHeight = height - trimY;
-				for (int y = height - 1; y >= 0; y--) {
-					bool willBreak = false;
-					for (int x = 0; x < width; x++) {
-						if (colors[y * width + x].a > 0) {
-							trimHeight = y + 1 - trimY;
-							willBreak = true;
+				if (m_QuickCroppingRight) {
+					int trimXMax = width;
+					for (int x = width - 1; x >= 0; x--) {
+						bool willBreak = false;
+						for (int y = 0; y < height; y++) {
+							if (colors[y * width + x].a > 0) {
+								trimXMax = x + 1;
+								willBreak = true;
+								break;
+							}
+						}
+						if (willBreak) {
 							break;
 						}
 					}
-					if (willBreak) {
-						break;
-					}
+					m_CroppingRect.xMax = trimXMax;
 				}
-				m_CroppingRect = new RectInt(trimX, trimY, trimWidth, trimHeight);
+				if (m_QuickCroppingTop) {
+					int trimYMax = height;
+					for (int y = height - 1; y >= 0; y--) {
+						bool willBreak = false;
+						for (int x = 0; x < width; x++) {
+							if (colors[y * width + x].a > 0) {
+								trimYMax = y + 1;
+								willBreak = true;
+								break;
+							}
+						}
+						if (willBreak) {
+							break;
+						}
+					}
+					m_CroppingRect.yMax = trimYMax;
+				}
 				UpdatePreviewTex();
 			}
 		}
@@ -335,7 +346,18 @@ public class ImageCropping : EditorWindow {
 		if (GUILayout.Button("重置" + dirText + "边缘", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 4F))) {
 			if (m_Tex) {
 				Undo.RecordObject(this, "ImageCropping.CroppingRect");
-				m_CroppingRect = new RectInt(0, 0, m_Tex.width, m_Tex.height);
+				if (m_QuickCroppingLeft) {
+					m_CroppingRect.xMin = 0;
+				}
+				if (m_QuickCroppingBottom) {
+					m_CroppingRect.yMin = 0;
+				}
+				if (m_QuickCroppingRight) {
+					m_CroppingRect.xMax = m_Tex.width;
+				}
+				if (m_QuickCroppingTop) {
+					m_CroppingRect.yMax = m_Tex.height;
+				}
 				UpdatePreviewTex();
 			}
 		}
