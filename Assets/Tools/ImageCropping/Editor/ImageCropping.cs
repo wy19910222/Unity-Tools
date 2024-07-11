@@ -52,6 +52,7 @@ public class ImageCropping : EditorWindow {
 	}
 
 	private const float RULER_THICKNESS = 18F;	// 标尺的宽度
+	private const float RULER_CELL_WIDTH_MIN = 34;	// 标尺最小每格尺寸，需要显示数字，不能太小
 	private const float SCROLL_BAR_THICKNESS = 16F;	// 滚动条的宽度
 	private const float SCROLL_BAR_PRECISION = 1000F;	// 缩放精度（最小为缩放到1像素）
 	private const float SCALE_VISIBLE_H_BAR_WIDTH_MIN = 175F;	// 当横向滚动条小于该值时不显示缩放比例标签
@@ -62,6 +63,7 @@ public class ImageCropping : EditorWindow {
 	private const float SCALE_MAX = 32F;	// 最大缩放倍数（最小为缩放到1像素）
 	private const float AUTO_SCROLL_SPEED = 500F;	// 鼠标拖动裁剪框到边缘外时，自动滚动的速度
 
+	private static readonly Color RULER_LINE_COLOR = new Color(1, 1F, 1F, 0.5F);
 	private static readonly Color SCROLL_BAR_BG_COLOR = new Color(0.25F, 0.25F, 0.25F);
 	private static readonly Color PREVIEW_MASK_COLOR = new Color(0.2F, 0.2F, 0.2F, 0.7F);
 	private static readonly Color CROPPING_CORNERED_COLOR = new Color(0, 1F, 1F, 0.5F);
@@ -406,13 +408,15 @@ public class ImageCropping : EditorWindow {
 		Rect rect = EditorGUILayout.BeginVertical(GUILayout.ExpandHeight(true));
 
 		Rect horizontalRulerRect = new Rect(rect.x + RULER_THICKNESS, rect.y, rect.width - RULER_THICKNESS - SCROLL_BAR_THICKNESS, RULER_THICKNESS);
-		Rect verticalRulerRect = new Rect(rect.x, rect.y + RULER_THICKNESS, RULER_THICKNESS, rect.height - RULER_THICKNESS - SCROLL_BAR_THICKNESS);
-		Rect verticalBarRect = new Rect(rect.xMax - SCROLL_BAR_THICKNESS, rect.y, SCROLL_BAR_THICKNESS, rect.height - SCROLL_BAR_THICKNESS);
-		Rect horizontalBarRect = new Rect(rect.x, rect.yMax - SCROLL_BAR_THICKNESS, rect.width - SCROLL_BAR_THICKNESS, SCROLL_BAR_THICKNESS);
-
 		EditorGUI.DrawRect(horizontalRulerRect, SCROLL_BAR_BG_COLOR);
+		DrawHorizontalRuler(horizontalRulerRect);
+		Rect verticalRulerRect = new Rect(rect.x, rect.y + RULER_THICKNESS, RULER_THICKNESS, rect.height - RULER_THICKNESS - SCROLL_BAR_THICKNESS);
 		EditorGUI.DrawRect(verticalRulerRect, SCROLL_BAR_BG_COLOR);
+		DrawVerticalRuler(verticalRulerRect);
+		
+		Rect verticalBarRect = new Rect(rect.xMax - SCROLL_BAR_THICKNESS, rect.y, SCROLL_BAR_THICKNESS, rect.height - SCROLL_BAR_THICKNESS);
 		EditorGUI.DrawRect(verticalBarRect, SCROLL_BAR_BG_COLOR);
+		Rect horizontalBarRect = new Rect(rect.x, rect.yMax - SCROLL_BAR_THICKNESS, rect.width - SCROLL_BAR_THICKNESS, SCROLL_BAR_THICKNESS);
 		EditorGUI.DrawRect(horizontalBarRect, SCROLL_BAR_BG_COLOR);
 
 		Rect canvasRect = new Rect(horizontalRulerRect.x, verticalRulerRect.y, horizontalRulerRect.width, verticalRulerRect.height);
@@ -429,14 +433,14 @@ public class ImageCropping : EditorWindow {
 			float scaledContentWidth = (xMax - xMin) * m_Scale;
 			float scaledContentHeight = (yMax - yMin) * m_Scale;
 			DrawCanvas(canvasRect, scaledContentWidth, scaledContentHeight);
-			DrawScrollBar(horizontalBarRect, verticalBarRect, scaledContentWidth, scaledContentHeight);
-
+			
 			Rect scaleLabelRect = new Rect(horizontalBarRect.x, horizontalBarRect.y, 0, horizontalBarRect.height);
 			if (horizontalBarRect.width > SCALE_VISIBLE_H_BAR_WIDTH_MIN) {
 				scaleLabelRect.width = SCALE_LABEL_WIDTH;
 				horizontalBarRect.x += SCALE_LABEL_WIDTH;
 				horizontalBarRect.width -= SCALE_LABEL_WIDTH;
 			}
+			DrawScrollBar(horizontalBarRect, verticalBarRect, scaledContentWidth, scaledContentHeight);
 			DrawScaleLabel(scaleLabelRect);
 
 			SetCursorRect();
@@ -528,6 +532,117 @@ public class ImageCropping : EditorWindow {
 	#endregion
 
 	#region DrawCanvasField
+
+	private void DrawHorizontalRuler(Rect horizontalRulerRect) {
+		float blockValueMin = Mathf.CeilToInt(RULER_CELL_WIDTH_MIN / m_Scale);
+		int blockValue = 1;
+		while (blockValueMin >= 10) {
+			blockValue *= 10;
+			blockValueMin /= 10;
+		}
+		switch (blockValueMin) {
+			case > 5:
+				blockValue *= 10;
+				break;
+			case > 2:
+				blockValue *= 5;
+				break;
+			case > 1:
+				blockValue *= 2;
+				break;
+		}
+		float blockWidth = blockValue * m_Scale;
+		int subBlock = blockValue < 10 ? blockValue : blockWidth > 50 ? 10 : 5;
+		float subBlockWidth = blockWidth / subBlock;
+		float zeroPosX = m_ContentX - Mathf.Min(m_CroppingRect.xMin, 0) * m_Scale;
+		
+		float x = zeroPosX;
+		float value = 0;
+		float blockIndex = Mathf.Ceil(x / blockWidth);
+		x -= blockIndex * blockWidth;
+		value -= blockIndex * blockValue;
+		while (x < horizontalRulerRect.width) {
+			if (x > 0) {
+				Rect lineRect = new Rect(horizontalRulerRect.x + x, horizontalRulerRect.y, 1, horizontalRulerRect.height);
+				EditorGUI.DrawRect(lineRect, RULER_LINE_COLOR);
+				Rect labelRect = new Rect(horizontalRulerRect.x + x, horizontalRulerRect.y, Mathf.Min(RULER_CELL_WIDTH_MIN, horizontalRulerRect.width - x), horizontalRulerRect.height);
+				EditorGUI.LabelField(labelRect, Mathf.Abs(value) + "", (GUIStyle) "MiniLabel");
+			}
+			for (int i = 1; i < subBlock; i++) {
+				float subX = x + subBlockWidth * i;
+				if (subX > 0 && subX < horizontalRulerRect.width) {
+					Rect subLineRect = new Rect(horizontalRulerRect.x + x + subBlockWidth * i, horizontalRulerRect.yMax - 3, 1, 3);
+					EditorGUI.DrawRect(subLineRect, RULER_LINE_COLOR);
+				}
+			}
+			if (subBlock == 10) {
+				float subX = x + subBlockWidth * 5;
+				if (subX > 0 && subX < horizontalRulerRect.width) {
+					Rect subLineRect = new Rect(horizontalRulerRect.x + x + subBlockWidth * 5, horizontalRulerRect.yMax - 5, 1, 2);
+					EditorGUI.DrawRect(subLineRect, RULER_LINE_COLOR);
+				}
+			}
+			x += blockWidth;
+			value += blockValue;
+		}
+	}
+
+	private void DrawVerticalRuler(Rect verticalRulerRect) {
+		float blockValueMin = Mathf.CeilToInt(RULER_CELL_WIDTH_MIN / m_Scale);
+		int blockValue = 1;
+		while (blockValueMin >= 10) {
+			blockValue *= 10;
+			blockValueMin /= 10;
+		}
+		switch (blockValueMin) {
+			case > 5:
+				blockValue *= 10;
+				break;
+			case > 2:
+				blockValue *= 5;
+				break;
+			case > 1:
+				blockValue *= 2;
+				break;
+		}
+		float blockHeight = blockValue * m_Scale;
+		int subBlock = blockValue < 10 ? blockValue : blockHeight > 50 ? 10 : 5;
+		float subBlockHeight = blockHeight / subBlock;
+		float zeroPosY = m_ContentY - Mathf.Min(m_Tex.height - m_CroppingRect.yMax, 0) * m_Scale;
+		
+		float y = zeroPosY;
+		float value = 0;
+		float blockIndex = Mathf.Ceil(y / blockHeight);
+		y -= blockIndex * blockHeight;
+		value -= blockIndex * blockValue;
+		while (y < verticalRulerRect.height) {
+			if (y > 0) {
+				Rect lineRect = new Rect(verticalRulerRect.x, verticalRulerRect.y + y, verticalRulerRect.width, 1);
+				EditorGUI.DrawRect(lineRect, RULER_LINE_COLOR);
+				Vector2 rotatePivot = new Vector2(verticalRulerRect.x + verticalRulerRect.width * 0.5F, verticalRulerRect.y + y + verticalRulerRect.width * 0.5F);
+				EditorGUIUtility.RotateAroundPivot(90, rotatePivot);
+				Rect labelRect = new Rect(verticalRulerRect.x, verticalRulerRect.y + y, Mathf.Min(RULER_CELL_WIDTH_MIN, verticalRulerRect.height - y), verticalRulerRect.width);
+				EditorGUI.LabelField(labelRect, Mathf.Abs(value) + "", (GUIStyle) "MiniLabel");
+				EditorGUIUtility.RotateAroundPivot(-90, rotatePivot);
+			}
+			for (int i = 1; i < subBlock; i++) {
+				float subY = y + subBlockHeight * i;
+				if (subY > 0 && subY < verticalRulerRect.height) {
+					Rect subLineRect = new Rect(verticalRulerRect.xMax - 3, verticalRulerRect.y + y + subBlockHeight * i, 3, 1);
+					EditorGUI.DrawRect(subLineRect, RULER_LINE_COLOR);
+				}
+			}
+			if (subBlock == 10) {
+				float subY = y + subBlockHeight * 5;
+				if (subY > 0 && subY < verticalRulerRect.height) {
+					Rect subLineRect = new Rect(verticalRulerRect.xMax - 5, verticalRulerRect.y + y + subBlockHeight * 5, 2, 1);
+					EditorGUI.DrawRect(subLineRect, RULER_LINE_COLOR);
+				}
+			}
+			y += blockHeight;
+			value += blockValue;
+		}
+	}
 
 	private void DrawCanvas(Rect canvasRect, float scaledContentWidth, float scaledContentHeight) {
 		GUI.BeginClip(canvasRect);
