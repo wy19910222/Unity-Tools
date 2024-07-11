@@ -197,12 +197,12 @@ public class ImageCropping : EditorWindow {
 				int prevX = rect.x;
 				rect.x = Mathf.Min(EditorGUILayout.IntField("L", prevX), rect.width + prevX);
 				rect.width += prevX - rect.x;
-				int texHeight = m_Tex.height;
+				int texHeight = m_Tex ? m_Tex.height : rect.height;
 				rect.height = Mathf.Max(texHeight - rect.y - EditorGUILayout.IntField("T", texHeight - rect.y - rect.height), 0);
 				EditorGUILayout.EndHorizontal();
 				EditorGUILayout.BeginHorizontal();
 				GUILayout.Space(space);
-				int texWidth = m_Tex.width;
+				int texWidth = m_Tex ? m_Tex.width : rect.width;
 				rect.width = Mathf.Max(texWidth - rect.x - EditorGUILayout.IntField("R", texWidth - rect.x - rect.width), 0);
 				int prevY = rect.y;
 				rect.y = Mathf.Min(EditorGUILayout.IntField("B", prevY), rect.height + prevY);
@@ -237,68 +237,70 @@ public class ImageCropping : EditorWindow {
 		EditorGUILayout.LabelField("快捷裁剪", GUILayout.Width(EditorGUIUtility.labelWidth - 2F));
 		EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
 		if (GUILayout.Button("裁剪" + dirText + "空白", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 4F))) {
-			Undo.RecordObject(this, "ImageCropping.CroppingRect");
-			Color[] colors = GetTexturePixels(m_Tex);
-			int width = m_Tex.width;
-			int height = m_Tex.height;
-			int trimX = 0;
-			for (int x = 0; x < width; x++) {
-				bool willBreak = false;
-				for (int y = 0; y < height; y++) {
-					if (colors[y * width + x].a > 0) {
-						trimX = x;
-						willBreak = true;
-						break;
-					}
-				}
-				if (willBreak) {
-					break;
-				}
-			}
-			int trimY = 0;
-			for (int y = 0; y < height; y++) {
-				bool willBreak = false;
+			if (m_Tex) {
+				Undo.RecordObject(this, "ImageCropping.CroppingRect");
+				Color[] colors = GetTexturePixels(m_Tex);
+				int width = m_Tex.width;
+				int height = m_Tex.height;
+				int trimX = 0;
 				for (int x = 0; x < width; x++) {
-					if (colors[y * width + x].a > 0) {
-						trimY = y;
-						willBreak = true;
+					bool willBreak = false;
+					for (int y = 0; y < height; y++) {
+						if (colors[y * width + x].a > 0) {
+							trimX = x;
+							willBreak = true;
+							break;
+						}
+					}
+					if (willBreak) {
 						break;
 					}
 				}
-				if (willBreak) {
-					break;
-				}
-			}
-			int trimWidth = width - trimX;
-			for (int x = width - 1; x >= 0; x--) {
-				bool willBreak = false;
+				int trimY = 0;
 				for (int y = 0; y < height; y++) {
-					if (colors[y * width + x].a > 0) {
-						trimWidth = x + 1 - trimX;
-						willBreak = true;
+					bool willBreak = false;
+					for (int x = 0; x < width; x++) {
+						if (colors[y * width + x].a > 0) {
+							trimY = y;
+							willBreak = true;
+							break;
+						}
+					}
+					if (willBreak) {
 						break;
 					}
 				}
-				if (willBreak) {
-					break;
-				}
-			}
-			int trimHeight = height - trimY;
-			for (int y = height - 1; y >= 0; y--) {
-				bool willBreak = false;
-				for (int x = 0; x < width; x++) {
-					if (colors[y * width + x].a > 0) {
-						trimHeight = y + 1 - trimY;
-						willBreak = true;
+				int trimWidth = width - trimX;
+				for (int x = width - 1; x >= 0; x--) {
+					bool willBreak = false;
+					for (int y = 0; y < height; y++) {
+						if (colors[y * width + x].a > 0) {
+							trimWidth = x + 1 - trimX;
+							willBreak = true;
+							break;
+						}
+					}
+					if (willBreak) {
 						break;
 					}
 				}
-				if (willBreak) {
-					break;
+				int trimHeight = height - trimY;
+				for (int y = height - 1; y >= 0; y--) {
+					bool willBreak = false;
+					for (int x = 0; x < width; x++) {
+						if (colors[y * width + x].a > 0) {
+							trimHeight = y + 1 - trimY;
+							willBreak = true;
+							break;
+						}
+					}
+					if (willBreak) {
+						break;
+					}
 				}
+				m_CroppingRect = new RectInt(trimX, trimY, trimWidth, trimHeight);
+				UpdatePreviewTex();
 			}
-			m_CroppingRect = new RectInt(trimX, trimY, trimWidth, trimHeight);
-			UpdatePreviewTex();
 		}
 		EditorGUI.EndDisabledGroup();
 		
@@ -329,9 +331,11 @@ public class ImageCropping : EditorWindow {
 		
 		EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
 		if (GUILayout.Button("重置" + dirText + "边缘", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 4F))) {
-			Undo.RecordObject(this, "ImageCropping.CroppingRect");
-			m_CroppingRect = new RectInt(0, 0, m_Tex.width, m_Tex.height);
-			UpdatePreviewTex();
+			if (m_Tex) {
+				Undo.RecordObject(this, "ImageCropping.CroppingRect");
+				m_CroppingRect = new RectInt(0, 0, m_Tex.width, m_Tex.height);
+				UpdatePreviewTex();
+			}
 		}
 		EditorGUI.EndDisabledGroup();
 		EditorGUILayout.EndHorizontal();
@@ -458,30 +462,34 @@ public class ImageCropping : EditorWindow {
 			m_Scale = 1;
 		}
 		if (GUILayout.Button("原图适应屏幕")) {
-			int texWidth = m_Tex.width;
-			int texHeight = m_Tex.height;
-			m_Scale = Mathf.Min((m_CanvasRect.width - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / texWidth,
-					(m_CanvasRect.height - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / texHeight);
-			float texX = (m_CanvasRect.width - texWidth * m_Scale) * 0.5F;
-			float texY = (m_CanvasRect.height - texHeight * m_Scale) * 0.5F;
-			float borderLeft = m_CroppingRect.xMin * m_Scale;
-			float borderTop = (texHeight - m_CroppingRect.yMax) * m_Scale;
-			m_ContentX = texX + Mathf.Min(borderLeft, 0);
-			m_ContentY = texY + Mathf.Min(borderTop, 0);
+			if (m_Tex) {
+				int texWidth = m_Tex.width;
+				int texHeight = m_Tex.height;
+				m_Scale = Mathf.Min((m_CanvasRect.width - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / texWidth,
+						(m_CanvasRect.height - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / texHeight);
+				float texX = (m_CanvasRect.width - texWidth * m_Scale) * 0.5F;
+				float texY = (m_CanvasRect.height - texHeight * m_Scale) * 0.5F;
+				float borderLeft = m_CroppingRect.xMin * m_Scale;
+				float borderTop = (texHeight - m_CroppingRect.yMax) * m_Scale;
+				m_ContentX = texX + Mathf.Min(borderLeft, 0);
+				m_ContentY = texY + Mathf.Min(borderTop, 0);
+			}
 		}
 		if (GUILayout.Button("整体适应屏幕")) {
-			int texWidth = m_Tex.width;
-			int texHeight = m_Tex.height;
-			int xMin = Mathf.Min(m_CroppingRect.xMin, 0);
-			int xMax = Mathf.Max(m_CroppingRect.xMax, texWidth);
-			int yMin = Mathf.Min(m_CroppingRect.yMin, 0);
-			int yMax = Mathf.Max(m_CroppingRect.yMax, texHeight);
-			float contentWidth = xMax - xMin;
-			float contentHeight = yMax - yMin;
-			m_Scale = Mathf.Min((m_CanvasRect.width - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / contentWidth,
-					(m_CanvasRect.height - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / contentHeight);
-			m_ContentX = (m_CanvasRect.width - contentWidth * m_Scale) * 0.5F;
-			m_ContentY = (m_CanvasRect.height - contentHeight * m_Scale) * 0.5F;
+			if (m_Tex) {
+				int texWidth = m_Tex.width;
+				int texHeight = m_Tex.height;
+				int xMin = Mathf.Min(m_CroppingRect.xMin, 0);
+				int xMax = Mathf.Max(m_CroppingRect.xMax, texWidth);
+				int yMin = Mathf.Min(m_CroppingRect.yMin, 0);
+				int yMax = Mathf.Max(m_CroppingRect.yMax, texHeight);
+				float contentWidth = xMax - xMin;
+				float contentHeight = yMax - yMin;
+				m_Scale = Mathf.Min((m_CanvasRect.width - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / contentWidth,
+						(m_CanvasRect.height - CANVAS_BORDER_ZOOMED_THICKNESS - CANVAS_BORDER_ZOOMED_THICKNESS) / contentHeight);
+				m_ContentX = (m_CanvasRect.width - contentWidth * m_Scale) * 0.5F;
+				m_ContentY = (m_CanvasRect.height - contentHeight * m_Scale) * 0.5F;
+			}
 		}
 		EditorGUILayout.EndHorizontal();
 	}
@@ -1108,12 +1116,12 @@ public class ImageCropping : EditorWindow {
 			m_Mat.SetInt(MODE, 1);
 			m_Mat.color = Color.white;
 			m_Mat.mainTexture = m_Tex;
-			m_Mat.SetVector(SCALE_AND_OFFSET, new Vector4(
+			m_Mat.SetVector(SCALE_AND_OFFSET, m_Tex ? new Vector4(
 					(float) width / m_Tex.width,
 					(float) height / m_Tex.height,
 					(float) m_CroppingRect.x / m_Tex.width,
 					(float) m_CroppingRect.y / m_Tex.height
-			));
+			) : new Vector4(1, 1, 0, 0));
 		} else {
 			m_Mat.SetInt(MODE, 0);
 			m_Mat.color = CROPPING_CORNERED_COLOR;
