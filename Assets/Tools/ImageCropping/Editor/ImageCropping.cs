@@ -47,7 +47,7 @@ public class ImageCropping : EditorWindow {
 		NONE = 0,
 		[InspectorName("圆角矩形")]
 		ROUND_RECT = 1,
-		[InspectorName("小米Logo")]
+		[InspectorName("超椭圆")]
 		MI_LOGO = 2,
 	}
 
@@ -60,29 +60,47 @@ public class ImageCropping : EditorWindow {
 	private const float CANVAS_BORDER_ZOOMED_THICKNESS = 10F;	// 当纹理尺寸大于画布，默认缩放到离画布边缘的距离
 	private const float BLANK_DELTA_WITH_CANVAS = 100F;	// 当纹理尺寸大于画布，空白部分相对于画布宽度
 	private const float SCALE_MAX = 32F;	// 最大缩放倍数（最小为缩放到1像素）
-	private const float AUTO_SCROLL_SPEED = 300F;	// 鼠标拖动裁剪框到边缘外时，自动滚动的速度
+	private const float AUTO_SCROLL_SPEED = 500F;	// 鼠标拖动裁剪框到边缘外时，自动滚动的速度
 
 	private static readonly Color SCROLL_BAR_BG_COLOR = new Color(0.25F, 0.25F, 0.25F);
+	private static readonly Color PREVIEW_MASK_COLOR = new Color(0.2F, 0.2F, 0.2F, 0.7F);
+	private static readonly Color CROPPING_CORNERED_COLOR = new Color(0, 1F, 1F, 0.3F);
 
 	[SerializeField] private Texture2D m_Tex;
 	[SerializeField] private RectInt m_CroppingRect;
 	
 	[SerializeField] private CornerType m_CornerType;
 	[SerializeField] private float m_RoundRadius;
-	[SerializeField] private float m_MiLogoN;
+	[SerializeField] private float m_HyperEllipticPower;
+	[SerializeField] private float m_Softness;
+	[SerializeField] private float m_EdgeMove;
 
 	[SerializeField] private RectType m_RectType;
 	[SerializeField] private float m_Scale = 1;
 	[SerializeField] private float m_ContentX;
 	[SerializeField] private float m_ContentY;
 	
-	[SerializeField] private bool m_CornerPreview;
-	[SerializeField] private Texture2D m_CornerPreviewTex;
+	[SerializeField] private bool m_QuickCroppingTop = true;
+	[SerializeField] private bool m_QuickCroppingBottom = true;
+	[SerializeField] private bool m_QuickCroppingLeft = true;
+	[SerializeField] private bool m_QuickCroppingRight = true;
+	
+	[SerializeField] private bool m_IsPreview;
+	[SerializeField] private RenderTexture m_PreviewTex;
 
 	private Rect m_CanvasRect;
 	private readonly List<(Rect, ResizeType)> m_ResizeRects = new List<(Rect, ResizeType)>();
 	private ResizeType m_ResizeType;
 	private Vector2 m_DragPrevPos;
+
+	private Texture2D m_BlankTex;
+	private Material m_Mat;
+	private void OnEnable() {
+		m_Mat = new Material(Shader.Find("Hidden/ImageCropping/Unlit"));
+		m_BlankTex = new Texture2D(1, 1);
+		m_BlankTex.SetPixel(0, 0, Color.clear);
+		m_BlankTex.Apply();
+	}
 
 	private double timeSinceStartup;
 	private void Update() {
@@ -95,9 +113,13 @@ public class ImageCropping : EditorWindow {
 	private void OnGUI() {
 		DrawTargetField();
 		DrawCroppingRectField();
+		DrawQuickCroppingField();
 		DrawCornerField();
+		GUILayout.Space(5F);
+		DrawPreviewBtnField();
 		DrawCanvasField();
 		DrawZoomField();
+		GUILayout.Space(5F);
 		DrawSaveField();
 	}
 
@@ -114,8 +136,8 @@ public class ImageCropping : EditorWindow {
 				m_CroppingRect = new RectInt(0, 0, texWidth, texHeight);
 				m_CornerType = CornerType.NONE;
 				m_RoundRadius = Mathf.Min(texWidth, texHeight) * 0.2F;
-				m_MiLogoN = 3;
-				m_CornerPreview = false;
+				m_HyperEllipticPower = 3;
+				m_IsPreview = false;
 				if (texWidth > m_CanvasRect.width || texHeight > m_CanvasRect.height) {
 					float targetWidth = m_CanvasRect.width - CANVAS_BORDER_DEFAULT_THICKNESS - CANVAS_BORDER_DEFAULT_THICKNESS;
 					float targetHeight = m_CanvasRect.height - CANVAS_BORDER_DEFAULT_THICKNESS - CANVAS_BORDER_DEFAULT_THICKNESS;
@@ -143,11 +165,12 @@ public class ImageCropping : EditorWindow {
 		}
 		EditorGUILayout.EndHorizontal();
 		RectInt rect = m_CroppingRect;
+		float space = labelWidth + 4F;
 		EditorGUI.BeginChangeCheck();
 		switch (m_RectType) {
 			case RectType.SIZE:
 				EditorGUILayout.BeginHorizontal();
-				GUILayout.Space(18F);
+				GUILayout.Space(space);
 				rect = EditorGUILayout.RectIntField(rect);
 				rect.width = Mathf.Max(rect.width, 0);
 				rect.height = Mathf.Max(rect.height, 0);
@@ -156,12 +179,12 @@ public class ImageCropping : EditorWindow {
 			case RectType.MIN_MAX:
 				EditorGUIUtility.labelWidth = 34F;
 				EditorGUILayout.BeginHorizontal();
-				GUILayout.Space(18F);
+				GUILayout.Space(space);
 				rect.xMin = Mathf.Min(EditorGUILayout.IntField("XMin", rect.xMin), rect.xMax);
 				rect.yMin = Mathf.Min(EditorGUILayout.IntField("YMin", rect.yMin), rect.yMax);
 				EditorGUILayout.EndHorizontal();
 				EditorGUILayout.BeginHorizontal();
-				GUILayout.Space(18F);
+				GUILayout.Space(space);
 				rect.xMax = Mathf.Max(EditorGUILayout.IntField("XMax", rect.xMax), rect.xMin);
 				rect.yMax = Mathf.Max(EditorGUILayout.IntField("YMax", rect.yMax), rect.yMin);
 				EditorGUILayout.EndHorizontal();
@@ -170,7 +193,7 @@ public class ImageCropping : EditorWindow {
 			case RectType.BORDER:
 				EditorGUIUtility.labelWidth = 13F;
 				EditorGUILayout.BeginHorizontal();
-				GUILayout.Space(18F);
+				GUILayout.Space(space);
 				int prevX = rect.x;
 				rect.x = Mathf.Min(EditorGUILayout.IntField("L", prevX), rect.width + prevX);
 				rect.width += prevX - rect.x;
@@ -178,7 +201,7 @@ public class ImageCropping : EditorWindow {
 				rect.height = Mathf.Max(texHeight - rect.y - EditorGUILayout.IntField("T", texHeight - rect.y - rect.height), 0);
 				EditorGUILayout.EndHorizontal();
 				EditorGUILayout.BeginHorizontal();
-				GUILayout.Space(18F);
+				GUILayout.Space(space);
 				int texWidth = m_Tex.width;
 				rect.width = Mathf.Max(texWidth - rect.x - EditorGUILayout.IntField("R", texWidth - rect.x - rect.width), 0);
 				int prevY = rect.y;
@@ -191,61 +214,187 @@ public class ImageCropping : EditorWindow {
 		if (EditorGUI.EndChangeCheck()) {
 			Undo.RecordObject(this, "ImageCropping.CroppingRect");
 			m_CroppingRect = rect;
-			UpdateCornerPreviewTex();
+			UpdatePreviewTex();
 		}
 	}
 
+	private void DrawQuickCroppingField() {
+		string dirText = string.Empty;
+		if (m_QuickCroppingTop) {
+			dirText += "上";
+		}
+		if (m_QuickCroppingBottom) {
+			dirText += "下";
+		}
+		if (m_QuickCroppingLeft) {
+			dirText += "左";
+		}
+		if (m_QuickCroppingRight) {
+			dirText += "右";
+		}
+		
+		EditorGUILayout.BeginHorizontal();
+		EditorGUILayout.LabelField("快捷裁剪", GUILayout.Width(EditorGUIUtility.labelWidth - 2F));
+		EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
+		if (GUILayout.Button("裁剪" + dirText + "空白", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 4F))) {
+			Undo.RecordObject(this, "ImageCropping.CroppingRect");
+			Color[] colors = GetTexturePixels(m_Tex);
+			int width = m_Tex.width;
+			int height = m_Tex.height;
+			int trimX = 0;
+			for (int x = 0; x < width; x++) {
+				bool willBreak = false;
+				for (int y = 0; y < height; y++) {
+					if (colors[y * width + x].a > 0) {
+						trimX = x;
+						willBreak = true;
+						break;
+					}
+				}
+				if (willBreak) {
+					break;
+				}
+			}
+			int trimY = 0;
+			for (int y = 0; y < height; y++) {
+				bool willBreak = false;
+				for (int x = 0; x < width; x++) {
+					if (colors[y * width + x].a > 0) {
+						trimY = y;
+						willBreak = true;
+						break;
+					}
+				}
+				if (willBreak) {
+					break;
+				}
+			}
+			int trimWidth = width - trimX;
+			for (int x = width - 1; x >= 0; x--) {
+				bool willBreak = false;
+				for (int y = 0; y < height; y++) {
+					if (colors[y * width + x].a > 0) {
+						trimWidth = x + 1 - trimX;
+						willBreak = true;
+						break;
+					}
+				}
+				if (willBreak) {
+					break;
+				}
+			}
+			int trimHeight = height - trimY;
+			for (int y = height - 1; y >= 0; y--) {
+				bool willBreak = false;
+				for (int x = 0; x < width; x++) {
+					if (colors[y * width + x].a > 0) {
+						trimHeight = y + 1 - trimY;
+						willBreak = true;
+						break;
+					}
+				}
+				if (willBreak) {
+					break;
+				}
+			}
+			m_CroppingRect = new RectInt(trimX, trimY, trimWidth, trimHeight);
+			UpdatePreviewTex();
+		}
+		EditorGUI.EndDisabledGroup();
+		
+		EditorGUILayout.BeginVertical();
+		bool newQuickCornerTop = GUILayout.Toggle(m_QuickCroppingTop, "上", "Button");
+		if (newQuickCornerTop != m_QuickCroppingTop) {
+			Undo.RecordObject(this, "ImageCropping.QuickCroppingOption");
+			m_QuickCroppingTop = newQuickCornerTop;
+		}
+		bool newQuickCornerBottom = GUILayout.Toggle(m_QuickCroppingBottom, "下", "Button");
+		if (newQuickCornerBottom != m_QuickCroppingBottom) {
+			Undo.RecordObject(this, "ImageCropping.QuickCroppingOption");
+			m_QuickCroppingBottom = newQuickCornerBottom;
+		}
+		EditorGUILayout.EndVertical();
+		EditorGUILayout.BeginVertical();
+		bool newQuickCornerLeft = GUILayout.Toggle(m_QuickCroppingLeft, "左", "Button");
+		if (newQuickCornerLeft != m_QuickCroppingLeft) {
+			Undo.RecordObject(this, "ImageCropping.QuickCroppingOption");
+			m_QuickCroppingLeft = newQuickCornerLeft;
+		}
+		bool newQuickCornerRight = GUILayout.Toggle(m_QuickCroppingRight, "右", "Button");
+		if (newQuickCornerRight != m_QuickCroppingRight) {
+			Undo.RecordObject(this, "ImageCropping.QuickCroppingOption");
+			m_QuickCroppingRight = newQuickCornerRight;
+		}
+		EditorGUILayout.EndVertical();
+		
+		EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
+		if (GUILayout.Button("重置" + dirText + "边缘", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 4F))) {
+			Undo.RecordObject(this, "ImageCropping.CroppingRect");
+			m_CroppingRect = new RectInt(0, 0, m_Tex.width, m_Tex.height);
+			UpdatePreviewTex();
+		}
+		EditorGUI.EndDisabledGroup();
+		EditorGUILayout.EndHorizontal();
+	}
+
 	private void DrawCornerField() {
+		int width = m_CroppingRect.width;
+		int height = m_CroppingRect.height;
+		
 		CornerType newType = (CornerType) EditorGUILayout.EnumPopup("平滑角", m_CornerType);
 		if (newType != m_CornerType) {
 			Undo.RecordObject(this, "ImageCropping.CornerType");
 			m_CornerType = newType;
-			UpdateCornerPreviewTex();
+			UpdatePreviewTex();
 		}
+
+		EditorGUILayout.BeginHorizontal();
 		switch (m_CornerType) {
 			case CornerType.ROUND_RECT: {
-				EditorGUILayout.BeginHorizontal();
-				float roundRadiusMax = Mathf.Min(m_CroppingRect.width, m_CroppingRect.height) * 0.5F;
+				float roundRadiusMax = Mathf.Min(width, height) * 0.5F;
 				float newRoundRadius = Mathf.Clamp(EditorGUILayout.FloatField("     圆角半径", m_RoundRadius), 0, roundRadiusMax);
 				if (!Mathf.Approximately(newRoundRadius, m_RoundRadius)) {
 					Undo.RecordObject(this, "ImageCropping.RoundRadius");
 					m_RoundRadius = newRoundRadius;
-					if (m_CornerPreview) {
-						UpdateCornerPreviewTex();
-					}
+					UpdatePreviewTex();
 				}
-				bool newCornerPreview = GUILayout.Toggle(m_CornerPreview, "预览", "Button", GUILayout.Width(60F));
-				if (newCornerPreview != m_CornerPreview) {
-					Undo.RecordObject(this, "ImageCropping.RoundRadius");
-					m_CornerPreview = newCornerPreview;
-					if (m_CornerPreview) {
-						UpdateCornerPreviewTex();
-					}
-				}
-				EditorGUILayout.EndHorizontal();
 				break;
 			}
 			case CornerType.MI_LOGO: {
-				EditorGUILayout.BeginHorizontal();
-				float newMiLogoN = Mathf.Clamp(EditorGUILayout.FloatField("     幂", m_MiLogoN), 0, 10);
-				if (!Mathf.Approximately(newMiLogoN, m_MiLogoN)) {
-					Undo.RecordObject(this, "ImageCropping.MiLogoN");
-					m_MiLogoN = newMiLogoN;
-					if (m_CornerPreview) {
-						UpdateCornerPreviewTex();
-					}
+				float newHyperEllipticPower = Mathf.Clamp(EditorGUILayout.FloatField("     幂", m_HyperEllipticPower), 0, 10);
+				if (!Mathf.Approximately(newHyperEllipticPower, m_HyperEllipticPower)) {
+					Undo.RecordObject(this, "ImageCropping.HyperEllipticPower");
+					m_HyperEllipticPower = newHyperEllipticPower;
+					UpdatePreviewTex();
 				}
-				bool newCornerPreview = GUILayout.Toggle(m_CornerPreview, "预览", "Button", GUILayout.Width(60F));
-				if (newCornerPreview != m_CornerPreview) {
-					Undo.RecordObject(this, "ImageCropping.RoundRadius");
-					m_CornerPreview = newCornerPreview;
-					if (m_CornerPreview) {
-						UpdateCornerPreviewTex();
-					}
-				}
-				EditorGUILayout.EndHorizontal();
 				break;
 			}
+		}
+		if (m_CornerType != CornerType.NONE) {
+			float softnessMax = (width + height) * 0.5F;
+			float newSoftness = Mathf.Clamp(EditorGUILayout.FloatField("     柔和边缘", m_Softness), 0, softnessMax);
+			if (!Mathf.Approximately(newSoftness, m_Softness)) {
+				Undo.RecordObject(this, "ImageCropping.Softness");
+				m_Softness = newSoftness;
+				UpdatePreviewTex();
+			}
+			float edgeMoveMax = (width + height) * 0.5F;
+			float newEdgeMove = Mathf.Clamp(EditorGUILayout.FloatField("     移动边缘", m_EdgeMove), -edgeMoveMax, edgeMoveMax);
+			if (!Mathf.Approximately(newEdgeMove, m_EdgeMove)) {
+				Undo.RecordObject(this, "ImageCropping.EdgeMove");
+				m_EdgeMove = newEdgeMove;
+				UpdatePreviewTex();
+			}
+		}
+		EditorGUILayout.EndHorizontal();
+	}
+
+	private void DrawPreviewBtnField() {
+		bool newIsPreview = GUILayout.Toggle(m_IsPreview, "预览", "Button");
+		if (newIsPreview != m_IsPreview) {
+			Undo.RecordObject(this, "ImageCropping.IsPreview");
+			m_IsPreview = newIsPreview;
+			UpdatePreviewTex();
 		}
 	}
 
@@ -338,7 +487,7 @@ public class ImageCropping : EditorWindow {
 	}
 
 	private void DrawSaveField() {
-		if (GUILayout.Button("保存")) {
+		if (GUILayout.Button("保存", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 4F))) {
 			int croppingWidth = m_CroppingRect.width;
 			int croppingHeight = m_CroppingRect.height;
 			if (croppingWidth <= 0 || croppingHeight <= 0) {
@@ -349,19 +498,17 @@ public class ImageCropping : EditorWindow {
 			string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
 			string filePath = EditorUtility.SaveFilePanel("保存裁剪后的图像", directory, m_Tex.name + "_New", "png");
 			if (!string.IsNullOrEmpty(filePath)) {
-				Color[] srcColors = GetTexturePixels(m_Tex);
-				Color[] colors = CopyPixels(srcColors, m_Tex.width, m_Tex.height, m_CroppingRect);
-				switch (m_CornerType) {
-					case CornerType.ROUND_RECT:
-						RoundRect(colors, m_Tex.width, m_Tex.height, m_RoundRadius);
-						break;
-					case CornerType.MI_LOGO:
-						MiLogo(colors, m_Tex.width, m_Tex.height, m_MiLogoN);
-						break;
+				if (!m_IsPreview) {
+					UpdatePreviewTex(true);
 				}
+				RenderTexture prevRT = RenderTexture.active;
+				RenderTexture.active = m_PreviewTex;
 				Texture2D tex = new Texture2D(croppingWidth, croppingHeight, TextureFormat.RGBA32, false);
-				tex.SetPixels(colors);
-				tex.Apply();
+				tex.ReadPixels(new Rect(0, 0, croppingWidth, croppingHeight), 0, 0);
+				RenderTexture.active = prevRT;
+				if (!m_IsPreview) {
+					UpdatePreviewTex();
+				}
 				
 				byte[] bytes = tex.EncodeToPNG();
 				File.WriteAllBytes(filePath, bytes);
@@ -396,22 +543,26 @@ public class ImageCropping : EditorWindow {
 				}
 			}
 		}
-		EditorGUI.DrawTextureTransparent(new Rect(
+		Rect texRect = new Rect(
 				m_ContentX - Mathf.Min(m_CroppingRect.xMin, 0) * m_Scale,
 				m_ContentY - Mathf.Min(m_Tex.height - m_CroppingRect.yMax, 0) * m_Scale,
 				m_Tex.width * m_Scale,
 				m_Tex.height * m_Scale
-		), m_Tex);
-		Rect rect = new Rect(
+		);
+		Rect croppingRect = new Rect(
 				m_ContentX + Mathf.Max(m_CroppingRect.xMin, 0) * m_Scale,
 				m_ContentY + Mathf.Max(m_Tex.height - m_CroppingRect.yMax, 0) * m_Scale,
 				m_CroppingRect.width * m_Scale,
 				m_CroppingRect.height * m_Scale
 		);
-		if (m_CornerPreview && m_CornerPreviewTex) {
-			GUI.DrawTexture(rect, m_CornerPreviewTex);
+		EditorGUI.DrawTextureTransparent(texRect, m_Tex);
+		if (m_IsPreview) {
+			EditorGUI.DrawRect(texRect, PREVIEW_MASK_COLOR);
 		}
-		DrawCroppingRect(rect);
+		if (m_PreviewTex) {
+			GUI.DrawTexture(croppingRect, m_PreviewTex);
+		}
+		DrawCroppingRect(croppingRect);
 		GUI.EndClip();
 	}
 
@@ -775,7 +926,7 @@ public class ImageCropping : EditorWindow {
 						m_ContentY += deltaY;
 					}
 					m_DragPrevPos = mousePos;
-					UpdateCornerPreviewTex();
+					UpdatePreviewTex();
 					Repaint();
 				}
 				break;
@@ -795,6 +946,7 @@ public class ImageCropping : EditorWindow {
 
 	private float deltaScrollX;
 	private float deltaScrollY;
+
 	private void HandleAutoScroll(float deltaTime) {
 		if (m_ResizeType != ResizeType.NONE) {
 			bool beyondLeft = m_DragPrevPos.x < 0;
@@ -818,7 +970,7 @@ public class ImageCropping : EditorWindow {
 				HandleAutoScrollVertical(deltaCroppingY);
 			}
 			if (beyondLeft || beyondRight || beyondTop || beyondBottom) {
-				UpdateCornerPreviewTex();
+				UpdatePreviewTex();
 				Repaint();
 			}
 		} else {
@@ -935,103 +1087,45 @@ public class ImageCropping : EditorWindow {
 		}
 	}
 
-	private void UpdateCornerPreviewTex() {
-		if (!m_CornerPreview) {
-			return;
-		}
-		
+	private static readonly int MODE = Shader.PropertyToID("_Mode");
+	private static readonly int SCALE_AND_OFFSET = Shader.PropertyToID("_ScaleAndOffset");
+	private static readonly int CORNER_MODE = Shader.PropertyToID("_CornerMode");
+	private static readonly int ROUND_RADIUS_X = Shader.PropertyToID("_RoundRadiusX");
+	private static readonly int ROUND_RADIUS_Y = Shader.PropertyToID("_RoundRadiusY");
+	private static readonly int HYPER_ELLIPTIC_POWER = Shader.PropertyToID("_HyperEllipticPower");
+	private static readonly int SOFTNESS = Shader.PropertyToID("_Softness");
+	private static readonly int EDGE_MOVE = Shader.PropertyToID("_EdgeMove");
+	private void UpdatePreviewTex(bool forcePreview = false) {
 		int width = m_CroppingRect.width;
 		int height = m_CroppingRect.height;
-		int scale = 1;
-		while (width * height > 300000) {
-			width >>= 1;
-			height >>= 1;
-			scale <<= 1;
+		if (!m_PreviewTex || m_PreviewTex.width != width || m_PreviewTex.height != height) {
+			m_PreviewTex = RenderTexture.GetTemporary(width, height);
+			m_PreviewTex.filterMode = m_Tex.filterMode;
 		}
-		if (!m_CornerPreviewTex) {
-			m_CornerPreviewTex = new Texture2D(width, height, TextureFormat.RGBA32, false);
-		} else if (m_CornerPreviewTex.width != width || m_CornerPreviewTex.height != height) {
-			m_CornerPreviewTex.Reinitialize(width, height);
-		}
-		Color[] colors = new Color[width * height];
-		switch (m_CornerType) {
-			case CornerType.NONE: {
-				Array.Fill(colors, Color.clear);
-				break;
-			}
-			case CornerType.ROUND_RECT: {
-				Array.Fill(colors, Color.cyan);
-				RoundRect(colors, width, height, m_RoundRadius / scale, 0.2F);
-				break;
-			}
-			case CornerType.MI_LOGO: {
-				Array.Fill(colors, Color.cyan);
-				MiLogo(colors, width, height, m_MiLogoN, 0.2F);
-				break;
-			}
-		}
-		m_CornerPreviewTex.SetPixels(colors);
-		m_CornerPreviewTex.Apply();
-	}
+		Graphics.Blit(m_BlankTex, m_PreviewTex);
 
-	private static void MiLogo(Color[] colors, int width, int height, float n, float alpha = 1) {
-		float average = (width + height) * 0.5F;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				float _x = (float) x / (width - 1) * 2 - 1;
-				float _y = (float) y / (height - 1) * 2 - 1;
-				float distance = Mathf.Pow(Mathf.Abs(_x), n) + Mathf.Pow(Mathf.Abs(_y), n);
-				colors[y * width + x].a *= Mathf.Clamp01((1 - distance) * average + 1) * alpha;
-			}
+		if (m_IsPreview || forcePreview) {
+			m_Mat.SetInt(MODE, 1);
+			m_Mat.color = Color.white;
+			m_Mat.mainTexture = m_Tex;
+			m_Mat.SetVector(SCALE_AND_OFFSET, new Vector4(
+					(float) width / m_Tex.width,
+					(float) height / m_Tex.height,
+					(float) m_CroppingRect.x / m_Tex.width,
+					(float) m_CroppingRect.y / m_Tex.height
+			));
+		} else {
+			m_Mat.SetInt(MODE, 0);
+			m_Mat.color = CROPPING_CORNERED_COLOR;
 		}
-	}
-
-	private static void RoundRect(Color[] colors, int width, int height, float radius, float alpha = 1) {
-		float xMin = radius;
-		float yMin = radius;
-		float xMax = width - 1 - radius;
-		float yMax = height - 1 - radius;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				float deltaX = x - Mathf.Clamp(x, xMin, xMax);
-				float deltaY = y - Mathf.Clamp(y, yMin, yMax);
-				float distance = Mathf.Sqrt(deltaX * deltaX + deltaY * deltaY);
-				colors[y * width + x].a *= Mathf.Clamp01(radius - distance + 1) * alpha;
-			}
-		}
-	}
-
-	private static Color[] CopyPixels(IReadOnlyList<Color> srcColors, int texWidth, int texHeight, RectInt croppingRect) {
-		Color[] colors = new Color[croppingRect.width * croppingRect.height];
-		for (int y = 0; y < croppingRect.height; y++) {
-			for (int x = 0; x < croppingRect.width; x++) {
-				int scrX = croppingRect.x + x;
-				int scrY = croppingRect.y + y;
-				bool overflow = false;
-				if (scrX < 0) {
-					scrX = 0;
-					overflow = true;
-				} else if (scrX >= texWidth) {
-					scrX = texWidth - 1;
-					overflow = true;
-				}
-				if (scrY < 0) {
-					scrY = 0;
-					overflow = true;
-				} else {
-					if (scrY >= texHeight) {
-						scrY = texHeight - 1;
-						overflow = true;
-					}
-				}
-				Color color = srcColors[scrY * texWidth + scrX];
-				if (overflow) {
-					color.a = 0;
-				}
-				colors[y * croppingRect.width + x] = color;
-			}
-		}
-		return colors;
+		m_Mat.SetInt(CORNER_MODE, (int) m_CornerType);
+		m_Mat.SetFloat(ROUND_RADIUS_X, m_RoundRadius / width);
+		m_Mat.SetFloat(ROUND_RADIUS_Y, m_RoundRadius / height);
+		m_Mat.SetFloat(HYPER_ELLIPTIC_POWER, m_HyperEllipticPower);
+		m_Mat.SetFloat(SOFTNESS, Mathf.Clamp01((m_Softness + m_Softness) / (width + height)));
+		m_Mat.SetFloat(EDGE_MOVE, Mathf.Clamp((m_EdgeMove + m_EdgeMove) / (width + height), -1, 1));
+		
+		Graphics.Blit(null, m_PreviewTex, m_Mat);
 	}
 
 	private static Color[] GetTexturePixels(Texture2D tex) {
