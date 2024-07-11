@@ -30,7 +30,7 @@ public class AudioClipper : EditorWindow {
 	
 	private const int WAVEFORM_WIDTH = 2048;
 	private const int WAVEFORM_HEIGHT = 128;
-	private const float BACKGROUND_CELL_WIDTH_MAX = 34;	// 需要显示时间，不能太小
+	private const float BACKGROUND_CELL_WIDTH_MIN = 34;	// 需要显示时间，不能太小
 	private const float BACKGROUND_CELL_HEIGHT = 16;
 	private const float RULER_LABEL_HEIGHT = 16;
 	private const float RULER_LINE_HEIGHT = 8;
@@ -387,7 +387,7 @@ public class AudioClipper : EditorWindow {
 	
 	private float GetRulerBlockDuration(Rect fieldRect, float viewStartTime, float viewEndTime) {
 		float viewDuration = viewEndTime - viewStartTime;
-		int blocksMax = Mathf.FloorToInt(fieldRect.width / BACKGROUND_CELL_WIDTH_MAX);
+		int blocksMax = Mathf.FloorToInt(fieldRect.width / BACKGROUND_CELL_WIDTH_MIN);
 		float[] gaps = {0.001F, 0.002F, 0.005F, 0.01F, 0.02F, 0.05F, 0.1F, 0.2F, 0.5F};
 		float blockDuration = 0;
 		for (int i = 0, length = gaps.Length; i < length; i++) {
@@ -423,7 +423,7 @@ public class AudioClipper : EditorWindow {
 				Rect shortLineRect = new Rect(rulerRect.x + xOnField, rulerRect.y + RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT * 0.5F, 1, RULER_LINE_HEIGHT * 0.5F);
 				EditorGUI.DrawRect(shortLineRect, COLOR_RULER_SHORT);
 			} else if (i != 0) {
-				Rect labelRect = new Rect(rulerRect.x + xOnField - BACKGROUND_CELL_WIDTH_MAX * 0.5F, rulerRect.y, BACKGROUND_CELL_WIDTH_MAX, RULER_LABEL_HEIGHT);
+				Rect labelRect = new Rect(rulerRect.x + xOnField - BACKGROUND_CELL_WIDTH_MIN * 0.5F, rulerRect.y, BACKGROUND_CELL_WIDTH_MIN, RULER_LABEL_HEIGHT);
 				EditorGUI.LabelField(labelRect, $"{(blockDuration * i).ToString(blockDuration < 0.005F ? "F3" : "F2")}", m_RulerStyle);
 				Rect longLineRect = new Rect(rulerRect.x + xOnField, rulerRect.y + RULER_LABEL_HEIGHT, 1, RULER_LINE_HEIGHT);
 				EditorGUI.DrawRect(longLineRect, COLOR_RULER_LONG);
