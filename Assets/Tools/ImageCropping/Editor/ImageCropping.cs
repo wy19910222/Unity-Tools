@@ -64,7 +64,7 @@ public class ImageCropping : EditorWindow {
 
 	private static readonly Color SCROLL_BAR_BG_COLOR = new Color(0.25F, 0.25F, 0.25F);
 	private static readonly Color PREVIEW_MASK_COLOR = new Color(0.2F, 0.2F, 0.2F, 0.7F);
-	private static readonly Color CROPPING_CORNERED_COLOR = new Color(0, 1F, 1F, 0.3F);
+	private static readonly Color CROPPING_CORNERED_COLOR = new Color(0, 1F, 1F, 0.5F);
 
 	[SerializeField] private Texture2D m_Tex;
 	[SerializeField] private RectInt m_CroppingRect;
