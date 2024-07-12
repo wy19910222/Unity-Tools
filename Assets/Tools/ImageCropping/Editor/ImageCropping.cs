@@ -1244,6 +1244,9 @@ public class ImageCropping : EditorWindow {
 	private void UpdatePreviewTex(bool forcePreview = false) {
 		int width = m_CroppingRect.width;
 		int height = m_CroppingRect.height;
+		if (width <= 0 || height <= 0) {
+			return;
+		}
 		if (!m_PreviewTex || m_PreviewTex.width != width || m_PreviewTex.height != height) {
 			m_PreviewTex = RenderTexture.GetTemporary(width, height);
 			m_PreviewTex.filterMode = m_Tex.filterMode;
