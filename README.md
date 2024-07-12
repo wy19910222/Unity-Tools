@@ -88,32 +88,50 @@
 * 支持z轴移动，意味着可以放到3D场景中了。  
 * 支持x轴旋转和y轴旋转，意味着可以将样条线水平放置。  
 * Scene窗口视角缩放时，节点图标跟着一起缩放，使节点图标看起来像是个3D场景中的物体。  
-* 支持在3D模式下，样条线完整的编辑功能。
+* 支持在3D模式下，样条线完整的编辑功能。  
 
 ### 使用方法
 1. 购买AssetStore上正版的 [**EasySplinePath2D**](https://assetstore.unity.com/packages/tools/utilities/easy-spline-path-2d-127710) 插件，
-  或将 [**EasySplinePath2D**](Assets/Tools/EasySplinePath2D) 文件夹拷贝至项目中（该文件夹只用于配合EasySplinePath2DPlus，商业化使用请购买正版）。
-2. 将 [**EasySplinePath2DPlus**](Assets/Tools/EasySplinePath2DPlus) 文件夹拷贝至项目中。
+  或将 [**EasySplinePath2D**](Assets/Tools/EasySplinePath2D) 文件夹拷贝至项目中（该文件夹只用于配合EasySplinePath2DPlus，商业化使用请购买正版）。  
+2. 将 [**EasySplinePath2DPlus**](Assets/Tools/EasySplinePath2DPlus) 文件夹拷贝至项目中。  
 
 
 ## 音频剪辑器
 
 [**AudioClipper**](Assets/Tools/AudioEditor/Editor/AudioClipper.cs)  
 支持展示AudioClip对象的波形图，从中截取片段，试听并保存为wav、mp3、ogg文件。  
-![AudioClipper](Assets/Tools/AudioEditor/Captures~/AudioClipper.gif)
-* 展示带标尺的波形图。
-* 可在波形图中选中截取区域，并支持拖动区域。
-* 可根据阈值裁剪收尾空白。
-* 可试听截取的片段。
-* 可缩放音量，并在波形图中展示出来。
-* 可保存片段到WAV、Mp3、Ogg等音频文件。
+![AudioClipper](Assets/Tools/AudioEditor/Captures~/AudioClipper.gif)  
+* 展示带标尺的波形图。  
+* 可在波形图中选中截取区域，并支持拖动区域。  
+* 可根据阈值裁剪收尾空白。  
+* 可试听截取的片段。  
+* 可缩放音量，并在波形图中展示出来。  
+* 可保存片段到WAV、Mp3、Ogg等音频文件。  
 
 [**AudioVolumeUnify**](Assets/Tools/AudioEditor/Editor/AudioVolumeUnify.cs)  
 本工具用于将多个音频统一音量，支持WAV、MP3、OGG三种格式。  
-![AudioVolumeUnify](Assets/Tools/AudioEditor/Captures~/AudioVolumeUnify.jpg)
-* 可选择某个音频的音量作为统一音量，也可以自己设置统一音量。
-* 支持以统一音量试音每个音频。
-* 输出文件与源文件格式相同，也可以直接覆盖源文件。
+![AudioVolumeUnify](Assets/Tools/AudioEditor/Captures~/AudioVolumeUnify.jpg)  
+* 可选择某个音频的音量作为统一音量，也可以自己设置统一音量。  
+* 支持以统一音量试音每个音频。  
+* 输出文件与源文件格式相同，也可以直接覆盖源文件。  
 
 ### 使用方法
-* 直接将 [**AudioEditor**](Assets/Tools/AudioEditor) 文件夹拷贝至项目中。
+* 直接将 [**AudioEditor**](Assets/Tools/AudioEditor) 文件夹拷贝至项目中。  
+
+
+## 图片裁剪器
+
+[**ImageCropping**](Assets/Tools/ImageCropping)  
+预览Texture对象，设置裁剪区域，设置圆角，预览裁剪后图片，保存为新文件。  
+![ImageCropping](Assets/Tools/ImageCropping/Captures~/ImageCropping.gif)  
+* 以三种方式展示裁剪框数值。  
+* 在带标尺和滚动条的视口中展示原图。  
+* 拖动裁剪框边缘可以调整裁剪框，拖动到视口边缘可以自动滚动视口。  
+* 拖动视口其他位置可以移动整个视口位置，在视口中滚动鼠标滚轮可以缩放视口。  
+* 支持快捷缩放和快捷设置裁剪区域。  
+* 两种方式（普通圆角矩形、小米Logo）设置裁剪后的图片的圆角。  
+* 可实时预览裁剪后的图片。  
+* 可保存裁剪后的图片到新文件。  
+
+### 使用方法
+* 直接将 [**ImageCropping**](Assets/Tools/ImageCropping) 文件夹拷贝至项目中。  
