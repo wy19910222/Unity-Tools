@@ -24,7 +24,7 @@ public class AudioClipper : EditorWindow {
 	[MenuItem("Tools/Audio Clipper")]
 	public static void ShowWindow() {
 		AudioClipper window = GetWindow<AudioClipper>();
-		window.minSize = new Vector2(400F, 300F);
+		window.minSize = new Vector2(420F, 400F);
 		window.Show();
 	}
 	
@@ -198,9 +198,9 @@ public class AudioClipper : EditorWindow {
 
 	private void DrawAudioClipInfo() {
 		EditorGUILayout.BeginHorizontal();
-		EditorGUILayout.LabelField($"时长: {((m_Clip ? m_Duration + "s" : "-"))}");
-		EditorGUILayout.LabelField($"声道: {(m_Clip ? m_Clip.channels : "-")}");
-		EditorGUILayout.LabelField($"采样率: {(m_Clip ? m_Clip.frequency : "-")}");
+		EditorGUILayout.LabelField($"时长: {((m_Clip ? m_Duration + "s" : "-"))}", GUILayout.MinWidth(0F));
+		EditorGUILayout.LabelField($"声道: {(m_Clip ? m_Clip.channels : "-")}", GUILayout.MinWidth(0F));
+		EditorGUILayout.LabelField($"采样率: {(m_Clip ? m_Clip.frequency : "-")}", GUILayout.MinWidth(0F));
 		EditorGUILayout.EndHorizontal();
 	}
 
