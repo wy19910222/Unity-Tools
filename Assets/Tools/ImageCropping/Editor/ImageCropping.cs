@@ -16,7 +16,7 @@ public class ImageCropping : EditorWindow {
 	[MenuItem("Tools/Image Cropping")]
 	public static void ShowWindow() {
 		ImageCropping window = GetWindow<ImageCropping>();
-		window.minSize = new Vector2(400F, 300F);
+		window.minSize = new Vector2(450, 500F);
 		window.Show();
 	}
 
@@ -42,8 +42,22 @@ public class ImageCropping : EditorWindow {
 		BORDER = 2,
 	}
 
+	[Flags]
+	public enum QuickCroppingType {
+		// [InspectorName("无")]
+		// NONE = 0,
+		[InspectorName("上")]
+		TOP = 1 << 0,
+		[InspectorName("下")]
+		BOTTOM = 1 << 1,
+		[InspectorName("左")]
+		LEFT = 1 << 2,
+		[InspectorName("右")]
+		RIGHT = 1 << 3,
+	}
+
 	private enum CornerType {
-		[InspectorName("无")]
+		[InspectorName("无圆角")]
 		NONE = 0,
 		[InspectorName("圆角矩形")]
 		ROUND_RECT = 1,
@@ -65,8 +79,8 @@ public class ImageCropping : EditorWindow {
 
 	private static readonly Color RULER_LINE_COLOR = new Color(1, 1F, 1F, 0.5F);
 	private static readonly Color SCROLL_BAR_BG_COLOR = new Color(0.25F, 0.25F, 0.25F);
-	private static readonly Color PREVIEW_MASK_COLOR = new Color(0.2F, 0.2F, 0.2F, 0.7F);
 	private static readonly Color CROPPING_CORNERED_COLOR = new Color(0, 1F, 1F, 0.5F);
+	private static readonly Color DASHED_LINE_COLOR = Color.gray;
 
 	[SerializeField] private Texture2D m_Tex;
 	[SerializeField] private RectInt m_CroppingRect;
@@ -81,17 +95,13 @@ public class ImageCropping : EditorWindow {
 	[SerializeField] private float m_Scale = 1;
 	[SerializeField] private float m_ContentX;
 	[SerializeField] private float m_ContentY;
-	
-	[SerializeField] private bool m_QuickCroppingTop = true;
-	[SerializeField] private bool m_QuickCroppingBottom = true;
-	[SerializeField] private bool m_QuickCroppingLeft = true;
-	[SerializeField] private bool m_QuickCroppingRight = true;
-	
+	[SerializeField] private QuickCroppingType m_QuickCroppingType = QuickCroppingType.TOP | QuickCroppingType.BOTTOM | QuickCroppingType.LEFT | QuickCroppingType.RIGHT;
 	[SerializeField] private bool m_IsPreview;
 	[SerializeField] private RenderTexture m_PreviewTex;
 
 	private Rect m_CanvasRect;
 	private readonly List<(Rect, ResizeType)> m_ResizeRects = new List<(Rect, ResizeType)>();
+	private readonly List<Rect> m_FloatingRects = new List<Rect>();
 	private ResizeType m_ResizeType;
 	private Vector2 m_DragPrevPos;
 
@@ -103,6 +113,11 @@ public class ImageCropping : EditorWindow {
 		m_BlankTex.SetPixel(0, 0, Color.clear);
 		m_BlankTex.Apply();
 	}
+	
+	private void OnDisable() {
+		DestroyImmediate(m_BlankTex);
+		DestroyImmediate(m_Mat);
+	}
 
 	private double timeSinceStartup;
 	private void Update() {
@@ -113,12 +128,10 @@ public class ImageCropping : EditorWindow {
 	}
 
 	private void OnGUI() {
+		EditorGUIUtility.labelWidth = Mathf.Min(EditorGUIUtility.labelWidth, position.width * 0.2F);
 		DrawTargetField();
 		DrawCroppingRectField();
-		DrawQuickCroppingField();
-		DrawCornerField();
 		GUILayout.Space(5F);
-		DrawPreviewBtnField();
 		DrawCanvasField();
 		DrawZoomField();
 		GUILayout.Space(5F);
@@ -220,212 +233,6 @@ public class ImageCropping : EditorWindow {
 		}
 	}
 
-	private void DrawQuickCroppingField() {
-		string dirText = string.Empty;
-		if (m_QuickCroppingTop) {
-			dirText += "上";
-		}
-		if (m_QuickCroppingBottom) {
-			dirText += "下";
-		}
-		if (m_QuickCroppingLeft) {
-			dirText += "左";
-		}
-		if (m_QuickCroppingRight) {
-			dirText += "右";
-		}
-		
-		EditorGUILayout.BeginHorizontal();
-		EditorGUILayout.LabelField("快捷裁剪", GUILayout.Width(EditorGUIUtility.labelWidth - 2F));
-		EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
-		if (GUILayout.Button("裁剪" + dirText + "空白", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 4F))) {
-			if (m_Tex) {
-				Undo.RecordObject(this, "ImageCropping.CroppingRect");
-				Color[] colors = GetTexturePixels(m_Tex);
-				int width = m_Tex.width;
-				int height = m_Tex.height;
-				if (m_QuickCroppingLeft) {
-					int trimXMin = 0;
-					for (int x = 0; x < width; x++) {
-						bool willBreak = false;
-						for (int y = 0; y < height; y++) {
-							if (colors[y * width + x].a > 0) {
-								trimXMin = x;
-								willBreak = true;
-								break;
-							}
-						}
-						if (willBreak) {
-							break;
-						}
-					}
-					m_CroppingRect.xMin = trimXMin;
-				}
-				if (m_QuickCroppingBottom) {
-					int trimYMin = 0;
-					for (int y = 0; y < height; y++) {
-						bool willBreak = false;
-						for (int x = 0; x < width; x++) {
-							if (colors[y * width + x].a > 0) {
-								trimYMin = y;
-								willBreak = true;
-								break;
-							}
-						}
-						if (willBreak) {
-							break;
-						}
-					}
-					m_CroppingRect.yMin = trimYMin;
-				}
-				if (m_QuickCroppingRight) {
-					int trimXMax = width;
-					for (int x = width - 1; x >= 0; x--) {
-						bool willBreak = false;
-						for (int y = 0; y < height; y++) {
-							if (colors[y * width + x].a > 0) {
-								trimXMax = x + 1;
-								willBreak = true;
-								break;
-							}
-						}
-						if (willBreak) {
-							break;
-						}
-					}
-					m_CroppingRect.xMax = trimXMax;
-				}
-				if (m_QuickCroppingTop) {
-					int trimYMax = height;
-					for (int y = height - 1; y >= 0; y--) {
-						bool willBreak = false;
-						for (int x = 0; x < width; x++) {
-							if (colors[y * width + x].a > 0) {
-								trimYMax = y + 1;
-								willBreak = true;
-								break;
-							}
-						}
-						if (willBreak) {
-							break;
-						}
-					}
-					m_CroppingRect.yMax = trimYMax;
-				}
-				UpdatePreviewTex();
-			}
-		}
-		EditorGUI.EndDisabledGroup();
-		
-		EditorGUILayout.BeginVertical();
-		bool newQuickCornerTop = GUILayout.Toggle(m_QuickCroppingTop, "上", "Button");
-		if (newQuickCornerTop != m_QuickCroppingTop) {
-			Undo.RecordObject(this, "ImageCropping.QuickCroppingOption");
-			m_QuickCroppingTop = newQuickCornerTop;
-		}
-		bool newQuickCornerBottom = GUILayout.Toggle(m_QuickCroppingBottom, "下", "Button");
-		if (newQuickCornerBottom != m_QuickCroppingBottom) {
-			Undo.RecordObject(this, "ImageCropping.QuickCroppingOption");
-			m_QuickCroppingBottom = newQuickCornerBottom;
-		}
-		EditorGUILayout.EndVertical();
-		EditorGUILayout.BeginVertical();
-		bool newQuickCornerLeft = GUILayout.Toggle(m_QuickCroppingLeft, "左", "Button");
-		if (newQuickCornerLeft != m_QuickCroppingLeft) {
-			Undo.RecordObject(this, "ImageCropping.QuickCroppingOption");
-			m_QuickCroppingLeft = newQuickCornerLeft;
-		}
-		bool newQuickCornerRight = GUILayout.Toggle(m_QuickCroppingRight, "右", "Button");
-		if (newQuickCornerRight != m_QuickCroppingRight) {
-			Undo.RecordObject(this, "ImageCropping.QuickCroppingOption");
-			m_QuickCroppingRight = newQuickCornerRight;
-		}
-		EditorGUILayout.EndVertical();
-		
-		EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
-		if (GUILayout.Button("重置" + dirText + "边缘", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2 + 4F))) {
-			if (m_Tex) {
-				Undo.RecordObject(this, "ImageCropping.CroppingRect");
-				if (m_QuickCroppingLeft) {
-					m_CroppingRect.xMin = 0;
-				}
-				if (m_QuickCroppingBottom) {
-					m_CroppingRect.yMin = 0;
-				}
-				if (m_QuickCroppingRight) {
-					m_CroppingRect.xMax = m_Tex.width;
-				}
-				if (m_QuickCroppingTop) {
-					m_CroppingRect.yMax = m_Tex.height;
-				}
-				UpdatePreviewTex();
-			}
-		}
-		EditorGUI.EndDisabledGroup();
-		EditorGUILayout.EndHorizontal();
-	}
-
-	private void DrawCornerField() {
-		int width = m_CroppingRect.width;
-		int height = m_CroppingRect.height;
-		
-		CornerType newType = (CornerType) EditorGUILayout.EnumPopup("平滑角", m_CornerType);
-		if (newType != m_CornerType) {
-			Undo.RecordObject(this, "ImageCropping.CornerType");
-			m_CornerType = newType;
-			UpdatePreviewTex();
-		}
-
-		EditorGUILayout.BeginHorizontal();
-		switch (m_CornerType) {
-			case CornerType.ROUND_RECT: {
-				float roundRadiusMax = Mathf.Min(width, height) * 0.5F;
-				float newRoundRadius = Mathf.Clamp(EditorGUILayout.FloatField("     圆角半径", m_RoundRadius), 0, roundRadiusMax);
-				if (!Mathf.Approximately(newRoundRadius, m_RoundRadius)) {
-					Undo.RecordObject(this, "ImageCropping.RoundRadius");
-					m_RoundRadius = newRoundRadius;
-					UpdatePreviewTex();
-				}
-				break;
-			}
-			case CornerType.MI_LOGO: {
-				float newHyperEllipticPower = Mathf.Clamp(EditorGUILayout.FloatField("     幂", m_HyperEllipticPower), 0, 10);
-				if (!Mathf.Approximately(newHyperEllipticPower, m_HyperEllipticPower)) {
-					Undo.RecordObject(this, "ImageCropping.HyperEllipticPower");
-					m_HyperEllipticPower = newHyperEllipticPower;
-					UpdatePreviewTex();
-				}
-				break;
-			}
-		}
-		if (m_CornerType != CornerType.NONE) {
-			float softnessMax = (width + height) * 0.5F;
-			float newSoftness = Mathf.Clamp(EditorGUILayout.FloatField("     柔和边缘", m_Softness), 0, softnessMax);
-			if (!Mathf.Approximately(newSoftness, m_Softness)) {
-				Undo.RecordObject(this, "ImageCropping.Softness");
-				m_Softness = newSoftness;
-				UpdatePreviewTex();
-			}
-			float edgeMoveMax = (width + height) * 0.5F;
-			float newEdgeMove = Mathf.Clamp(EditorGUILayout.FloatField("     移动边缘", m_EdgeMove), -edgeMoveMax, edgeMoveMax);
-			if (!Mathf.Approximately(newEdgeMove, m_EdgeMove)) {
-				Undo.RecordObject(this, "ImageCropping.EdgeMove");
-				m_EdgeMove = newEdgeMove;
-				UpdatePreviewTex();
-			}
-		}
-		EditorGUILayout.EndHorizontal();
-	}
-
-	private void DrawPreviewBtnField() {
-		bool newIsPreview = GUILayout.Toggle(m_IsPreview, "预览", "Button");
-		if (newIsPreview != m_IsPreview) {
-			Undo.RecordObject(this, "ImageCropping.IsPreview");
-			m_IsPreview = newIsPreview;
-			UpdatePreviewTex();
-		}
-	}
-
 	private void DrawCanvasField() {
 		Rect rect = EditorGUILayout.BeginVertical(GUILayout.ExpandHeight(true));
 
@@ -444,8 +251,9 @@ public class ImageCropping : EditorWindow {
 		}
 		
 		if (m_Tex) {
-			DrawHorizontalRuler(horizontalRulerRect);
-			DrawVerticalRuler(verticalRulerRect);
+			int rulerBlockValue = CalculateBlockValue(RULER_CELL_WIDTH_MIN, m_Scale);
+			DrawHorizontalRuler(horizontalRulerRect, rulerBlockValue);
+			DrawVerticalRuler(verticalRulerRect, rulerBlockValue);
 			
 			int texWidth = m_Tex.width;
 			int texHeight = m_Tex.height;
@@ -465,16 +273,23 @@ public class ImageCropping : EditorWindow {
 			}
 			DrawScrollBar(horizontalBarRect, verticalBarRect, scaledContentWidth, scaledContentHeight);
 			DrawScaleLabel(scaleLabelRect);
+		}
 
+		m_FloatingRects.Clear();
+		m_FloatingRects.Add(DrawPreviewBtnField(canvasRect.x + 5F, canvasRect.y + 5F));
+		m_FloatingRects.Add(DrawCornerField(canvasRect.xMax - 5F, canvasRect.y + 5F, true));
+		m_FloatingRects.Add(DrawQuickCroppingField(canvasRect.xMax - 5F, canvasRect.yMax - 5F, true, true));
+		
+		if (m_Tex) {
 			SetCursorRect();
-
 			HandleMouseEvent(new Rect() {
-					xMin = verticalRulerRect.x,
-					yMin = horizontalRulerRect.y,
-					xMax = horizontalRulerRect.xMax,
-					yMax = verticalRulerRect.yMax
+				xMin = verticalRulerRect.x,
+				yMin = horizontalRulerRect.y,
+				xMax = horizontalRulerRect.xMax,
+				yMax = verticalRulerRect.yMax
 			});
 		}
+		
 		EditorGUILayout.EndVertical();
 	}
 
@@ -538,14 +353,16 @@ public class ImageCropping : EditorWindow {
 				}
 				RenderTexture prevRT = RenderTexture.active;
 				RenderTexture.active = m_PreviewTex;
-				Texture2D tex = new Texture2D(croppingWidth, croppingHeight, TextureFormat.RGBA32, false);
-				tex.ReadPixels(new Rect(0, 0, croppingWidth, croppingHeight), 0, 0);
+				Texture2D tempTex = new Texture2D(croppingWidth, croppingHeight, TextureFormat.RGBA32, false);
+				tempTex.ReadPixels(new Rect(0, 0, croppingWidth, croppingHeight), 0, 0);
 				RenderTexture.active = prevRT;
 				if (!m_IsPreview) {
 					UpdatePreviewTex();
 				}
 				
-				byte[] bytes = tex.EncodeToPNG();
+				byte[] bytes = tempTex.EncodeToPNG();
+				DestroyImmediate(tempTex);
+				
 				File.WriteAllBytes(filePath, bytes);
 				AssetDatabase.Refresh();
 			}
@@ -555,25 +372,7 @@ public class ImageCropping : EditorWindow {
 	#endregion
 
 	#region DrawCanvasField
-
-	private void DrawHorizontalRuler(Rect horizontalRulerRect) {
-		float blockValueMin = Mathf.CeilToInt(RULER_CELL_WIDTH_MIN / m_Scale);
-		int blockValue = 1;
-		while (blockValueMin >= 10) {
-			blockValue *= 10;
-			blockValueMin /= 10;
-		}
-		switch (blockValueMin) {
-			case > 5:
-				blockValue *= 10;
-				break;
-			case > 2:
-				blockValue *= 5;
-				break;
-			case > 1:
-				blockValue *= 2;
-				break;
-		}
+	private void DrawHorizontalRuler(Rect horizontalRulerRect, int blockValue) {
 		float blockWidth = blockValue * m_Scale;
 		int subBlock = blockValue < 10 ? blockValue : blockWidth > 50 ? 10 : 5;
 		float subBlockWidth = blockWidth / subBlock;
@@ -610,24 +409,7 @@ public class ImageCropping : EditorWindow {
 		}
 	}
 
-	private void DrawVerticalRuler(Rect verticalRulerRect) {
-		float blockValueMin = Mathf.CeilToInt(RULER_CELL_WIDTH_MIN / m_Scale);
-		int blockValue = 1;
-		while (blockValueMin >= 10) {
-			blockValue *= 10;
-			blockValueMin /= 10;
-		}
-		switch (blockValueMin) {
-			case > 5:
-				blockValue *= 10;
-				break;
-			case > 2:
-				blockValue *= 5;
-				break;
-			case > 1:
-				blockValue *= 2;
-				break;
-		}
+	private void DrawVerticalRuler(Rect verticalRulerRect, int blockValue) {
 		float blockHeight = blockValue * m_Scale;
 		int subBlock = blockValue < 10 ? blockValue : blockHeight > 50 ? 10 : 5;
 		float subBlockHeight = blockHeight / subBlock;
@@ -667,6 +449,180 @@ public class ImageCropping : EditorWindow {
 		}
 	}
 
+	private Rect DrawPreviewBtnField(float x, float y, bool alignRight = false, bool alignBottom = false) {
+		Rect previewBtnRect = new Rect(x, y, 70F, EditorGUIUtility.singleLineHeight);
+		if (alignRight) {
+			previewBtnRect.x -= previewBtnRect.width;
+		}
+		if (alignBottom) {
+			previewBtnRect.y -= previewBtnRect.height;
+		}
+		bool newIsPreview = GUI.Toggle(previewBtnRect, m_IsPreview, "预览", "Button");
+		if (newIsPreview != m_IsPreview) {
+			Undo.RecordObject(this, "ImageCropping.IsPreview");
+			m_IsPreview = newIsPreview;
+			UpdatePreviewTex();
+		}
+		return previewBtnRect;
+	}
+	
+	private Rect DrawCornerField(float x, float y, bool alignRight = false, bool alignBottom = false) {
+		float singleLineHeight = EditorGUIUtility.singleLineHeight;
+		Rect cornerFieldRect = new Rect(x, y, 140F, singleLineHeight);
+		if (alignRight) {
+			cornerFieldRect.x -= cornerFieldRect.width;
+		}
+		if (alignBottom) {
+			cornerFieldRect.y -= cornerFieldRect.height;
+		}
+		
+		Rect rect = cornerFieldRect;
+		CornerType newType = (CornerType) EditorGUI.EnumPopup(rect, m_CornerType);
+		if (newType != m_CornerType) {
+			Undo.RecordObject(this, "ImageCropping.CornerType");
+			m_CornerType = newType;
+			UpdatePreviewTex();
+		}
+		
+		float prevLabelWidth = EditorGUIUtility.labelWidth;
+		EditorGUIUtility.labelWidth = 60F;
+		
+		int width = m_CroppingRect.width;
+		int height = m_CroppingRect.height;
+		switch (m_CornerType) {
+			case CornerType.ROUND_RECT: {
+				rect.y += singleLineHeight + 2F;
+				cornerFieldRect.height += singleLineHeight + 2F;
+				float roundRadiusMax = Mathf.Min(width, height) * 0.5F;
+				float newRoundRadius = Mathf.Clamp(EditorGUI.FloatField(rect, " 圆角半径", m_RoundRadius), 0, roundRadiusMax);
+				if (!Mathf.Approximately(newRoundRadius, m_RoundRadius)) {
+					Undo.RecordObject(this, "ImageCropping.RoundRadius");
+					m_RoundRadius = newRoundRadius;
+					UpdatePreviewTex();
+				}
+				break;
+			}
+			case CornerType.MI_LOGO: {
+				rect.y += singleLineHeight + 2F;
+				cornerFieldRect.height += singleLineHeight + 2F;
+				float newHyperEllipticPower = Mathf.Clamp(EditorGUI.FloatField(rect, " 幂", m_HyperEllipticPower), 0, 10);
+				if (!Mathf.Approximately(newHyperEllipticPower, m_HyperEllipticPower)) {
+					Undo.RecordObject(this, "ImageCropping.HyperEllipticPower");
+					m_HyperEllipticPower = newHyperEllipticPower;
+					UpdatePreviewTex();
+				}
+				break;
+			}
+		}
+		if (m_CornerType != CornerType.NONE) {
+			rect.y += singleLineHeight + 2F;
+			cornerFieldRect.height += singleLineHeight + 2F;
+			float softnessMax = (width + height) * 0.5F;
+			float newSoftness = Mathf.Clamp(EditorGUI.FloatField(rect, " 柔和边缘", m_Softness), 0, softnessMax);
+			if (!Mathf.Approximately(newSoftness, m_Softness)) {
+				Undo.RecordObject(this, "ImageCropping.Softness");
+				m_Softness = newSoftness;
+				UpdatePreviewTex();
+			}
+			rect.y += singleLineHeight + 2F;
+			cornerFieldRect.height += singleLineHeight + 2F;
+			float edgeMoveMax = (width + height) * 0.5F;
+			float newEdgeMove = Mathf.Clamp(EditorGUI.FloatField(rect, " 移动边缘", m_EdgeMove), -edgeMoveMax, edgeMoveMax);
+			if (!Mathf.Approximately(newEdgeMove, m_EdgeMove)) {
+				Undo.RecordObject(this, "ImageCropping.EdgeMove");
+				m_EdgeMove = newEdgeMove;
+				UpdatePreviewTex();
+			}
+		}
+		
+		EditorGUIUtility.labelWidth = prevLabelWidth;
+
+		return cornerFieldRect;
+	}
+
+	private Rect DrawQuickCroppingField(float x, float y, bool alignRight = false, bool alignBottom = false) {
+		float singleLineHeight = EditorGUIUtility.singleLineHeight;
+		Rect quickCroppingRect = new Rect(x, y, 140F, singleLineHeight);
+		if (alignRight) {
+			quickCroppingRect.x -= quickCroppingRect.width;
+		}
+		if (alignBottom) {
+			quickCroppingRect.y -= quickCroppingRect.height;
+			quickCroppingRect.y -= quickCroppingRect.height * 2 + 4F;
+		}
+		
+		string dirText = string.Empty;
+		foreach (QuickCroppingType type in Enum.GetValues(typeof(QuickCroppingType))) {
+			if ((m_QuickCroppingType & type) != 0) {
+				dirText += GetEnumInspectorName(type);
+			}
+		}
+
+		Rect rect = quickCroppingRect;
+		EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
+		if (GUI.Button(rect, "裁剪" + dirText + "空白")) {
+			if (m_Tex) {
+				Undo.RecordObject(this, "ImageCropping.CroppingRect");
+				TrimTex();
+				UpdatePreviewTex();
+			}
+		}
+		EditorGUI.EndDisabledGroup();
+		
+		rect.y += singleLineHeight + 2F;
+		quickCroppingRect.height += singleLineHeight + 2F;
+		EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
+		if (GUI.Button(rect, "重置" + dirText + "边缘")) {
+			if (m_Tex) {
+				Undo.RecordObject(this, "ImageCropping.CroppingRect");
+				if ((m_QuickCroppingType & QuickCroppingType.LEFT) != 0) {
+					m_CroppingRect.xMin = 0;
+				}
+				if ((m_QuickCroppingType & QuickCroppingType.BOTTOM) != 0) {
+					m_CroppingRect.yMin = 0;
+				}
+				if ((m_QuickCroppingType & QuickCroppingType.RIGHT) != 0) {
+					m_CroppingRect.xMax = m_Tex.width;
+				}
+				if ((m_QuickCroppingType & QuickCroppingType.TOP) != 0) {
+					m_CroppingRect.yMax = m_Tex.height;
+				}
+				UpdatePreviewTex();
+			}
+		}
+		EditorGUI.EndDisabledGroup();
+		
+		EditorGUI.BeginChangeCheck();
+		rect.y += singleLineHeight + 2F;
+		quickCroppingRect.height += singleLineHeight + 2F;
+		rect.width *= 0.25F;
+		bool newQuickCropTop = EditorGUI.ToggleLeft(rect, "上", (m_QuickCroppingType & QuickCroppingType.TOP) != 0);
+		rect.x += rect.width;
+		bool newQuickCropBottom = EditorGUI.ToggleLeft(rect, "下", (m_QuickCroppingType & QuickCroppingType.BOTTOM) != 0);
+		rect.x += rect.width;
+		bool newQuickCropLeft = EditorGUI.ToggleLeft(rect, "左", (m_QuickCroppingType & QuickCroppingType.LEFT) != 0);
+		rect.x += rect.width;
+		bool newQuickCropRight = EditorGUI.ToggleLeft(rect, "右", (m_QuickCroppingType & QuickCroppingType.RIGHT) != 0);
+		if (EditorGUI.EndChangeCheck()) {
+			Undo.RecordObject(this, "ImageCropping.QuickCroppingType");
+			m_QuickCroppingType = 0;
+			if (newQuickCropTop) {
+				m_QuickCroppingType |= QuickCroppingType.TOP;
+			}
+			if (newQuickCropBottom) {
+				m_QuickCroppingType |= QuickCroppingType.BOTTOM;
+			}
+			if (newQuickCropLeft) {
+				m_QuickCroppingType |= QuickCroppingType.LEFT;
+			}
+			if (newQuickCropRight) {
+				m_QuickCroppingType |= QuickCroppingType.RIGHT;
+			}
+		}
+
+		return quickCroppingRect;
+	}
+
 	private void DrawCanvas(Rect canvasRect, float scaledContentWidth, float scaledContentHeight) {
 		GUI.BeginClip(canvasRect);
 		bool isShrink = scaledContentWidth <= m_CanvasRect.width && scaledContentHeight <= m_CanvasRect.height;
@@ -701,12 +657,16 @@ public class ImageCropping : EditorWindow {
 				m_CroppingRect.width * m_Scale,
 				m_CroppingRect.height * m_Scale
 		);
-		EditorGUI.DrawTextureTransparent(texRect, m_Tex);
 		if (m_IsPreview) {
-			EditorGUI.DrawRect(texRect, PREVIEW_MASK_COLOR);
-		}
-		if (m_PreviewTex) {
-			GUI.DrawTexture(croppingRect, m_PreviewTex);
+			if (m_PreviewTex) {
+				EditorGUI.DrawTextureTransparent(croppingRect, m_PreviewTex);
+			}
+			DrawDashedLineRect(texRect, 5, 2, DASHED_LINE_COLOR);
+		} else {
+			EditorGUI.DrawTextureTransparent(texRect, m_Tex);
+			if (m_PreviewTex) {
+				GUI.DrawTexture(croppingRect, m_PreviewTex);
+			}
 		}
 		DrawCroppingRect(croppingRect);
 		GUI.EndClip();
@@ -935,7 +895,15 @@ public class ImageCropping : EditorWindow {
 			}
 			case EventType.MouseDown: {
 				Vector2 mousePos = Event.current.mousePosition;
-				if (mousePos.x >= m_CanvasRect.x && mousePos.x <= m_CanvasRect.xMax && mousePos.y >= m_CanvasRect.y && mousePos.y <= m_CanvasRect.yMax) {
+				// 排除悬浮的控件
+				bool inFloating = false;
+				foreach (Rect floatingRect in m_FloatingRects) {
+					if (mousePos.x >= floatingRect.xMin && mousePos.x <= floatingRect.xMax && mousePos.y >= floatingRect.yMin && mousePos.y <= floatingRect.yMax) {
+						inFloating = true;
+						break;
+					}
+				}
+				if (!inFloating && mousePos.x >= m_CanvasRect.x && mousePos.x <= m_CanvasRect.xMax && mousePos.y >= m_CanvasRect.y && mousePos.y <= m_CanvasRect.yMax) {
 					mousePos.x -= m_CanvasRect.x;
 					mousePos.y -= m_CanvasRect.y;
 					bool isResize = false;
@@ -1233,6 +1201,80 @@ public class ImageCropping : EditorWindow {
 		}
 	}
 
+	private void TrimTex() {
+		Color[] colors = GetTexturePixels(m_Tex);
+		int width = m_Tex.width;
+		int height = m_Tex.height;
+		if ((m_QuickCroppingType & QuickCroppingType.LEFT) != 0) {
+			int trimXMin = 0;
+			for (int x = 0; x < width; x++) {
+				bool willBreak = false;
+				for (int y = 0; y < height; y++) {
+					if (colors[y * width + x].a > 0) {
+						trimXMin = x;
+						willBreak = true;
+						break;
+					}
+				}
+				if (willBreak) {
+					break;
+				}
+			}
+			m_CroppingRect.xMin = trimXMin;
+		}
+		if ((m_QuickCroppingType & QuickCroppingType.BOTTOM) != 0) {
+			int trimYMin = 0;
+			for (int y = 0; y < height; y++) {
+				bool willBreak = false;
+				for (int x = 0; x < width; x++) {
+					if (colors[y * width + x].a > 0) {
+						trimYMin = y;
+						willBreak = true;
+						break;
+					}
+				}
+				if (willBreak) {
+					break;
+				}
+			}
+			m_CroppingRect.yMin = trimYMin;
+		}
+		if ((m_QuickCroppingType & QuickCroppingType.RIGHT) != 0) {
+			int trimXMax = width;
+			for (int x = width - 1; x >= 0; x--) {
+				bool willBreak = false;
+				for (int y = 0; y < height; y++) {
+					if (colors[y * width + x].a > 0) {
+						trimXMax = x + 1;
+						willBreak = true;
+						break;
+					}
+				}
+				if (willBreak) {
+					break;
+				}
+			}
+			m_CroppingRect.xMax = trimXMax;
+		}
+		if ((m_QuickCroppingType & QuickCroppingType.TOP) != 0) {
+			int trimYMax = height;
+			for (int y = height - 1; y >= 0; y--) {
+				bool willBreak = false;
+				for (int x = 0; x < width; x++) {
+					if (colors[y * width + x].a > 0) {
+						trimYMax = y + 1;
+						willBreak = true;
+						break;
+					}
+				}
+				if (willBreak) {
+					break;
+				}
+			}
+			m_CroppingRect.yMax = trimYMax;
+		}
+	}
+
 	private static readonly int MODE = Shader.PropertyToID("_Mode");
 	private static readonly int SCALE_AND_OFFSET = Shader.PropertyToID("_ScaleAndOffset");
 	private static readonly int CORNER_MODE = Shader.PropertyToID("_CornerMode");
@@ -1248,7 +1290,7 @@ public class ImageCropping : EditorWindow {
 			return;
 		}
 		if (!m_PreviewTex || m_PreviewTex.width != width || m_PreviewTex.height != height) {
-			m_PreviewTex = RenderTexture.GetTemporary(width, height);
+			m_PreviewTex = RenderTexture.GetTemporary(width, height, 0);
 			m_PreviewTex.filterMode = m_Tex.filterMode;
 		}
 		Graphics.Blit(m_BlankTex, m_PreviewTex);
@@ -1277,21 +1319,130 @@ public class ImageCropping : EditorWindow {
 		Graphics.Blit(null, m_PreviewTex, m_Mat);
 	}
 
-	private static Color[] GetTexturePixels(Texture2D tex) {
-		if (!tex.isReadable) {
-			RenderTexture rt = RenderTexture.GetTemporary(tex.width, tex.height, 0);
-			Graphics.Blit(tex, rt);
+	// private static void DrawCheckerboardRect(Rect rect, float blockWidth, Color evenColor, Color oddColor, Vector2 offset) {
+	// 	int xBlockMin = Mathf.RoundToInt((rect.xMin - offset.x) / blockWidth);
+	// 	int yBlockMin = Mathf.RoundToInt((rect.yMin - offset.y) / blockWidth);
+	// 	int xBlockMax = Mathf.RoundToInt((rect.xMax - offset.x) / blockWidth);
+	// 	int yBlockMax = Mathf.RoundToInt((rect.yMax - offset.y) / blockWidth);
+	// 	for (int i = yBlockMin; i <= yBlockMax; i++) {
+	// 		for (int j = xBlockMin; j <= xBlockMax; j++) {
+	// 			float _x = Mathf.Max(offset.x + j * blockWidth, rect.xMin);
+	// 			float _y = Mathf.Max(offset.y + i * blockWidth, rect.yMin);
+	// 			float _width = Mathf.Ceil(Mathf.Min(blockWidth, rect.xMax - _x));
+	// 			float _height = Mathf.Ceil(Mathf.Min(blockWidth, rect.yMax - _y));
+	// 			Color _color = (i + j & 1) == 1 ? oddColor : evenColor;
+	// 			EditorGUI.DrawRect(new Rect(_x, _y, _width, _height), _color);
+	// 		}
+	// 	}
+	// }
 
-			RenderTexture prevRT = RenderTexture.active;
-			RenderTexture.active = rt;
-			Texture2D tempTex = new Texture2D(tex.width, tex.height, tex.format, false);
-			tempTex.ReadPixels(new Rect(0, 0, tex.width, tex.height), 0, 0, false);
-			tempTex.Apply();
-			RenderTexture.active = prevRT;
-			
-			tex = tempTex;
+	private static void DrawDashedLineRect(Rect rect, int segmentLength, int space, Color color) {
+		int xMin = Mathf.RoundToInt(rect.xMin);
+		int yMin = Mathf.RoundToInt(rect.yMin);
+		int xMax = Mathf.RoundToInt(rect.xMax);
+		int yMax = Mathf.RoundToInt(rect.yMax);
+		int x = xMin;
+		int y = yMin;
+		// 上边框
+		while (x < xMax - segmentLength) {
+			EditorGUI.DrawRect(new Rect(x, y, segmentLength, 1), color);
+			x += segmentLength + space;
 		}
-		return tex.GetPixels();
+		// 右上转角
+		if (x >= xMax) {
+			y += x - xMax + 1;
+			x = xMax;
+		} else {
+			int leftLength = xMax - x - 1;
+			EditorGUI.DrawRect(new Rect(x, y, leftLength, 1), color);
+			x = xMax;
+			EditorGUI.DrawRect(new Rect(x, y, -1, segmentLength - leftLength), color);
+			y += segmentLength - leftLength + space;
+		}
+		// 右边框
+		while (y < yMax - segmentLength) {
+			EditorGUI.DrawRect(new Rect(x, y, -1, segmentLength), color);
+			y += segmentLength + space;
+		}
+		// 右下转角
+		if (y >= yMax) {
+			x -= y - yMax + 1;
+			y = yMax;
+		} else {
+			int leftLength = yMax - y - 1;
+			EditorGUI.DrawRect(new Rect(x, y, -1, leftLength), color);
+			y = yMax;
+			x = xMax;
+			EditorGUI.DrawRect(new Rect(x, y, -(segmentLength - leftLength), -1), color);
+			x -= segmentLength - leftLength + space;
+		}
+		// 下边框
+		while (x > xMin + segmentLength) {
+			EditorGUI.DrawRect(new Rect(x, y, -segmentLength, -1), color);
+			x -= segmentLength + space;
+		}
+		// 左下转角
+		if (x <= xMin) {
+			y -= xMin - x + 1;
+			x = xMin;
+		} else {
+			int leftLength = x - xMin - 1;
+			EditorGUI.DrawRect(new Rect(x, y, -leftLength, -1), color);
+			y = yMax;
+			x = xMin;
+			EditorGUI.DrawRect(new Rect(x, y, 1, -(segmentLength - leftLength)), color);
+			y -= segmentLength - leftLength + space;
+		}
+		// 左边框
+		while (y > yMin + segmentLength) {
+			EditorGUI.DrawRect(new Rect(x, y, 1, -segmentLength), color);
+			y -= segmentLength + space;
+		}
+		if (y > yMin) {
+			float leftLength = y - yMin;
+			EditorGUI.DrawRect(new Rect(x, y, 1, -leftLength), color);
+		}
+	}
+
+	private static int CalculateBlockValue(float blockWidthMin, float scale) {
+		float blockValueMin = Mathf.CeilToInt(blockWidthMin / scale);
+		int blockValue = 1;
+		while (blockValueMin >= 10) {
+			blockValue *= 10;
+			blockValueMin /= 10;
+		}
+		switch (blockValueMin) {
+			case > 5:
+				blockValue *= 10;
+				break;
+			case > 2:
+				blockValue *= 5;
+				break;
+			case > 1:
+				blockValue *= 2;
+				break;
+		}
+		return blockValue;
+	}
+
+	private static Color[] GetTexturePixels(Texture2D tex) {
+		if (tex.isReadable) {
+			return tex.GetPixels();
+		}
+		
+		RenderTexture rt = RenderTexture.GetTemporary(tex.width, tex.height);
+		Graphics.Blit(tex, rt);
+
+		RenderTexture prevRT = RenderTexture.active;
+		RenderTexture.active = rt;
+		Texture2D tempTex = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, false);
+		tempTex.ReadPixels(new Rect(0, 0, tex.width, tex.height), 0, 0, false);
+		tempTex.Apply();
+		RenderTexture.active = prevRT;
+			
+		Color[] colors = tempTex.GetPixels();
+		DestroyImmediate(tempTex);
+		return colors;
 	}
 
 	public static string GetEnumInspectorName(object enumValue) {
