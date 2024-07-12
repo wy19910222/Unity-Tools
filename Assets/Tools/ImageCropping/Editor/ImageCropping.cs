@@ -430,22 +430,23 @@ public class ImageCropping : EditorWindow {
 		Rect rect = EditorGUILayout.BeginVertical(GUILayout.ExpandHeight(true));
 
 		Rect horizontalRulerRect = new Rect(rect.x + RULER_THICKNESS, rect.y, rect.width - RULER_THICKNESS - SCROLL_BAR_THICKNESS, RULER_THICKNESS);
-		EditorGUI.DrawRect(horizontalRulerRect, SCROLL_BAR_BG_COLOR);
-		DrawHorizontalRuler(horizontalRulerRect);
 		Rect verticalRulerRect = new Rect(rect.x, rect.y + RULER_THICKNESS, RULER_THICKNESS, rect.height - RULER_THICKNESS - SCROLL_BAR_THICKNESS);
-		EditorGUI.DrawRect(verticalRulerRect, SCROLL_BAR_BG_COLOR);
-		DrawVerticalRuler(verticalRulerRect);
-		
 		Rect verticalBarRect = new Rect(rect.xMax - SCROLL_BAR_THICKNESS, rect.y, SCROLL_BAR_THICKNESS, rect.height - SCROLL_BAR_THICKNESS);
-		EditorGUI.DrawRect(verticalBarRect, SCROLL_BAR_BG_COLOR);
 		Rect horizontalBarRect = new Rect(rect.x, rect.yMax - SCROLL_BAR_THICKNESS, rect.width - SCROLL_BAR_THICKNESS, SCROLL_BAR_THICKNESS);
+		EditorGUI.DrawRect(horizontalRulerRect, SCROLL_BAR_BG_COLOR);
+		EditorGUI.DrawRect(verticalRulerRect, SCROLL_BAR_BG_COLOR);
+		EditorGUI.DrawRect(verticalBarRect, SCROLL_BAR_BG_COLOR);
 		EditorGUI.DrawRect(horizontalBarRect, SCROLL_BAR_BG_COLOR);
-
+		
 		Rect canvasRect = new Rect(horizontalRulerRect.x, verticalRulerRect.y, horizontalRulerRect.width, verticalRulerRect.height);
 		if (Event.current.type == EventType.Repaint) {
 			m_CanvasRect = canvasRect;
 		}
+		
 		if (m_Tex) {
+			DrawHorizontalRuler(horizontalRulerRect);
+			DrawVerticalRuler(verticalRulerRect);
+			
 			int texWidth = m_Tex.width;
 			int texHeight = m_Tex.height;
 			int xMin = Mathf.Min(m_CroppingRect.xMin, 0);
