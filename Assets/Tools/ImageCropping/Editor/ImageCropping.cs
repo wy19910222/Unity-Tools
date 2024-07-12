@@ -113,11 +113,6 @@ public class ImageCropping : EditorWindow {
 		m_BlankTex.SetPixel(0, 0, Color.clear);
 		m_BlankTex.Apply();
 	}
-	
-	private void OnDisable() {
-		DestroyImmediate(m_BlankTex);
-		DestroyImmediate(m_Mat);
-	}
 
 	private double timeSinceStartup;
 	private void Update() {
@@ -164,6 +159,7 @@ public class ImageCropping : EditorWindow {
 					m_ContentX = m_CanvasRect.width * 0.5F;
 					m_ContentY = m_CanvasRect.height * 0.5F;
 				}
+				UpdatePreviewTex();
 			}
 		}
 	}
