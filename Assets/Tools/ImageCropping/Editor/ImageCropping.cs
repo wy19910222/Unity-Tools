@@ -68,7 +68,7 @@ public class ImageCropping : EditorWindow {
 	private const float RULER_THICKNESS = 18F;	// 标尺的宽度
 	private const float RULER_CELL_WIDTH_MIN = 34;	// 标尺最小每格尺寸，需要显示数字，不能太小
 	private const float SCROLL_BAR_THICKNESS = 16F;	// 滚动条的宽度
-	private const float SCROLL_BAR_PRECISION = 1000F;	// 缩放精度（最小为缩放到1像素）
+	private const float SCROLL_BAR_PRECISION = 1000F;	// 滚动条精度
 	private const float SCALE_VISIBLE_H_BAR_WIDTH_MIN = 175F;	// 当横向滚动条小于该值时不显示缩放比例标签
 	private const float SCALE_LABEL_WIDTH = 54F;	// 缩放比例标签的宽度
 	private const float CANVAS_BORDER_DEFAULT_THICKNESS = 10F;	// 当纹理尺寸大于画布，默认缩放到离画布边缘的距离
