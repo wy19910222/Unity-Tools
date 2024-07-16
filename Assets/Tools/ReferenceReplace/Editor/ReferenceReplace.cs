@@ -102,7 +102,7 @@ public class ReferenceReplace : EditorWindow {
 			Undo.RecordObject(this, "Maps.Clear");
 			m_ReplaceMaps.Clear();
 		}
-		if (GUILayout.Button("选中对象赋值到左边")) {
+		if (GUILayout.Button("选中对象覆盖到左边")) {
 			Undo.RecordObject(this, "Maps.InsertSelectionsToLeft");
 			int listCount = m_ReplaceMaps.Count;
 			int selectionCount = Selection.objects.Length;
@@ -117,7 +117,7 @@ public class ReferenceReplace : EditorWindow {
 				});
 			}
 		}
-		if (GUILayout.Button("选中对象赋值到右边")) {
+		if (GUILayout.Button("选中对象覆盖到右边")) {
 			Undo.RecordObject(this, "Maps.InsertSelectionsToRight");
 			int listCount = m_ReplaceMaps.Count;
 			int selectionCount = Selection.objects.Length;
