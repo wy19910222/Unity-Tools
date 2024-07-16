@@ -13,6 +13,17 @@
 * **起始编号、递增补偿、编号位数：** 多个对象重命名可以用编号替换「#」号，实现名称带序号功能。  
 * **「推测命名按钮」：** 将原名剔除序号后去重，随着每次点击依次显示在输入框中。  
 
+### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/BatchRename
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/BatchRename
+```
+* 直接将 [**BatchRename**](Assets/Tools/BatchRename) 文件夹拷贝至项目中。  
+
 ## 引用替换
 
 [**ReferenceReplace**](Assets/Tools/ReferenceReplace)  
@@ -20,6 +31,17 @@
 ![ReferenceReplace](Assets/Tools/ReferenceReplace/Captures~/ReferenceReplace.gif)  
 * **列表：** 原对象和替换为的映射表，事实上取的是它们的GUID。  
 * **替换目标：** 必须是一个文件夹或以文本形式储存的资产文件，原理是在文本中搜索GUID并替换保存。如果目标是文件夹，则遍历文件夹操作每一个符合条件的文件。  
+
+### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/ReferenceReplace
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/ReferenceReplace
+```
+* 直接将 [**ReferenceReplace**](Assets/Tools/ReferenceReplace) 文件夹拷贝至项目中。  
 
 ## 节点搜索
 
@@ -30,6 +52,17 @@
 * **组件搜索：** 以选中目标为搜索范围（支持多选，支持Prefab编辑场景，支持Prefab资产），将范围内所有匹配的组件显示出来。  
 * **Layer搜索：** 以选中目标为搜索范围（支持多选，支持Prefab编辑场景，支持Prefab资产），将范围内所有匹配的节点显示出来。  
 * **场景中引用搜索：** 以整个场景为搜索范围（支持Prefab编辑场景），将范围内所有引用到所选对象（支持多选）的组件显示出来。  
+
+### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/TransformSearch
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/TransformSearch
+```
+* 直接将 [**TransformSearch**](Assets/Tools/TransformSearch) 文件夹拷贝至项目中。  
 
 ## UI编辑辅助工具
 
@@ -52,6 +85,17 @@
   平均行距：以选中的多个节点的最下边节点和最上边节点为两端，平均分布节点间的行距。  
   当按住Shift键再点击时，将会重新定义缝隙（广义缝隙）。  
 
+### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/UITools
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/UITools
+```
+* 直接将 [**UITools**](Assets/Tools/UITools) 文件夹拷贝至项目中。  
+
 ## UGUI扩展
 
 [**UGUIExt**](Assets/Tools/UGUIExt)  
@@ -62,6 +106,20 @@
 * **TemplateText：** 以模板形式赋值文本框，从而实现把文案留在UI界面中，而代码单独控制文案中的变量。  
 * **ContentSizeFitterExt：** 增加最大宽高和最小宽高功能，可实现文本框尺寸在字少的时候横向适应文本宽度，字多的时候纵向适应行数的需求。  
 
+### 依赖
+依赖 **UGUI** 和 **TextMeshPro** 。  
+
+### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/UGUIExt
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/UGUIExt
+```
+* 直接将 [**UGUIExt**](Assets/Tools/UGUIExt) 文件夹拷贝至项目中。  
+
 ## Transform检视面板扩展
 
 [**TransformInspector**](Assets/Tools/TransformInspector)  
@@ -69,6 +127,17 @@
 在RectTransform检视面板末尾区域新增「保留整数」、「保留2位小数」两个按钮。  
 ![TransformInspector](Assets/Tools/TransformInspector/Captures~/TransformInspector.gif)  
 ![RectTransformInspector](Assets/Tools/TransformInspector/Captures~/RectTransformInspector.gif)  
+
+### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/TransformInspector
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/TransformInspector
+```
+* 直接将 [**TransformInspector**](Assets/Tools/TransformInspector) 文件夹拷贝至项目中。  
 
 ## SpriteAtlas检视面板扩展
 
@@ -79,6 +148,17 @@
 * **深入文件夹去重：** 列表中的文件夹如果包含列表中的其他项，也将去除重复的项。  
 * **清空列表：** 清空列表。  
 * **添加选中对象：** 将当前选中的所有对象添加到列表末尾。  
+
+### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/SpriteAtlasInspector
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/SpriteAtlasInspector
+```
+* 直接将 [**SpriteAtlasInspector**](Assets/Tools/SpriteAtlasInspector) 文件夹拷贝至项目中。  
 
 ## EasySplinePath2D插件修改
 
@@ -116,6 +196,14 @@
 * 输出文件与源文件格式相同，也可以直接覆盖源文件。  
 
 ### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
+```
 * 直接将 [**AudioEditor**](Assets/Tools/AudioEditor) 文件夹拷贝至项目中。  
 
 
@@ -134,4 +222,12 @@
 * 可保存裁剪后的图片到新文件。  
 
 ### 使用方法
+* 使用Unity Package Manager安装：  
+```
+GitHub：
+git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/ImageCropping
+
+Gitee：
+git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/ImageCropping
+```
 * 直接将 [**ImageCropping**](Assets/Tools/ImageCropping) 文件夹拷贝至项目中。  
