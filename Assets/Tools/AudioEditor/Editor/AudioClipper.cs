@@ -994,9 +994,9 @@ public class AudioClipper : EditorWindow {
 	}
 
 	private static GUIStyle CreateRulerStyle() {
-		GUIStyle rulerStyle = "CenteredLabel";
-		rulerStyle.fontSize = 10;
-		return rulerStyle;
+		return new GUIStyle("CenteredLabel") {
+			fontSize = 10
+		};
 	}
 #endregion
 }
