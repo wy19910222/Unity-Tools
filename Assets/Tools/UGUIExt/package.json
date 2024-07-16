@@ -5,7 +5,7 @@
   "description": "对UGUI的一些扩展。",
   "dependencies": {
     "com.unity.ugui": "1.0.0",
-    "com.unity.textmeshpro": "3.x"
+    "com.unity.textmeshpro": "3.0.6"
   }
   
 }
