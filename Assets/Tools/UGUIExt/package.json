@@ -1,0 +1,11 @@
+{
+  "name": "com.wy.tools.ugui_ext",
+  "displayName": "WYTools.UGUIExt",
+  "version": "0.1.0",
+  "description": "对UGUI的一些扩展。",
+  "dependencies": {
+    "com.unity.ugui": "1.0.0",
+    "com.unity.textmeshpro": "1.0.0 - latest"
+  }
+  
+}

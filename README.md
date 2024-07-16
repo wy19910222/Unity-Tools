@@ -16,8 +16,8 @@
 ## 引用替换
 
 [**ReferenceReplace**](Assets/Tools/ReferenceReplace)  
-替换某个资产内部的引用GUID。  
-![ReferenceReplace](Captures/ReferenceReplace.gif)  
+设置一组映射关系，替换一个或若干个资产内部的GUID。  
+![ReferenceReplace](Assets/Tools/ReferenceReplace/Captures~/ReferenceReplace.gif)  
 * **列表：** 原对象和替换为的映射表，事实上取的是它们的GUID。  
 * **替换目标：** 必须是一个文件夹或以文本形式储存的资产文件，原理是在文本中搜索GUID并替换保存。如果目标是文件夹，则遍历文件夹操作每一个符合条件的文件。  
 
@@ -25,8 +25,8 @@
 
 [**TransformSearch**](Assets/Tools/TransformSearch)  
 内含多种搜索，搜索结果以节点树的形式呈现。  
-![SearchReferenceInScene](Captures/SearchReferenceInScene.gif)  
-![SearchComponent](Captures/SearchComponent.gif)  
+![SearchReferenceInScene](Assets/Tools/TransformSearch/Captures~/SearchReferenceInScene.gif)  
+![SearchComponent](Assets/Tools/TransformSearch/Captures~/SearchComponent.gif)  
 * **组件搜索：** 以选中目标为搜索范围（支持多选，支持Prefab编辑场景，支持Prefab资产），将范围内所有匹配的组件显示出来。  
 * **Layer搜索：** 以选中目标为搜索范围（支持多选，支持Prefab编辑场景，支持Prefab资产），将范围内所有匹配的节点显示出来。  
 * **场景中引用搜索：** 以整个场景为搜索范围（支持Prefab编辑场景），将范围内所有引用到所选对象（支持多选）的组件显示出来。  
@@ -35,7 +35,7 @@
 
 [**UITools**](Assets/Tools/UITools)  
 用于更方便地编辑UGUI，由于在Unity2021.2及以上版本才有Overlay，所以在Unity旧版本的工程中，本工具是一个EditorWindow。  
-![UITools](Captures/UITools.png)  
+![UITools](Assets/Tools/UITools/Captures~/UITools.png)  
 * **对齐按钮：** 分为「上」、「中」、「下」、「左」、「中」、「右」共6个按钮。  
   当选中单个UI节点，则将该节点与父节点对齐。当选中多个UI节点，则将其他节点与第一个节点对齐。  
   当按住Shift键再点击时，会同时设置节点的轴点。  
@@ -67,14 +67,14 @@
 [**TransformInspector**](Assets/Tools/TransformInspector)  
 在Transform检视面板最左侧区域新增右键菜单，添加「重置」、「保留2位小数」、「显示Global」三个功能。  
 在RectTransform检视面板末尾区域新增「保留整数」、「保留2位小数」两个按钮。  
-![TransformInspector](Captures/TransformInspector.gif)  
-![RectTransformInspector](Captures/RectTransformInspector.gif)  
+![TransformInspector](Assets/Tools/TransformInspector/Captures~/TransformInspector.gif)  
+![RectTransformInspector](Assets/Tools/TransformInspector/Captures~/RectTransformInspector.gif)  
 
 ## SpriteAtlas检视面板扩展
 
 [**SpriteAtlasInspector**](Assets/Tools/SpriteAtlasInspector)  
 在SpriteAtlas检视面板末尾区域新增「去重」、「深入文件夹去重」、「清空列表」、「添加选中对象」四个按钮。  
-![SpriteAtlasInspector](Captures/SpriteAtlasInspector.png)  
+![SpriteAtlasInspector](Assets/Tools/SpriteAtlasInspector/Captures~/SpriteAtlasInspector.png)  
 * **去重：** 去除列表中重复的项。  
 * **深入文件夹去重：** 列表中的文件夹如果包含列表中的其他项，也将去除重复的项。  
 * **清空列表：** 清空列表。  

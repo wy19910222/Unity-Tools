@@ -1,0 +1,7 @@
+{
+  "name": "com.wy.tools.sprite_atlas_inspector",
+  "displayName": "WYTools.SpriteAtlasInspector",
+  "version": "0.1.0",
+  "description": "在SpriteAtlas检视面板末尾区域新增「去重」、「深入文件夹去重」、「清空列表」、「添加选中对象」四个按钮。"
+  
+}

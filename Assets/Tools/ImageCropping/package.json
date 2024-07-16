@@ -1,0 +1,7 @@
+{
+  "name": "com.wy.tools.image_cropping",
+  "displayName": "WYTools.ImageCropping",
+  "version": "0.1.0",
+  "description": "预览Texture对象，设置裁剪区域，设置圆角，预览裁剪后图片，保存为新文件。"
+  
+}
