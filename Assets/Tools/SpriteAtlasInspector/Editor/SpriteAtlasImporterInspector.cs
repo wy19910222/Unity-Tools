@@ -5,6 +5,8 @@
  * @EditTime: 2023-07-18 17:01:58 022
  */
 
+#if UNITY_2020_1_OR_NEWER
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -162,3 +164,5 @@ public class SpriteAtlasImporterInspector : Editor {
 	public override void DrawPreview(Rect previewArea) => m_InternalImporterEditor.DrawPreview(previewArea);
 	public override void ReloadPreviewInstances() => m_InternalImporterEditor.ReloadPreviewInstances();
 }
+
+#endif
