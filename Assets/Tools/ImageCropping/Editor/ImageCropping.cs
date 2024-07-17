@@ -789,11 +789,6 @@ public class ImageCropping : EditorWindow {
 		rightCenterRect.width += DRAGGABLE_EXT_THICKNESS + DRAGGABLE_EXT_THICKNESS;
 		m_ResizeRects.Add((rightCenterRect, ResizeType.RIGHT));
 		#endregion
-
-		switch (m_ResizeType) {
-			case ResizeType.NONE:
-				break;
-		}
 	}
 
 	private void DrawScrollBar(Rect horizontalScrollBarRect, Rect verticalScrollBarRect, float scaledContentWidth, float scaledContentHeight) {
@@ -1407,16 +1402,12 @@ public class ImageCropping : EditorWindow {
 			blockValue *= 10;
 			blockValueMin /= 10;
 		}
-		switch (blockValueMin) {
-			case > 5:
-				blockValue *= 10;
-				break;
-			case > 2:
-				blockValue *= 5;
-				break;
-			case > 1:
-				blockValue *= 2;
-				break;
+		if (blockValueMin > 5) {
+			blockValue *= 10;
+		} else if (blockValueMin > 2) {
+			blockValue *= 5;
+		} else if (blockValueMin > 1) {
+			blockValue *= 2;
 		}
 		return blockValue;
 	}
