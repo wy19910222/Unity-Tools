@@ -152,8 +152,8 @@ public class AudioVolumeUnify : EditorWindow {
 					}
 				}
 				m_InfoList.Clear();
-				foreach ((AudioClip _, AudioInfo info) in m_TempDict) {
-					m_InfoList.Add(info);
+				foreach (KeyValuePair<AudioClip, AudioInfo> pair in m_TempDict) {
+					m_InfoList.Add(pair.Value);
 				}
 				m_TempDict.Clear();
 				ShowNotification(EditorGUIUtility.TrTextContent($"新加入{countNew}个对象。"), 1);

@@ -88,7 +88,9 @@ public class AudioClipper : EditorWindow {
 	}
 
 	private void OnEnable() {
-		m_TexStop ??= CreateTexStop();
+		if (!m_TexStop) {
+			m_TexStop = CreateTexStop();
+		}
 		Undo.undoRedoPerformed += () => {
 			m_ClippedClip = null;
 			m_AudioSource.clip = null;
@@ -130,7 +132,9 @@ public class AudioClipper : EditorWindow {
 	}
 
 	private void OnGUI() {
-		m_RulerStyle ??= CreateRulerStyle();
+		if (m_RulerStyle == null) {
+			m_RulerStyle = CreateRulerStyle();
+		}
 
 		DrawAudioClipField();
 		DrawAudioClipInfo();
@@ -199,8 +203,8 @@ public class AudioClipper : EditorWindow {
 	private void DrawAudioClipInfo() {
 		EditorGUILayout.BeginHorizontal();
 		EditorGUILayout.LabelField($"时长: {((m_Clip ? m_Duration + "s" : "-"))}", GUILayout.MinWidth(0F));
-		EditorGUILayout.LabelField($"声道: {(m_Clip ? m_Clip.channels : "-")}", GUILayout.MinWidth(0F));
-		EditorGUILayout.LabelField($"采样率: {(m_Clip ? m_Clip.frequency : "-")}", GUILayout.MinWidth(0F));
+		EditorGUILayout.LabelField($"声道: {(m_Clip ? m_Clip.channels + "" : "-")}", GUILayout.MinWidth(0F));
+		EditorGUILayout.LabelField($"采样率: {(m_Clip ? m_Clip.frequency + "" : "-")}", GUILayout.MinWidth(0F));
 		EditorGUILayout.EndHorizontal();
 	}
 
@@ -341,7 +345,7 @@ public class AudioClipper : EditorWindow {
 			m_FileFormat = FILE_FORMATS[newFileFormatIndex];
 		}
 
-		if (m_FileFormat is "WAV" or "MP3") {
+		if (m_FileFormat is "WAV" || m_FileFormat is "MP3") {
 			int bitsPerSampleIndex = Array.IndexOf(BITS_PER_SAMPLES, m_BitsPerSample);
 			int newBitsPerSampleIndex = EditorGUILayout.Popup("位深度", bitsPerSampleIndex, Array.ConvertAll(BITS_PER_SAMPLES, b=> b + ""));
 			if (newBitsPerSampleIndex != bitsPerSampleIndex) {
@@ -504,12 +508,12 @@ public class AudioClipper : EditorWindow {
 
 		// 选中区域的边界线
 		Rect clipStartLineRect = new Rect(waveformRect.x + waveformRect.width * clipStartPercentOnField, waveformRect.y, 1, waveformRect.height);
-		bool clipStartLineVisible = clipStartPercentOnField is >= 0 and <= 1;
+		bool clipStartLineVisible = clipStartPercentOnField >= 0 && clipStartPercentOnField <= 1;
 		if (clipStartLineVisible) {
 			EditorGUI.DrawRect(clipStartLineRect, m_DraggingType == DraggingType.START_TIME ? COLOR_SELECTOR_DRAGGING : COLOR_SELECTOR);
 		}
 		Rect clipEndLineRect = new Rect(waveformRect.x + waveformRect.width * clipEndPercentOnField, waveformRect.y, 1, waveformRect.height);
-		bool clipEndLineVisible = clipEndPercentOnField is >= 0 and <= 1;
+		bool clipEndLineVisible = clipEndPercentOnField >= 0 && clipEndPercentOnField <= 1;
 		if (clipEndLineVisible) {
 			EditorGUI.DrawRect(clipEndLineRect, m_DraggingType == DraggingType.END_TIME ? COLOR_SELECTOR_DRAGGING : COLOR_SELECTOR);
 		}
@@ -518,7 +522,7 @@ public class AudioClipper : EditorWindow {
 		if (m_AudioSource.clip && m_AudioSource.time > 0 && m_AudioSource.time < viewDuration) {
 			float currentTime = m_ClipStartTime + m_AudioSource.time;
 			float currentPercentOnField = (currentTime - m_ViewStartTime) / (m_ViewEndTime - m_ViewStartTime);
-			if (currentPercentOnField is >= 0 and <= 1) {
+			if (currentPercentOnField >= 0 && currentPercentOnField <= 1) {
 				Rect currentLineRect = new Rect(waveformRect.x + waveformRect.width * currentPercentOnField, waveformRect.y, 1, waveformRect.height);
 				EditorGUI.DrawRect(currentLineRect, COLOR_CURRENT);
 				Color prevColor = GUI.contentColor;
@@ -590,7 +594,7 @@ public class AudioClipper : EditorWindow {
 				break;
 			}
 			case EventType.MouseDrag: {
-				if (m_DraggingType is not DraggingType.NONE) {
+				if (m_DraggingType != DraggingType.NONE) {
 					Vector2 mousePos = Event.current.mousePosition;
 					float deltaX = mousePos.x - m_DragPrevPos.x;
 					switch (m_DraggingType) {
@@ -900,7 +904,7 @@ public class AudioClipper : EditorWindow {
 					m_ClippedClip = ClipAudio(m_Clip, m_ClipStartTime, m_ClipEndTime, m_VolumeScale);
 				}
 				string srcFilePath = AssetDatabase.GetAssetPath(m_Clip);
-				string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
+				string directory = File.Exists(srcFilePath) ? srcFilePath.Substring(0, srcFilePath.LastIndexOfAny(new[] {'/', '\\'})) : "Assets";
 				string filePath = EditorUtility.SaveFilePanel("保存剪辑后的音频", directory, m_Clip.name + "_New", m_FileFormat.ToLower());
 				if (!string.IsNullOrEmpty(filePath)) {
 					string pathUpper = filePath.ToUpper();

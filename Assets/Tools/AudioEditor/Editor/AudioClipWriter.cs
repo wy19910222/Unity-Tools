@@ -53,9 +53,10 @@ public static class AudioClipWriter {
 
 	public static class WavWriter {
 		public static void Write(string filePath, float[] data, int bitsPerSample, int channels, int frequency) {
-			using FileStream fs = new FileStream(filePath, FileMode.Create);
-			WriteHeader(fs, bitsPerSample / 8, channels, frequency, data.Length / channels);
-			WriteData(fs, data, bitsPerSample / 8);
+			using (FileStream fs = new FileStream(filePath, FileMode.Create)) {
+				WriteHeader(fs, bitsPerSample / 8, channels, frequency, data.Length / channels);
+				WriteData(fs, data, bitsPerSample / 8);
+			}
 		}
 
 		public static void WriteHeader(Stream stream, int bytesPerSample, int channels, int frequency, int samples) {
@@ -119,8 +120,9 @@ public static class AudioClipWriter {
 			int blockAlign = channels * bitsPerSample / 8;
 			WaveFormat format = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm,
 					frequency, channels, frequency * blockAlign, blockAlign, bitsPerSample);
-			using LameMP3FileWriter writer = new LameMP3FileWriter(filePath, format, (LAMEPreset) quality);
-			WavWriter.WriteData(writer, data, bitsPerSample / 8);
+			using (LameMP3FileWriter writer = new LameMP3FileWriter(filePath, format, (LAMEPreset) quality)) {
+				WavWriter.WriteData(writer, data, bitsPerSample / 8);
+			}
 		}
 	}
 
