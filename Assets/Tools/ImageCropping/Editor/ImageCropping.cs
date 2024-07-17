@@ -341,7 +341,7 @@ public class ImageCropping : EditorWindow {
 				return;
 			}
 			string srcFilePath = AssetDatabase.GetAssetPath(m_Tex);
-			string directory = File.Exists(srcFilePath) ? srcFilePath[..srcFilePath.LastIndexOfAny(new[] {'/', '\\'})] : "Assets";
+			string directory = File.Exists(srcFilePath) ? srcFilePath.Substring(0, srcFilePath.LastIndexOfAny(new[] {'/', '\\'})) : "Assets";
 			string filePath = EditorUtility.SaveFilePanel("保存裁剪后的图像", directory, m_Tex.name + "_New", "png");
 			if (!string.IsNullOrEmpty(filePath)) {
 				if (!m_IsPreview) {
