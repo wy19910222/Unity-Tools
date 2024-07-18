@@ -101,7 +101,7 @@ public class UITools {
 			container.style.marginLeft = 2;
 			container.style.marginTop = -1;
 			container.onGUIHandler = () => {
-				StyleEnum<FlexDirection> direction = container.parent.parent.resolvedStyle.flexDirection;
+				FlexDirection direction = parent.resolvedStyle.flexDirection;
 				bool isHorizontal = direction == FlexDirection.Row || direction == FlexDirection.RowReverse;
 				Instance.DrawButtons(isHorizontal);
 			};
