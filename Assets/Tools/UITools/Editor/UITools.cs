@@ -6,10 +6,9 @@
  */
 
 #if UNITY_2021_2_OR_NEWER
-using System;
-using System.Reflection;
 using UnityEngine.UIElements;
 using UnityEditor.Overlays;
+using UnityEditor.Toolbars;
 #endif
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,81 +19,105 @@ using UObject = UnityEngine.Object;
 
 public class UITools {
 #if UNITY_2021_2_OR_NEWER
+	// [Overlay(typeof(SceneView), "UITools", true)]
+	// public class UIToolsOverlay : Overlay {
+	// 	private IMGUIContainer m_Container;
+	// 	private Label m_LblTitle;
+	// 	
+	// 	public string displayTitle {
+	// 		get => m_LblTitle?.text;
+	// 		set {
+	// 			if (m_LblTitle != null) {
+	// 				m_LblTitle.text = value;
+	// 				m_LblTitle.style.display = string.IsNullOrEmpty(value) ? DisplayStyle.None : DisplayStyle.Flex;
+	// 			}
+	// 		}
+	// 	}
+	// 	public override VisualElement CreatePanelContent() {
+	// 		m_Container = new IMGUIContainer();
+	// 		m_Container.onGUIHandler = () => {
+	// 			Instance.DrawButtons(m_Container.contentRect.height < 100F);
+	// 		};
+	// 		m_Container.RegisterCallback<AttachToPanelEvent, UIToolsOverlay>((evt, overlay) => {
+	// 			if (!overlay.collapsed && evt.target is VisualElement _ve) {
+	// 				var tit = _ve.parent.parent.Q<Label>("overlay-header__title");
+	// 				overlay.m_LblTitle = tit;
+	// 				overlay.m_LblTitle.parent.style.justifyContent = Justify.Center;
+	// 				displayTitle = "";
+	// 				if (containerWindow is SceneView sceneView) {
+	// 					OnModeChange2D(sceneView.in2DMode);
+	// 				}
+	// 			} else {
+	// 				overlay.m_LblTitle = null;
+	// 			}
+	// 		}, this);
+	// 		return m_Container;
+	// 	}
+	//
+	// 	public override void OnCreated() {
+	// 		if (containerWindow is SceneView sceneView) {
+	// 			// sceneView.modeChanged2D += OnModeChange2D;
+	// 			FieldInfo fi = typeof(SceneView).GetField("modeChanged2D", BindingFlags.Instance | BindingFlags.NonPublic);
+	// 			if (fi != null && fi.FieldType == typeof(Action<bool>)) {
+	// 				if (fi.GetValue(sceneView) is Action<bool> modeChanged2D) {
+	// 					modeChanged2D += OnModeChange2D;
+	// 				} else {
+	// 					modeChanged2D = OnModeChange2D;
+	// 				}
+	// 				fi.SetValue(sceneView, modeChanged2D);
+	// 			}
+	// 			displayed = true;
+	// 		}
+	// 	}
+	//
+	// 	public override void OnWillBeDestroyed() {
+	// 		if (containerWindow is SceneView sceneView) {
+	// 			// sceneView.modeChanged2D -= OnModeChange2D;
+	// 			FieldInfo fi = typeof(SceneView).GetField("modeChanged2D", BindingFlags.Instance | BindingFlags.NonPublic);
+	// 			if (fi != null && fi.GetValue(sceneView) is Action<bool> modeChanged2D) {
+	// 				modeChanged2D -= OnModeChange2D;
+	// 				fi.SetValue(sceneView, modeChanged2D);
+	// 			}
+	// 		}
+	// 	}
+	//
+	// 	private void OnModeChange2D(bool in2DMode) {
+	// 		if (m_Container != null && displayed) {
+	// 			m_Container.parent.parent.style.display = in2DMode ? DisplayStyle.Flex : DisplayStyle.None;
+	// 		}
+	// 	}
+	// }
+	
 	[Overlay(typeof(SceneView), "UITools", true)]
-	public class UIToolsOverlay : Overlay {
-		private VisualElement m_Container;
-		private Label m_LblTitle;
-		
-		public string displayTitle {
-			get => m_LblTitle?.text;
-			set {
-				if (m_LblTitle != null) {
-					m_LblTitle.text = value;
-					m_LblTitle.style.display = string.IsNullOrEmpty(value) ? DisplayStyle.None : DisplayStyle.Flex;
-				}
-			}
+	public class UIToolsOverlay : ToolbarOverlay {
+		public UIToolsOverlay() : base("UITools/Tools") {
 		}
-		public override VisualElement CreatePanelContent() {
-			m_Container = new IMGUIContainer(Instance.OnGUI);
-			m_Container.RegisterCallback<AttachToPanelEvent, UIToolsOverlay>((evt, overlay) => {
-				if (!overlay.collapsed && evt.target is VisualElement _ve) {
-					var tit = _ve.parent.parent.Q<Label>("overlay-header__title");
-					overlay.m_LblTitle = tit;
-					overlay.m_LblTitle.parent.style.justifyContent = Justify.Center;
-					displayTitle = "";
-					if (containerWindow is SceneView sceneView) {
-						OnModeChange2D(sceneView.in2DMode);
-					}
-				} else {
-					overlay.m_LblTitle = null;
-				}
-			}, this);
-			return m_Container;
-		}
+	}
 
-		public override void OnCreated() {
-			if (containerWindow is SceneView sceneView) {
-				// sceneView.modeChanged2D += OnModeChange2D;
-				FieldInfo fi = typeof(SceneView).GetField("modeChanged2D", BindingFlags.Instance | BindingFlags.NonPublic);
-				if (fi != null && fi.FieldType == typeof(Action<bool>)) {
-					if (fi.GetValue(sceneView) is Action<bool> modeChanged2D) {
-						modeChanged2D += OnModeChange2D;
-					} else {
-						modeChanged2D = OnModeChange2D;
-					}
-					fi.SetValue(sceneView, modeChanged2D);
-				}
-				displayed = true;
-			}
-		}
-
-		public override void OnWillBeDestroyed() {
-			if (containerWindow is SceneView sceneView) {
-				// sceneView.modeChanged2D -= OnModeChange2D;
-				FieldInfo fi = typeof(SceneView).GetField("modeChanged2D", BindingFlags.Instance | BindingFlags.NonPublic);
-				if (fi != null && fi.GetValue(sceneView) is Action<bool> modeChanged2D) {
-					modeChanged2D -= OnModeChange2D;
-					fi.SetValue(sceneView, modeChanged2D);
-				}
-			}
-		}
-
-		private void OnModeChange2D(bool in2DMode) {
-			if (m_Container != null && displayed) {
-				m_Container.parent.parent.style.display = in2DMode ? DisplayStyle.Flex : DisplayStyle.None;
-			}
+	[EditorToolbarElement("UITools/Tools", typeof(SceneView))]
+	public class UIToolsStrip : VisualElement {
+		public UIToolsStrip() {
+			IMGUIContainer container = new IMGUIContainer();
+			container.style.marginLeft = 2;
+			container.style.marginTop = -1;
+			container.onGUIHandler = () => {
+				StyleEnum<FlexDirection> direction = container.parent.parent.resolvedStyle.flexDirection;
+				bool isHorizontal = direction == FlexDirection.Row || direction == FlexDirection.RowReverse;
+				Instance.DrawButtons(isHorizontal);
+			};
+			Add(container);
 		}
 	}
 #else
 	public class UIToolsWindow : EditorWindow {
 		[MenuItem("Tools/UITools")]
 		private static void Init() {
-			UIToolsWindow window = GetWindow<UIToolsWindow>("UITools");
-			window.minSize = new Vector2(40F, 40F);
+			UIToolsWindow window = CreateWindow<UIToolsWindow>("UITools");
+			window.minSize = new Vector2(30F, 22F);
 			window.Show();
 		}
 		private void OnGUI() {
-			Instance.OnGUI();
+			Instance.DrawButtons(position.height < 100F);
 		}
 	}
 #endif
@@ -135,10 +158,16 @@ public class UITools {
 		}
 	}
 
-	private const string BTN_STYLE = "ButtonMid";
-	private static readonly GUILayoutOption[] BTN_OPTIONS = {
+	private static GUIStyle s_BtnStyle;
+	private static readonly GUILayoutOption[] s_BtnVerticalOptions = {
 		GUILayout.MinWidth(36F),
-		GUILayout.Height(22F)
+		GUILayout.Height(22F),
+		GUILayout.ExpandWidth(true)
+	};
+	private static readonly GUILayoutOption[] s_BtnHorizontalOptions = {
+		GUILayout.Width(36F),
+		GUILayout.MinHeight(22F),
+		GUILayout.ExpandHeight(true)
 	};
 
 	private Texture2D alignLeft;
@@ -156,80 +185,103 @@ public class UITools {
 	private Texture2D averageGapH;
 	private Texture2D averageGapV;
 
-	private void OnGUI() {
+	private void DrawButtons(bool isHorizontal) {
+		if (s_BtnStyle == null) {
+			s_BtnStyle = new GUIStyle("ButtonMid") {
+				margin = new RectOffset(0, 0, 0, 0),
+				padding = new RectOffset(0, 0, 0, 0),
+				border = new RectOffset(0, 0, 0, 0),
+				overflow = new RectOffset(0, 0, 0, 0),
+			};
+		}
+
+		GUILayoutOption[] btnOptions;
+		if (isHorizontal) {
+			EditorGUILayout.BeginHorizontal(GUILayout.ExpandHeight(true));
+			btnOptions = s_BtnHorizontalOptions;
+		} else {
+			EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
+			btnOptions = s_BtnVerticalOptions;
+		}
 		GUI.contentColor = EditorGUIUtility.isProSkin ? Color.white : Color.gray;
-
-		DrawAlignBtn(alignLeft, "左对齐", 0, 0);
-		GUILayout.Space(-3F);
-		DrawAlignBtn(alignMiddle, "水平居中", 0, 0.5F);
-		GUILayout.Space(-3F);
-		DrawAlignBtn(alignRight, "右对齐", 0, 1);
 		
-		DrawAlignBtn(alignTop, "上对齐", 1, 1);
-		GUILayout.Space(-3F);
-		DrawAlignBtn(alignCenter, "竖直居中", 1, 0.5F);
-		GUILayout.Space(-3F);
-		DrawAlignBtn(alignBottom, "上对齐", 1, 0);
+		DrawAlignBtn(alignLeft, "左对齐", 0, 0, s_BtnStyle, btnOptions);
+		GUILayout.Space(-1F);
+		DrawAlignBtn(alignMiddle, "水平居中", 0, 0.5F, s_BtnStyle, btnOptions);
+		GUILayout.Space(-1F);
+		DrawAlignBtn(alignRight, "右对齐", 0, 1, s_BtnStyle, btnOptions);
+		GUILayout.Space(1F);
+		DrawAlignBtn(alignTop, "上对齐", 1, 1, s_BtnStyle, btnOptions);
+		GUILayout.Space(-1F);
+		DrawAlignBtn(alignCenter, "竖直居中", 1, 0.5F, s_BtnStyle, btnOptions);
+		GUILayout.Space(-1F);
+		DrawAlignBtn(alignBottom, "下对齐", 1, 0, s_BtnStyle, btnOptions);
 
 		GUILayout.Space(3F);
 
-		DrawResizeBtn(sameWidth, "相同宽度", 0);
-		GUILayout.Space(-3F);
-		DrawResizeBtn(sameHeight, "相同高度", 1);
+		DrawResizeBtn(sameWidth, "相同宽度", 0, s_BtnStyle, btnOptions);
+		GUILayout.Space(-1F);
+		DrawResizeBtn(sameHeight, "相同高度", 1, s_BtnStyle, btnOptions);
 
 		GUILayout.Space(3F);
 
-		DrawFitBtn(fitWidth, "水平贴合", 0);
-		GUILayout.Space(-3F);
-		DrawFitBtn(fitHeight, "竖直贴合", 1);
+		DrawFitBtn(fitWidth, "水平贴合", 0, s_BtnStyle, btnOptions);
+		GUILayout.Space(-1F);
+		DrawFitBtn(fitHeight, "竖直贴合", 1, s_BtnStyle, btnOptions);
 
 		GUILayout.Space(3F);
 
-		DrawGroupPackBtn(groupPack, "成组");
-		GUILayout.Space(-3F);
-		DrawGroupUnpackBtn(groupUnpack, "解组");
+		DrawGroupPackBtn(groupPack, "成组", s_BtnStyle, btnOptions);
+		GUILayout.Space(-1F);
+		DrawGroupUnpackBtn(groupUnpack, "解组", s_BtnStyle, btnOptions);
 
 		GUILayout.Space(3F);
 
-		DrawGapBtn(averageGapH, "平均间距", 0);
-		GUILayout.Space(-3F);
-		DrawGapBtn(averageGapV, "平均行距", 1);
+		DrawGapBtn(averageGapH, "平均间距", 0, s_BtnStyle, btnOptions);
+		GUILayout.Space(-1F);
+		DrawGapBtn(averageGapV, "平均行距", 1, s_BtnStyle, btnOptions);
+
+		if (isHorizontal) {
+			EditorGUILayout.EndHorizontal();
+		} else {
+			EditorGUILayout.EndVertical();
+		}
 	}
 
-	private static void DrawAlignBtn(Texture tex, string name, int axis, float alignPivot) {
-		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift同时设置轴点）"), BTN_STYLE, BTN_OPTIONS)) {
+	private static void DrawAlignBtn(Texture tex, string name, int axis, float alignPivot, GUIStyle style, params GUILayoutOption[] btnOptions) {
+		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift同时设置轴点）"), style, btnOptions)) {
 			bool holdShift = (Event.current.modifiers & EventModifiers.Shift) != 0;
 			Align(axis, alignPivot, holdShift);
 		}
 	}
 
-	private static void DrawResizeBtn(Texture tex, string name, int axis) {
-		if (GUILayout.Button(new GUIContent(tex, name), BTN_STYLE, BTN_OPTIONS)) {
+	private static void DrawResizeBtn(Texture tex, string name, int axis, GUIStyle style, params GUILayoutOption[] btnOptions) {
+		if (GUILayout.Button(new GUIContent(tex, name), style, btnOptions)) {
 			SameSize(axis);
 		}
 	}
 
-	private static void DrawFitBtn(Texture tex, string name, int axis) {
-		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift保持世界坐标）"), BTN_STYLE, BTN_OPTIONS)) {
+	private static void DrawFitBtn(Texture tex, string name, int axis, GUIStyle style, params GUILayoutOption[] btnOptions) {
+		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift保持世界坐标）"), style, btnOptions)) {
 			bool holdShift = (Event.current.modifiers & EventModifiers.Shift) != 0;
 			Fit(axis, holdShift);
 		}
 	}
 
-	private static void DrawGroupPackBtn(Texture tex, string name) {
-		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift穿透锚点尚未实现）"), BTN_STYLE, BTN_OPTIONS)) {
+	private static void DrawGroupPackBtn(Texture tex, string name, GUIStyle style, params GUILayoutOption[] btnOptions) {
+		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift穿透锚点尚未实现）"), style, btnOptions)) {
 			GroupPack();
 		}
 	}
 
-	private static void DrawGroupUnpackBtn(Texture tex, string name) {
-		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift穿透锚点尚未实现）"), BTN_STYLE, BTN_OPTIONS)) {
+	private static void DrawGroupUnpackBtn(Texture tex, string name, GUIStyle style, params GUILayoutOption[] btnOptions) {
+		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift穿透锚点尚未实现）"), style, btnOptions)) {
 			GroupUnpack();
 		}
 	}
 
-	private static void DrawGapBtn(Texture tex, string name, int axis) {
-		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift重新定义缝隙）"), BTN_STYLE, BTN_OPTIONS)) {
+	private static void DrawGapBtn(Texture tex, string name, int axis, GUIStyle style, params GUILayoutOption[] btnOptions) {
+		if (GUILayout.Button(new GUIContent(tex, name + "（按住shift重新定义缝隙）"), style, btnOptions)) {
 			bool holdShift = (Event.current.modifiers & EventModifiers.Shift) != 0;
 			AverageGap(axis, holdShift);
 		}
