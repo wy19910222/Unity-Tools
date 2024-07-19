@@ -2,9 +2,11 @@
 
 提供对齐、同宽高、贴合、成组解组、平均行间距等操作，用于更方便地编辑UGUI。  
 ![UITools](Captures~/UITools.png)  
+下图是在Unity2021.3里的样子，停靠在Scene窗口右侧工具栏里。  
+![UIToolsIn2021](Captures~/UIToolsIn2021.png)  
 由于在Unity2021.2及以上版本才有Overlay，所以在Unity旧版本的工程中，本工具是一个EditorWindow。  
+下图是在Unity2019.4里的样子，停靠在Scene窗口右侧或下侧。  
 ![UIToolsIn2019](Captures~/UIToolsIn2019.png)  
-上图是在Unity2019里的样子，停靠在Scene窗口右侧或下侧。  
 * **对齐按钮：** 分为「上」、「中」、「下」、「左」、「中」、「右」共6个按钮。  
   当选中单个UI节点，则将该节点与父节点对齐。当选中多个UI节点，则将其他节点与第一个节点对齐。  
   当按住Shift键再点击时，会同时设置节点的轴点。  
