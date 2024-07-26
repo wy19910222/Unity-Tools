@@ -8,6 +8,7 @@
 #if LUA_BEHAVIOUR_EXIST
 
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEditor;
 using LuaApp;
@@ -59,36 +60,40 @@ namespace WYTools.TransformSearch {
 		
 			GUILayout.Label("Lua Script", WIDTH_OPTION);
 		
-			DefaultAsset asset = null;
-			if (!string.IsNullOrEmpty(m_LuaPath)) {
-				string luaFilePath = LUA_SRC_PATH + m_LuaPath.Replace(".", "/") + LUA_FILE_EXT;
-				asset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(luaFilePath);
-				if (!asset) {
-					// 如果找不到lua文件，则显示文本框
-					string newLuaPath = EditorGUILayout.TextField(m_LuaPath);
-					if (newLuaPath != m_LuaPath) {
+			bool settingsExist = File.Exists("ProjectSettings/LuaBehaviourSettings.asset");
+			bool luaPathIsEmpty = string.IsNullOrEmpty(m_LuaPath);
+			string luaSrcPath = LuaBehaviourSettings.instance.luaSrcPath;
+			string luaFileExtension = LuaBehaviourSettings.instance.luaFileExtension;
+			UObject asset = !settingsExist || luaPathIsEmpty ? null : AssetDatabase.LoadAssetAtPath<TextAsset>(luaSrcPath + m_LuaPath.Replace(".", "/") + luaFileExtension);;
+			if (settingsExist && (luaPathIsEmpty || asset)) {
+				// 已经设置过Lua根目录，且路径没错（路径为空或者能找到Lua文件），则支持文件拖放
+				UObject newAsset = EditorGUILayout.ObjectField(asset, typeof(TextAsset), true);
+				if (newAsset != asset) {
+					// 根据lua文件记录lua路径
+					if (!newAsset) {
+						asset = null;
 						Undo.RecordObject(this, "LuaPath");
-						m_LuaPath = newLuaPath;
-						EditorPrefs.SetString(GetType().FullName + ".LuaPath", m_LuaPath);
+						m_LuaPath = string.Empty;
+					} else {
+						string newLuaPath = AssetDatabase.GetAssetPath(newAsset);
+						if (newLuaPath.StartsWith(luaSrcPath) && newLuaPath.EndsWith(luaFileExtension)) {
+							int length = newLuaPath.Length - luaSrcPath.Length - luaFileExtension.Length;
+							asset = newAsset;
+							Undo.RecordObject(this, "LuaPath");
+							m_LuaPath = newLuaPath.Substring(luaSrcPath.Length, length).Replace("/", ".");
+						}
 					}
-					
-					GUILayout.EndHorizontal();
-					return;
 				}
-			}
-			DefaultAsset newAsset = EditorGUILayout.ObjectField(asset, typeof(DefaultAsset), true) as DefaultAsset;
-			if (newAsset != asset) {
-				// 如果根据lua文件记录lua路径
-				if (!newAsset) {
-					m_LuaPath = "";
-				} else {
-					string luaPath = AssetDatabase.GetAssetPath(newAsset);
-					if (luaPath.StartsWith(LUA_SRC_PATH) && luaPath.EndsWith(LUA_FILE_EXT)) {
-						luaPath = luaPath.Substring(LUA_SRC_PATH.Length, luaPath.Length - LUA_SRC_PATH.Length - LUA_FILE_EXT.Length);
-						Undo.RecordObject(this, "LuaPath");
-						m_LuaPath = luaPath.Replace("/", ".");
-						EditorPrefs.SetString(GetType().FullName + ".LuaPath", m_LuaPath);
-					}
+			} else {
+				// 尚未设置Lua根目录或找不到lua文件，显示文本框和设置按钮
+				string newLuaPath = EditorGUILayout.TextField(m_LuaPath);
+				if (newLuaPath != m_LuaPath) {
+					Undo.RecordObject(this, "LuaPath");
+					m_LuaPath = newLuaPath;
+				}
+				// 设置按钮
+				if (GUILayout.Button("LuaSrcPathSetting", GUILayout.Width(120F))) {
+					SettingsService.OpenProjectSettings("Project/LuaBehaviour");
 				}
 			}
 		
