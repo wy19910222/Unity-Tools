@@ -18,7 +18,7 @@ using UnityEditor.Experimental.SceneManagement;
 
 using UObject = UnityEngine.Object;
 
-namespace TransformSearch {
+namespace WYTools.TransformSearch {
 	public class SearchReferenceInSceneBySO : BaseSearch {
 		[MenuItem("Tools/TransformSearch/SearchReferenceInSceneBySO")]
 		private static void Init() {

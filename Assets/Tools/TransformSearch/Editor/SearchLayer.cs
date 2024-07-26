@@ -13,7 +13,7 @@ using UnityEditor;
 
 using UObject = UnityEngine.Object;
 
-namespace TransformSearch {
+namespace WYTools.TransformSearch {
 	public class SearchLayer : BaseSearch {
 		[MenuItem("Tools/TransformSearch/SearchLayer")]
 		private static void Init() {

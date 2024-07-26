@@ -14,7 +14,7 @@ using LuaApp;
 
 using UObject = UnityEngine.Object;
 
-namespace TransformSearch {
+namespace WYTools.TransformSearch {
 	public class SearchLuaBehaviour : BaseSearch {
 		[MenuItem("Tools/TransformSearch/SearchLuaBehaviour")]
 		private static void Init() {

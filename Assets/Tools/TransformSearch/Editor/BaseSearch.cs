@@ -15,7 +15,7 @@ using UnityEditor;
 
 using UObject = UnityEngine.Object;
 
-namespace TransformSearch {
+namespace WYTools.TransformSearch {
 	public abstract class BaseSearch : EditorWindow {
 		// [MenuItem("Tools/SearchTransform/BaseSearch")]
 		// private static void Init() {
