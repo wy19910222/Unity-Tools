@@ -36,8 +36,8 @@ public class AudioClipper : EditorWindow {
 	private const float RULER_LINE_HEIGHT = 8;
 	private const float DRAGGABLE_EXT_THICKNESS = 10F;	// 拖动响应范围往外扩展距离
 	
-	private static readonly Color COLOR_RULER_LONG = Color.white;
-	private static readonly Color COLOR_RULER_SHORT = new Color(1, 1, 1, 0.5F);
+	private static readonly Color COLOR_RULER_LONG = Color.gray;
+	private static readonly Color COLOR_RULER_SHORT = new Color(0.5F, 0.5F, 0.5F, 0.5F);
 	private static readonly Color COLOR_CHANNEL_BORDER = Color.white;
 	private static readonly Color COLOR_BACKGROUND = Color.black;
 	private static readonly Color COLOR_BACKGROUND_GRID = new Color(1, 0.5F, 0, 0.2F);
@@ -248,6 +248,9 @@ public class AudioClipper : EditorWindow {
 	}
 
 	private void DrawPreviewButtons() {
+		Color prevContentColor = GUI.contentColor;
+		GUI.contentColor = EditorGUIUtility.isProSkin ? Color.white : Color.black;
+		
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.FlexibleSpace();
 
@@ -302,6 +305,8 @@ public class AudioClipper : EditorWindow {
 
 		GUILayout.FlexibleSpace();
 		EditorGUILayout.EndHorizontal();
+		
+		GUI.contentColor = prevContentColor;
 	}
 
 	private void DrawTrimField() {
@@ -424,7 +429,7 @@ public class AudioClipper : EditorWindow {
 			float timeOnView = time - viewStartTime;
 			float xOnField = timeOnView / viewDuration * fieldWidth;
 			if ((i & 1) == 1) {
-				Rect shortLineRect = new Rect(rulerRect.x + xOnField, rulerRect.y + RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT * 0.5F, 1, RULER_LINE_HEIGHT * 0.5F);
+				Rect shortLineRect = new Rect(rulerRect.x + xOnField, rulerRect.y + RULER_LABEL_HEIGHT + RULER_LINE_HEIGHT * 0.3F, 1, RULER_LINE_HEIGHT * 0.7F);
 				EditorGUI.DrawRect(shortLineRect, COLOR_RULER_SHORT);
 			} else if (i != 0) {
 				Rect labelRect = new Rect(rulerRect.x + xOnField - BACKGROUND_CELL_WIDTH_MIN * 0.5F, rulerRect.y, BACKGROUND_CELL_WIDTH_MIN, RULER_LABEL_HEIGHT);

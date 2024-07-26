@@ -17,7 +17,7 @@ public class AudioVolumeUnify : EditorWindow {
 	[MenuItem("Tools/Audio Volume Unify")]
 	public static void ShowWindow() {
 		AudioVolumeUnify window = GetWindow<AudioVolumeUnify>();
-		window.minSize = new Vector2(400F, 300F);
+		window.minSize = new Vector2(360F, 200F);
 		window.Show();
 	}
 	
@@ -31,7 +31,7 @@ public class AudioVolumeUnify : EditorWindow {
 	
 	private static readonly int[] BITS_PER_SAMPLES = { 8, 16, 24, 32 };
 	private static readonly int[] MP3_QUALITIES = { 64, 96, 128, 160, 256 };
-	private static readonly Color TIME_SCALE_COLOR = new Color(0.4F, 0.6F, 0.9F);
+	private static readonly Color TIME_SCALE_COLOR = new Color(0.85F, 0.45F, 0.1F);
 
 	[Serializable]
 	public class AudioInfo {
@@ -39,7 +39,7 @@ public class AudioVolumeUnify : EditorWindow {
 		[SerializeField] public float volume;
 	}
 
-	[SerializeField] private float m_UnifiedVolume;
+	[SerializeField] private float m_UnifiedVolume = 1;
 	[SerializeField] private List<AudioInfo> m_InfoList = new List<AudioInfo>();
 	[SerializeField] private int m_BitsPerSample = 16;
 	[SerializeField] private int m_Mp3Quality = 128;
@@ -47,6 +47,7 @@ public class AudioVolumeUnify : EditorWindow {
 	
 	[SerializeField] private AudioSource m_AudioSource;
 
+	private GUIStyle m_TimeScaleLabelStyle;
 	private ReorderableList m_List;
 	private Vector2 m_ScrollPos = Vector2.zero;
 
@@ -57,6 +58,14 @@ public class AudioVolumeUnify : EditorWindow {
 	}
 
 	private void OnEnable() {
+		if (m_TimeScaleLabelStyle == null) {
+			m_TimeScaleLabelStyle = new GUIStyle() {
+				alignment = TextAnchor.MiddleLeft,
+				normal = {
+					textColor = TIME_SCALE_COLOR
+				}
+			};
+		}
 		if (m_List == null) {
 			m_List = new ReorderableList(m_InfoList, typeof(AudioInfo), true, true, false, false) {
 				drawHeaderCallback = DrawListHeader,
@@ -216,10 +225,7 @@ public class AudioVolumeUnify : EditorWindow {
 		x += List_VOLUME_WIDTH;
 		Rect volumeScaleRect = new Rect(x, rect.y, List_VOLUME_SCALE_WIDTH, rect.height);
 		if (info.volume != 0) {
-			Color prevColor = GUI.contentColor;
-			GUI.contentColor = TIME_SCALE_COLOR;
-			EditorGUI.LabelField(volumeScaleRect, info.volume == 0 ? "" : "× " + m_UnifiedVolume / info.volume);
-			GUI.contentColor = prevColor;
+			EditorGUI.LabelField(volumeScaleRect, info.volume == 0 ? "" : "× " + m_UnifiedVolume / info.volume, m_TimeScaleLabelStyle);
 		}
 		
 		x += List_VOLUME_SCALE_WIDTH;

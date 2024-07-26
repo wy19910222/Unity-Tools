@@ -24,18 +24,18 @@ namespace TransformSearch {
 		// 	window.Show();
 		// }
 
-		public static readonly Color COLOR_NORMAL = Color.white;
+		private static readonly Color COLOR_NORMAL = Color.white;
 #if UNITY_2021_1_OR_NEWER
-		public static readonly Color COLOR_TOGGLE_CHECKED_EDITOR = new(1.7F, 0.6F, 0, 1);
+		private static readonly Color COLOR_TOGGLE_CHECKED_EDITOR = new(1.7F, 0.6F, 0, 1);
 #else
-		public static readonly Color COLOR_TOGGLE_CHECKED_EDITOR = new Color(1, 0.5F, 0, 1);
+		private static readonly Color COLOR_TOGGLE_CHECKED_EDITOR = new Color(1, 0.5F, 0, 1);
 #endif
 		private static readonly Color COLOR_LINE_ODD = new Color(0, 0, 0, 0.08F);
-		private static readonly Color COLOR_LINE_SELECTED = new Color(0, 0.4F, 0.4F, 0.5F);
-		private static readonly Color COLOR_LABEL_NORMAL = Color.white;
-		private static readonly Color COLOR_LABEL_MATCHED = Color.green * 0.8F;
+		private static readonly Color COLOR_LINE_SELECTED = new Color(0, 0.4F, 0.4F, 0.3F);
+		private static readonly Color COLOR_LABEL_MATCHED = new Color(0, 0.5F, 0.35F);
+		private static readonly Color COLOR_LABEL_MATCHED_PRO = new Color(0.4F, 0.7F, 0.6F);
 		private static readonly GUILayoutOption OPTION_ARROW_WIDTH = GUILayout.Width(15F);
-		private static readonly GUILayoutOption OPTION_LINE_HEIGHT = GUILayout.Height(EditorGUIUtility.singleLineHeight);
+		private static readonly GUILayoutOption OPTION_LINE_HEIGHT = GUILayout.Height(EditorGUIUtility.singleLineHeight - 2F);
 		
 		protected readonly Dictionary<Transform, bool> m_TransIsFoldedDict = new Dictionary<Transform, bool>();
 		protected readonly HashSet<UObject> m_ObjIsMatchSet = new HashSet<UObject>();
@@ -44,11 +44,19 @@ namespace TransformSearch {
 		private Vector2 m_ScrollPos = Vector2.zero;
 		private int m_LineNumber;
 		private bool m_IsSearching;
+		
+		private GUIStyle m_MatchedLabelStyle;
 
 		[SerializeField]
 		private bool m_DisplayComp;
 
 		protected virtual void OnEnable() {
+			m_MatchedLabelStyle = new GUIStyle() {
+				alignment = TextAnchor.MiddleLeft,
+				normal = {
+					textColor = EditorGUIUtility.isProSkin ? COLOR_LABEL_MATCHED_PRO : COLOR_LABEL_MATCHED
+				}
+			};
 			Selection.selectionChanged += Repaint;
 		}
 
@@ -215,14 +223,15 @@ namespace TransformSearch {
 				}
 			}
 
-			GUILayout.Space(-1);
-			Rect rect = EditorGUILayout.BeginHorizontal();
+			Rect rect = EditorGUILayout.BeginHorizontal(GUILayout.Width(position.width));
 			{
 				m_LineNumber++;
 				// 绘制底色
 				if (isSelected) {
-					EditorGUI.DrawRect(rect, COLOR_LINE_SELECTED);
-				} else if ((m_LineNumber & 1) != 1) {
+					Rect bgRect = rect;
+					bgRect.height += 1;
+					EditorGUI.DrawRect(bgRect, COLOR_LINE_SELECTED);
+				} else if ((m_LineNumber & 1) == 1) {
 					EditorGUI.DrawRect(rect, COLOR_LINE_ODD);
 				}
 				// 缩进
@@ -237,14 +246,11 @@ namespace TransformSearch {
 					GUILayout.Space(16F);
 				}
 				// 文本
-				Color prevContentColor = GUI.contentColor;
 				bool isMatched = goIsMatched || !m_DisplayComp && matchedComps.Count > 0;
-				GUI.contentColor = isMatched ? COLOR_LABEL_MATCHED : COLOR_LABEL_NORMAL;
 				{
 					GUIContent content = new GUIContent(GetDisplayTransName(trans), AssetPreview.GetMiniThumbnail(trans.gameObject));
-					GUILayout.Label(content, isMatched ? "BoldLabel" : "Label", OPTION_LINE_HEIGHT);
+					EditorGUILayout.LabelField(content, isMatched ? m_MatchedLabelStyle : "Label", OPTION_LINE_HEIGHT);
 				}
-				GUI.contentColor = prevContentColor;
 				// 点击
 				if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition)) {
 					bool holdCtrl = (Event.current.modifiers & EventModifiers.Control) != 0;
@@ -263,31 +269,28 @@ namespace TransformSearch {
 				}
 			}
 			EditorGUILayout.EndHorizontal();
-			GUILayout.Space(-2);
 			
 			if (m_DisplayComp) {
 				foreach (var comp in matchedComps) {
-					GUILayout.Space(-1);
-					Rect _rect = EditorGUILayout.BeginHorizontal();
+					Rect _rect = EditorGUILayout.BeginHorizontal(GUILayout.Width(position.width));
 					{
 						m_LineNumber++;
 						bool _isSelected = Array.IndexOf(Selection.objects, comp) >= 0;
 						// 绘制底色
 						if (_isSelected) {
-							EditorGUI.DrawRect(_rect, COLOR_LINE_SELECTED);
-						} else if ((m_LineNumber & 1) != 1) {
+							Rect bgRect = _rect;
+							bgRect.height += 1;
+							EditorGUI.DrawRect(bgRect, COLOR_LINE_SELECTED);
+						} else if ((m_LineNumber & 1) == 1) {
 							EditorGUI.DrawRect(_rect, COLOR_LINE_ODD);
 						}
 						// 缩进+箭头缩进
 						GUILayout.Space(2F + 16F * indent + 16F + 16F);
 						// 文本
-						Color prevContentColor = GUI.contentColor;
-						GUI.contentColor = COLOR_LABEL_MATCHED;
 						{
 							GUIContent content = new GUIContent(GetDisplayCompName(comp), AssetPreview.GetMiniThumbnail(comp));
-							GUILayout.Label(content, "Label", OPTION_LINE_HEIGHT);
+							EditorGUILayout.LabelField(content, m_MatchedLabelStyle, OPTION_LINE_HEIGHT);
 						}
-						GUI.contentColor = prevContentColor;
 						// 点击
 						if (Event.current.type == EventType.MouseDown && _rect.Contains(Event.current.mousePosition)) {
 							bool holdCtrl = (Event.current.modifiers & EventModifiers.Control) != 0;
@@ -306,7 +309,6 @@ namespace TransformSearch {
 						}
 					}
 					EditorGUILayout.EndHorizontal();
-					GUILayout.Space(-2);
 				}
 			}
 			

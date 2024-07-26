@@ -67,7 +67,7 @@ public class ImageCropping : EditorWindow {
 
 	private const float RULER_THICKNESS = 18F;	// 标尺的宽度
 	private const float RULER_CELL_WIDTH_MIN = 34;	// 标尺最小每格尺寸，需要显示数字，不能太小
-	private const float SCROLL_BAR_THICKNESS = 16F;	// 滚动条的宽度
+	private const float SCROLL_BAR_THICKNESS = 14F;	// 滚动条的宽度
 	private const float SCROLL_BAR_PRECISION = 1000F;	// 滚动条精度
 	private const float SCALE_VISIBLE_H_BAR_WIDTH_MIN = 175F;	// 当横向滚动条小于该值时不显示缩放比例标签
 	private const float SCALE_LABEL_WIDTH = 54F;	// 缩放比例标签的宽度
@@ -77,8 +77,8 @@ public class ImageCropping : EditorWindow {
 	private const float SCALE_MAX = 32F;	// 最大缩放倍数（最小为缩放到1像素）
 	private const float AUTO_SCROLL_SPEED = 500F;	// 鼠标拖动裁剪框到边缘外时，自动滚动的速度
 
-	private static readonly Color RULER_LINE_COLOR = new Color(1, 1F, 1F, 0.5F);
-	private static readonly Color SCROLL_BAR_BG_COLOR = new Color(0.25F, 0.25F, 0.25F);
+	private static readonly Color RULER_LINE_COLOR = Color.gray;
+	private static readonly Color SCROLL_BAR_BG_COLOR = new Color(0.5F, 0.5F, 0.5F, 0.15F);
 	private static readonly Color CROPPING_CORNERED_COLOR = new Color(0, 1F, 1F, 0.5F);
 	private static readonly Color DASHED_LINE_COLOR = Color.gray;
 
