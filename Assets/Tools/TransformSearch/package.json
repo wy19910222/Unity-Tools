@@ -7,8 +7,7 @@
     {
       "displayName": "Extension For LuaBehaviour",
       "description": "TransformSearch for LuaBehaviour, not sample.",
-      "path": "Samples~/ExtensionForLuaBehaviour",
-      "createSeparatePackage": true
+      "path": "Samples~/ExtensionForLuaBehaviour"
     }
   ]
   
