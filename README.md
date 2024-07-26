@@ -192,11 +192,11 @@
 2. 将 [**EasySplinePath2DPlus**](Assets/Tools/EasySplinePath2DPlus) 文件夹拷贝至项目中。  
 
 
-## 音频剪辑器
+## 音频裁剪器&音频统一音量
 
-[**AudioClipper**](Assets/Tools/AudioEditor/Editor/AudioClipper.cs)  
+[**AudioClipper**](Assets/Tools/AudioFactory/Editor/AudioClipper.cs)  
 支持展示AudioClip对象的波形图，从中截取片段，试听并保存为wav、mp3、ogg文件。  
-![AudioClipper](Assets/Tools/AudioEditor/Captures~/AudioClipper.gif)  
+![AudioClipper](Assets/Tools/AudioFactory/Captures~/AudioClipper.gif)  
 * 展示带标尺的波形图。  
 * 可在波形图中选中截取区域，并支持拖动区域。  
 * 可根据阈值裁剪收尾空白。  
@@ -204,9 +204,9 @@
 * 可缩放音量，并在波形图中展示出来。  
 * 可保存片段到WAV、Mp3、Ogg等音频文件。  
 
-[**AudioVolumeUnify**](Assets/Tools/AudioEditor/Editor/AudioVolumeUnify.cs)  
+[**AudioVolumeUnify**](Assets/Tools/AudioFactory/Editor/AudioVolumeUnify.cs)  
 本工具用于将多个音频统一音量，支持WAV、MP3、OGG三种格式。  
-![AudioVolumeUnify](Assets/Tools/AudioEditor/Captures~/AudioVolumeUnify.jpg)  
+![AudioVolumeUnify](Assets/Tools/AudioFactory/Captures~/AudioVolumeUnify.jpg)  
 * 可选择某个音频的音量作为统一音量，也可以自己设置统一音量。  
 * 支持以统一音量试音每个音频。  
 * 输出文件与源文件格式相同，也可以直接覆盖源文件。  
@@ -215,11 +215,11 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
-  git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
+  git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioFactory
   ```
   * Gitee：
   ```
-  git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioEditor
+  git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioFactory
   ```
 * 直接将 [**AudioEditor**](Assets/Tools/AudioEditor) 文件夹拷贝至项目中。  
 
