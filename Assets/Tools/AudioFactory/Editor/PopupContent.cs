@@ -11,9 +11,9 @@ using UnityEngine;
 
 namespace WYTools.AudioFactory {
 	public class PopupContent : PopupWindowContent {
-		private float Width { get; }
-		private float Height { get; }
-		private Action<Rect> OnGUIAction { get; }
+		public float Width { get; }
+		public float Height { get; }
+		public Action<Rect> OnGUIAction { get; }
 		public Action OnOpenAction { get; set; }
 		public Action OnCloseAction { get; set; }
 
