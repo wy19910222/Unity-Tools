@@ -1,11 +1,12 @@
 # 一些自创小工具
 
 本仓库用于存放一些自创的小工具、对Unity的实用扩展、对第三方插件的扩展等。  
+本插件库从0.1.0版本到0.1.1版本改过包名，如果要跨该版本升级，请先删除本仓库，然后重新安装（更方便的做法是直接修改manifest.json文件中相应的包名，将 _ 改为 - ）。
 
-### 使用方法
-* 方法1：使用Unity Package Manager安装：
-  ![UPMSupport](Captures~/UPMSupport.png)
-  本仓库大部分工具都支持使用UPM进行安装，下述每个工具的说明中都附有UPM安装地址，但也有两个例外：
+#### 安装方法
+* 方法1：使用Unity Package Manager安装：  
+  ![UPMSupport](Captures~/UPMSupport.png)  
+  本仓库大部分工具都支持使用UPM进行安装，下述每个工具的说明中都附有UPM安装地址，但也有两个例外：  
   * 由于依赖的第三方库没有做成UPM包，导致本仓库的工具无法做成UPM包。如： **EasySplinePath2DPlus：**  
   * **Unity2020** 只有 **2020.3.47f1** 及之后的版本才支持 **?path=/folder1/folder2** 的形式指定存储库子文件夹中的包，所以如果是 **2020.1.0f1 ~ 2020.3.46f1** 之间的版本，无法通过UPM安装。
 
@@ -23,7 +24,7 @@
 * **起始编号、递增补偿、编号位数：** 多个对象重命名可以用编号替换「#」号，实现名称带序号功能。  
 * **「推测命名按钮」：** 将原名剔除序号后去重，随着每次点击依次显示在输入框中。  
 
-### 使用方法
+#### 安装方法
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
@@ -35,6 +36,10 @@
   ```
 * 直接将 [**BatchRename**](Assets/Tools/BatchRename) 文件夹拷贝至项目中。  
 
+#### 使用方法
+* 通过菜单项 **Tools/WYTools/Batch Rename** 打开窗口。  
+
+
 ## 引用替换
 
 [**ReferenceReplace**](Assets/Tools/ReferenceReplace)  
@@ -43,7 +48,7 @@
 * **列表：** 原对象和替换为的映射表，事实上取的是它们的GUID。  
 * **替换目标：** 必须是一个文件夹或以文本形式储存的资产文件，原理是在文本中搜索GUID并替换保存。如果目标是文件夹，则遍历文件夹操作每一个符合条件的文件。  
 
-### 使用方法
+#### 安装方法
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
@@ -55,6 +60,10 @@
   ```
 * 直接将 [**ReferenceReplace**](Assets/Tools/ReferenceReplace) 文件夹拷贝至项目中。  
 
+#### 使用方法
+* 通过菜单项 **Tools/WYTools/Reference Replace** 打开窗口。  
+
+
 ## 节点搜索
 
 [**TransformSearch**](Assets/Tools/TransformSearch)  
@@ -62,10 +71,13 @@
 ![SearchReferenceInScene](Assets/Tools/TransformSearch/Captures~/SearchReferenceInScene.gif)  
 ![SearchComponent](Assets/Tools/TransformSearch/Captures~/SearchComponent.gif)  
 * **组件搜索：** 以选中目标为搜索范围（支持多选，支持Prefab编辑场景，支持Prefab资产），将范围内所有匹配的组件显示出来。  
+  * 选中某个组件脚本，可以出现自动填入类名的按钮。  
+  * 当以完整类名（Assembly.GetType返回不为null）搜索时，以Type对象进行搜索，搜索结果包括派生类对象。  
+  * 当以非完整类名（有命名空间，却未带命名空间）搜索时，以类名字符串进行搜索，搜索结果可能包括不同命名空间的相同类名对象，但不包括派生类对象。  
 * **Layer搜索：** 以选中目标为搜索范围（支持多选，支持Prefab编辑场景，支持Prefab资产），将范围内所有匹配的节点显示出来。  
 * **场景中引用搜索：** 以整个场景为搜索范围（支持Prefab编辑场景），将范围内所有引用到所选对象（支持多选）的组件显示出来。  
 
-### 使用方法
+#### 安装方法
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
@@ -76,6 +88,10 @@
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/TransformSearch
   ```
 * 直接将 [**TransformSearch**](Assets/Tools/TransformSearch) 文件夹拷贝至项目中。  
+
+#### 使用方法
+* 通过菜单项 **Tools/WYTools/TransformSearch/SearchXXX** 打开对应窗口。  
+
 
 ## UI编辑辅助工具
 
@@ -99,7 +115,7 @@
   平均行距：以选中的多个节点的最下边节点和最上边节点为两端，平均分布节点间的行距。  
   当按住Shift键再点击时，将会重新定义缝隙（广义缝隙）。  
 
-### 使用方法
+#### 安装方法
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
@@ -110,6 +126,16 @@
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/UITools
   ```
 * 直接将 [**UITools**](Assets/Tools/UITools) 文件夹拷贝至项目中。  
+
+#### 使用方法
+* Unity2021.2及之后版本：在场景窗口的右上角菜单中，勾选 **Overlays/UITools** 即可出现工具栏。  
+  * 拖动工具栏头部两根线条，可以选择停靠模式或悬浮模式。  
+  * 右键工具栏头部两根线条，可以选择折叠模式或展开模式。  
+  * 悬浮模式下，右键工具栏头部两根线条，可以选择横向布局或纵向布局。  
+* Unity2021.2之前版本：通过菜单项 **Tools/WYTools/UITools** 打开窗口。  
+  * 窗口高度大于等于100时，按钮纵向排列。  
+  * 窗口高度小于100时，按钮横向排列。  
+
 
 ## UGUI扩展
 
@@ -124,7 +150,7 @@
 ### 依赖
 依赖 **UGUI** 和 **TextMeshPro** 。  
 
-### 使用方法
+#### 安装方法
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
@@ -136,6 +162,10 @@
   ```
 * 直接将 [**UGUIExt**](Assets/Tools/UGUIExt) 文件夹拷贝至项目中。  
 
+#### 使用方法
+* 按需使用对应组件即可。  
+
+
 ## Transform检视面板扩展
 
 [**TransformInspector**](Assets/Tools/TransformInspector)  
@@ -144,7 +174,7 @@
 ![TransformInspector](Assets/Tools/TransformInspector/Captures~/TransformInspector.gif)  
 ![RectTransformInspector](Assets/Tools/TransformInspector/Captures~/RectTransformInspector.gif)  
 
-### 使用方法
+#### 安装方法
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
@@ -156,6 +186,10 @@
   ```
 * 直接将 [**TransformInspector**](Assets/Tools/TransformInspector) 文件夹拷贝至项目中。  
 
+#### 使用方法
+* 如图所示。  
+
+
 ## SpriteAtlas检视面板扩展
 
 [**SpriteAtlasInspector**](Assets/Tools/SpriteAtlasInspector)  
@@ -166,7 +200,7 @@
 * **清空列表：** 清空列表。  
 * **添加选中对象：** 将当前选中的所有对象添加到列表末尾。  
 
-### 使用方法
+#### 安装方法
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
@@ -178,6 +212,10 @@
   ```
 * 直接将 [**SpriteAtlasInspector**](Assets/Tools/SpriteAtlasInspector) 文件夹拷贝至项目中。  
 
+#### 使用方法
+* 如图所示。  
+
+
 ## EasySplinePath2D插件修改
 
 [**EasySplinePath2DPlus**](Assets/Tools/EasySplinePath2DPlus)  
@@ -188,10 +226,13 @@
 * Scene窗口视角缩放时，节点图标跟着一起缩放，使节点图标看起来像是个3D场景中的物体。  
 * 支持在3D模式下，样条线完整的编辑功能。  
 
-### 使用方法
+#### 安装方法
 1. 购买AssetStore上正版的 [**EasySplinePath2D**](https://assetstore.unity.com/packages/tools/utilities/easy-spline-path-2d-127710) 插件，
   或将 [**EasySplinePath2D**](Assets/Tools/EasySplinePath2D) 文件夹拷贝至项目中（该文件夹只用于配合EasySplinePath2DPlus，商业化使用请购买正版）。  
 2. 将 [**EasySplinePath2DPlus**](Assets/Tools/EasySplinePath2DPlus) 文件夹拷贝至项目中。  
+
+#### 使用方法
+* 将 EasySplinePath2D 组件替换成 EasySplinePath2DPlus 组件即可。  
 
 
 ## 音频裁剪器&音频统一音量
@@ -213,7 +254,7 @@
 * 支持以统一音量试音每个音频。  
 * 输出文件与源文件格式相同，也可以直接覆盖源文件。  
 
-### 使用方法
+#### 安装方法
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
@@ -223,7 +264,11 @@
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioFactory
   ```
-* 直接将 [**AudioEditor**](Assets/Tools/AudioEditor) 文件夹拷贝至项目中。  
+* 直接将 [**AudioEditor**](Assets/Tools/AudioFactory) 文件夹拷贝至项目中。  
+
+#### 使用方法
+* 通过菜单项 **Tools/WYTools/Audio Clipper** 和 **Tools/WYTools/Audio Volume Unify** 打开对应窗口。  
+* 点击窗口右上角问号按钮查看使用帮助。  
 
 
 ## 图片裁剪器
@@ -240,7 +285,7 @@
 * 可实时预览裁剪后的图片。  
 * 可保存裁剪后的图片到新文件。  
 
-### 使用方法
+#### 安装方法
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
@@ -251,3 +296,7 @@
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/ImageCropping
   ```
 * 直接将 [**ImageCropping**](Assets/Tools/ImageCropping) 文件夹拷贝至项目中。  
+
+#### 使用方法
+* 通过菜单项 **Tools/WYTools/Image Cropping** 打开对应窗口。  
+
