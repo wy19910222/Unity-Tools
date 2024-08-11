@@ -197,7 +197,8 @@ namespace WYTools.BatchRename {
 		[SerializeField]
 		private int m_MaybeIndex = -1;
 		private void MaybeName() {
-			string[] rawNames = Array.ConvertAll(Selection.objects, obj => Regex.Replace(obj.name, "\\s*(\\d+|(\\(\\d+\\)))$", string.Empty));
+			string[] rawNames = Array.ConvertAll(Selection.objects, obj =>
+					Regex.Replace(obj.name, "(\\(Clone\\))|([\\s\\._]*(\\d+|(\\(\\d+\\))))$", string.Empty));
 			string[] names = new HashSet<string>(rawNames).ToArray();
 			int goCount = names.Length;
 			if (goCount > 0) {
