@@ -23,7 +23,7 @@ using UObject = UnityEngine.Object;
 
 namespace WYTools.TransformSearch {
 	public class SearchReferenceInScene : BaseSearch {
-		[MenuItem("Tools/TransformSearch/SearchReferenceInScene")]
+		[MenuItem("Tools/WYTools/TransformSearch/SearchReferenceInScene")]
 		private static void Init() {
 			SearchReferenceInScene window = GetWindow<SearchReferenceInScene>("ReferenceInSceneSearch");
 			window.minSize = new Vector2(200F, 200F);

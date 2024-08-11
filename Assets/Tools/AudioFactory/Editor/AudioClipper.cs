@@ -22,7 +22,7 @@ namespace WYTools.AudioFactory {
 			START_END_TIMES
 		}
 		
-		[MenuItem("Tools/Audio Clipper")]
+		[MenuItem("Tools/WYTools/Audio Clipper")]
 		public static void ShowWindow() {
 			AudioClipper window = GetWindow<AudioClipper>();
 			window.minSize = new Vector2(420F, 400F);

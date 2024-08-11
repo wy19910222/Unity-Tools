@@ -16,7 +16,7 @@ using UObject = UnityEngine.Object;
 
 namespace WYTools.BatchRename {
 	public class BatchRename : EditorWindow {
-		[MenuItem("Tools/Batch Rename")]
+		[MenuItem("Tools/WYTools/Batch Rename")]
 		private static void Init() {
 			BatchRename window = GetWindow<BatchRename>();
 			window.minSize = new Vector2(200F, 200F);

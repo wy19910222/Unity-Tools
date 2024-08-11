@@ -15,7 +15,7 @@ using UObject = UnityEngine.Object;
 
 namespace WYTools.TransformSearch {
 	public class SearchComponent : BaseSearch {
-		[MenuItem("Tools/TransformSearch/SearchComponent")]
+		[MenuItem("Tools/WYTools/TransformSearch/SearchComponent")]
 		private static void Init() {
 			SearchComponent window = GetWindow<SearchComponent>("ComponentSearch");
 			window.minSize = new Vector2(200F, 200F);

@@ -1,5 +1,5 @@
 {
-  "name": "com.wy.tools.ui_tools",
+  "name": "com.wy.tools.ui-tools",
   "displayName": "WYTools.UITools",
   "version": "0.1.0",
   "description": "用于更方便地编辑UGUI，由于在Unity2021.2及以上版本才有Overlay，所以在Unity旧版本的工程中，本工具是一个EditorWindow。\n\n对齐按钮、同宽高按钮、贴合按钮、组按钮、行间距按钮。"

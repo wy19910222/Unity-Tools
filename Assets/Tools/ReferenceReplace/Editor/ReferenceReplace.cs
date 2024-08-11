@@ -18,7 +18,7 @@ using UObject = UnityEngine.Object;
 
 namespace WYTools.ReferenceReplace {
 	public class ReferenceReplace : EditorWindow {
-		[MenuItem("Tools/Reference Replace")]
+		[MenuItem("Tools/WYTools/Reference Replace")]
 		private static void Init() {
 			ReferenceReplace window = GetWindow<ReferenceReplace>();
 			window.minSize = new Vector2(200F, 200F);

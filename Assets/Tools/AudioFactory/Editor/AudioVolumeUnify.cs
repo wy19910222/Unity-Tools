@@ -15,7 +15,7 @@ using Object = UnityEngine.Object;
 
 namespace WYTools.AudioFactory {
 	public class AudioVolumeUnify : EditorWindow {
-		[MenuItem("Tools/Audio Volume Unify")]
+		[MenuItem("Tools/WYTools/Audio Volume Unify")]
 		public static void ShowWindow() {
 			AudioVolumeUnify window = GetWindow<AudioVolumeUnify>();
 			window.minSize = new Vector2(360F, 200F);

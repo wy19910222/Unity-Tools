@@ -111,7 +111,7 @@ namespace WYTools.UITools {
 		}
 #else
 		public class UIToolsWindow : EditorWindow {
-			[MenuItem("Tools/UITools")]
+			[MenuItem("Tools/WYTools/UITools")]
 			private static void Init() {
 				UIToolsWindow window = CreateWindow<UIToolsWindow>("UITools");
 				window.minSize = new Vector2(30F, 22F);

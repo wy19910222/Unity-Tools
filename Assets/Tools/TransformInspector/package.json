@@ -1,5 +1,5 @@
 {
-  "name": "com.wy.tools.transform_inspector",
+  "name": "com.wy.tools.transform-inspector",
   "displayName": "WYTools.TransformInspector",
   "version": "0.1.0",
   "description": "在Transform检视面板最左侧区域新增右键菜单，添加「重置」、「保留2位小数」、「显示Global」三个功能。\n在RectTransform检视面板末尾区域新增「保留整数」、「保留2位小数」两个按钮。"

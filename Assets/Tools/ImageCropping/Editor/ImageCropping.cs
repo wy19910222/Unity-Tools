@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace WYTools.ImageCropping {
 	public class ImageCropping : EditorWindow {
-		[MenuItem("Tools/Image Cropping")]
+		[MenuItem("Tools/WYTools/Image Cropping")]
 		public static void ShowWindow() {
 			ImageCropping window = GetWindow<ImageCropping>();
 			window.minSize = new Vector2(450, 500F);

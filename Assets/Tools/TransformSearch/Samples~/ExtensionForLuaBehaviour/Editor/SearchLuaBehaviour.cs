@@ -17,7 +17,7 @@ using UObject = UnityEngine.Object;
 
 namespace WYTools.TransformSearch {
 	public class SearchLuaBehaviour : BaseSearch {
-		[MenuItem("Tools/TransformSearch/SearchLuaBehaviour")]
+		[MenuItem("Tools/WYTools/TransformSearch/SearchLuaBehaviour")]
 		private static void Init() {
 			SearchLuaBehaviour window = GetWindow<SearchLuaBehaviour>("LuaBehaviourSearch");
 			window.minSize = new Vector2(200F, 200F);
