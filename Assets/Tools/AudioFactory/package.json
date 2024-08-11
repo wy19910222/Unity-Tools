@@ -1,7 +1,7 @@
 {
   "name": "com.wy.tools.audio-factory",
   "displayName": "WYTools.AudioFactory",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AudioClipper：\n展示AudioClip对象的波形图，从中截取片段，试听并保存为WAV、MP3、OGG文件。\nAudioVolumeUnify：\n将多个音频统一音量，保存为WAV、MP3、OGG文件。"
   
 }

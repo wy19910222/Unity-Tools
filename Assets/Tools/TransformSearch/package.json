@@ -1,7 +1,7 @@
 {
   "name": "com.wy.tools.transform-search",
   "displayName": "WYTools.TransformSearch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "内含多种搜索，搜索结果以节点树的形式呈现。\n可继续扩展搜索条件。\n\n组件搜索： 以选中目标为搜索范围（支持多选，支持Prefab编辑场景，支持Prefab资产），将范围内所有匹配的组件显示出来。\n\nLayer搜索：以选中目标为搜索范围（支持多选，支持Prefab编辑场景，支持Prefab资产），将范围内所有匹配的节点显示出来。\n\n场景中引用搜索：以整个场景为搜索范围（支持Prefab编辑场景），将范围内所有引用到所选对象（支持多选）的组件显示出来。",
   "samples": [
     {

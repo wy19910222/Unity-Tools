@@ -1,7 +1,7 @@
 {
   "name": "com.wy.tools.batch-rename",
   "displayName": "WYTools.BatchRename",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "批量重命名GameObject和Asset。"
   
 }
