@@ -7,7 +7,7 @@
 * 方法1：使用Unity Package Manager安装：  
   ![UPMSupport](Captures~/UPMSupport.png)  
   本仓库大部分工具都支持使用UPM进行安装，下述每个工具的说明中都附有UPM安装地址，但也有两个例外：  
-  * 由于依赖的第三方库没有做成UPM包，导致本仓库的工具无法做成UPM包。如： **EasySplinePath2DPlus**  
+  * 由于依赖的第三方库没有做成UPM包，导致本仓库的工具无法做成UPM包。如： **EasySplinePath2DPlus** 。  
   * **Unity2020** 只有 **2020.3.47f1** 及之后的版本才支持 **?path=/folder1/folder2** 的形式指定存储库子文件夹中的包，所以如果是 **2020.1.0f1 ~ 2020.3.46f1** 之间的版本，无法通过UPM安装。
 
 * 方法2：文件夹拷贝至项目中。  
