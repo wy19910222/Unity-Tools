@@ -24,6 +24,9 @@ namespace WYTools.ReferenceReplace {
 			window.minSize = new Vector2(200F, 200F);
 			window.Show();
 		}
+		
+		private const float List_THUMB_WIDTH = 14;
+		private const float List_ADD_BUTTON_WIDTH = 30;
 
 		[Serializable]
 		private struct ReplaceMap {
@@ -38,25 +41,46 @@ namespace WYTools.ReferenceReplace {
 
 		private ReorderableList m_List;
 		private Vector2 m_ScrollPos = Vector2.zero;
+		
+		private static GUIStyle m_SwapBtnStyle;
 
 		private void OnEnable() {
 			LoadMaps();
 
 			m_List = new ReorderableList(m_ReplaceMaps, typeof(ReplaceMap), true, true, true, true) {
 				drawHeaderCallback = rect => {
-					const float THUMB_WIDTH = 16;
-					const float BUTTON_WIDTH = 30;
-					float LABEL_WIDTH = (rect.width - THUMB_WIDTH - BUTTON_WIDTH + 6) * 0.5F;
-
-					Rect leftRect = new Rect(rect.x + THUMB_WIDTH, rect.y, LABEL_WIDTH, rect.height);
+					// Header比Element左右各宽1像素，在这里对齐一下
+					rect.x += 1;
+					rect.width -= 2;
+					
+					float thumbWidth = m_List.draggable ? List_THUMB_WIDTH : 0;
+					float headerWidth = rect.width + 7;	// 右边空白处也用起来
+					// 左端拖拽区域宽度 + 原对象宽度 + 替换为宽度 + 右端添加按钮宽度
+					float labelWidth = (headerWidth - thumbWidth - List_ADD_BUTTON_WIDTH) * 0.5F;
+					float swapBtnWidth = 24F;
+					
+					Rect leftRect = new Rect(rect.x + thumbWidth, rect.y, labelWidth - swapBtnWidth, rect.height);
 					EditorGUI.LabelField(leftRect, "原对象");
+					
+					Rect middleRect = new Rect(rect.x + thumbWidth + labelWidth - swapBtnWidth, rect.y - 1, swapBtnWidth, rect.height + 2);
+					m_SwapBtnStyle ??= new GUIStyle("Button") { fontSize = 16 };
+					if (GUI.Button(middleRect, "⇌", m_SwapBtnStyle)) {
+						Undo.RecordObject(this, "ReferenceReplace.MapSwap");
+						Undo.SetCurrentGroupName("ReferenceReplace.MapSwap");
+						for (int i = 0, length = m_ReplaceMaps.Count; i < length; ++i) {
+							ReplaceMap map = m_ReplaceMaps[i];
+							(map.from, map.to) = (map.to, map.from);
+							m_ReplaceMaps[i] = map;
+						}
+					}
 
-					Rect rightRect = new Rect(rect.x + THUMB_WIDTH + LABEL_WIDTH, rect.y, LABEL_WIDTH, rect.height);
+					Rect rightRect = new Rect(rect.x + thumbWidth + labelWidth, rect.y, labelWidth, rect.height);
 					EditorGUI.LabelField(rightRect, "替换为");
 
-					Rect tailRect = new Rect(rect.x + rect.width - BUTTON_WIDTH + 6, rect.y - 1, BUTTON_WIDTH, rect.height + 2);
+					Rect tailRect = new Rect(rect.x + headerWidth - List_ADD_BUTTON_WIDTH, rect.y - 1, List_ADD_BUTTON_WIDTH, rect.height + 2);
 					if (GUI.Button(tailRect, "+")) {
-						Undo.RecordObject(this, "Maps.Add");
+						Undo.RecordObject(this, "ReferenceReplace.MapAdd");
+						Undo.SetCurrentGroupName("ReferenceReplace.MapAdd");
 						m_ReplaceMaps.Add(new ReplaceMap());
 					}
 				},
@@ -77,8 +101,9 @@ namespace WYTools.ReferenceReplace {
 
 					Rect tailRect = new Rect(rect.x + rect.width - BUTTON_WIDTH + 8, rect.y + 1, BUTTON_WIDTH - 2, rect.height - 2);
 					if (GUI.Button(tailRect, "×")) {
-						Undo.RecordObject(this, "Maps.Remove");
 						EditorApplication.delayCall += () => {
+							Undo.RecordObject(this, "ReferenceReplace.MapRemove");
+							Undo.SetCurrentGroupName("ReferenceReplace.MapRemove");
 							m_ReplaceMaps.RemoveAt(index);
 							Repaint();
 						};
@@ -94,17 +119,17 @@ namespace WYTools.ReferenceReplace {
 
 		private void OnGUI() {
 			m_ScrollPos = EditorGUILayout.BeginScrollView(m_ScrollPos, GUILayout.ExpandHeight(false));
-			Undo.RecordObject(this, "Maps");
+			Undo.RecordObject(this, "ReferenceReplace.MapUpdate");
 			m_List.DoLayoutList();
 			EditorGUILayout.EndScrollView();
 			GUILayout.Space(-2F);
 			EditorGUILayout.BeginHorizontal();
-			if (GUILayout.Button("清空列表")) {
-				Undo.RecordObject(this, "Maps.Clear");
+			if (GUILayout.Button(new GUIContent("清空列表", EditorGUIUtility.IconContent("TreeEditor.Trash").image))) {
+				Undo.RecordObject(this, "ReferenceReplace.MapClear");
 				m_ReplaceMaps.Clear();
 			}
 			if (GUILayout.Button("选中对象覆盖到左边")) {
-				Undo.RecordObject(this, "Maps.InsertSelectionsToLeft");
+				Undo.RecordObject(this, "ReferenceReplace.InsertSelectionsToMapLeft");
 				int listCount = m_ReplaceMaps.Count;
 				int selectionCount = Selection.objects.Length;
 				for (int i = 0; i < selectionCount && i < listCount; ++i) {
@@ -119,7 +144,7 @@ namespace WYTools.ReferenceReplace {
 				}
 			}
 			if (GUILayout.Button("选中对象覆盖到右边")) {
-				Undo.RecordObject(this, "Maps.InsertSelectionsToRight");
+				Undo.RecordObject(this, "ReferenceReplace.InsertSelectionsToMapRight");
 				int listCount = m_ReplaceMaps.Count;
 				int selectionCount = Selection.objects.Length;
 				for (int i = 0; i < selectionCount && i < listCount; ++i) {
@@ -143,7 +168,7 @@ namespace WYTools.ReferenceReplace {
 				if (newTarget && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(newTarget))) {
 					EditorUtility.DisplayDialog("错误", "只支持拖入文本型资产文件，如Scene、Prefab、Material等。", "确定");
 				} else {
-					Undo.RecordObject(this, "Target");
+					Undo.RecordObject(this, "ReferenceReplace.Target");
 					m_Target = newTarget;
 				}
 			}
