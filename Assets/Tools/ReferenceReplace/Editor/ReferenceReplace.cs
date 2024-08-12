@@ -94,6 +94,8 @@ namespace WYTools.ReferenceReplace {
 					Rect rightRect = new Rect(rect.x + LABEL_WIDTH, rect.y + 1, LABEL_WIDTH, rect.height - 2);
 					UObject newTo = EditorGUI.ObjectField(rightRect, map.to, typeof(UObject), true);
 					if (newFrom != map.from || newTo != map.to) {
+						Undo.RecordObject(this, "ReferenceReplace.MapUpdate");
+						Undo.SetCurrentGroupName("ReferenceReplace.MapUpdate");
 						map.from = newFrom;
 						map.to = newTo;
 						m_ReplaceMaps[index] = map;
@@ -124,12 +126,24 @@ namespace WYTools.ReferenceReplace {
 			EditorGUILayout.EndScrollView();
 			GUILayout.Space(-2F);
 			EditorGUILayout.BeginHorizontal();
-			if (GUILayout.Button(new GUIContent("清空列表", EditorGUIUtility.IconContent("TreeEditor.Trash").image))) {
+			GUILayoutOption clearBtnHeight = GUILayout.Height(EditorGUIUtility.singleLineHeight * 2F + 4F);
+			if (GUILayout.Button(new GUIContent("清空\n列表"), clearBtnHeight)) {
 				Undo.RecordObject(this, "ReferenceReplace.MapClear");
+				Undo.SetCurrentGroupName("ReferenceReplace.MapClear");
 				m_ReplaceMaps.Clear();
+			}
+			EditorGUILayout.BeginVertical();
+			if (GUILayout.Button("全选左边对象")) {
+				int count = m_ReplaceMaps.Count;
+				UObject[] objects = new UObject[count];
+				for (int i = 0; i < count; ++i) {
+					objects[i] = m_ReplaceMaps[i].from;
+				}
+				Selection.objects = objects;
 			}
 			if (GUILayout.Button("选中对象覆盖到左边")) {
 				Undo.RecordObject(this, "ReferenceReplace.InsertSelectionsToMapLeft");
+				Undo.SetCurrentGroupName("ReferenceReplace.InsertSelectionsToMapLeft");
 				int listCount = m_ReplaceMaps.Count;
 				int selectionCount = Selection.objects.Length;
 				for (int i = 0; i < selectionCount && i < listCount; ++i) {
@@ -143,8 +157,19 @@ namespace WYTools.ReferenceReplace {
 					});
 				}
 			}
+			EditorGUILayout.EndVertical();
+			EditorGUILayout.BeginVertical();
+			if (GUILayout.Button("全选右边对象")) {
+				int count = m_ReplaceMaps.Count;
+				UObject[] objects = new UObject[count];
+				for (int i = 0; i < count; ++i) {
+					objects[i] = m_ReplaceMaps[i].to;
+				}
+				Selection.objects = objects;
+			}
 			if (GUILayout.Button("选中对象覆盖到右边")) {
 				Undo.RecordObject(this, "ReferenceReplace.InsertSelectionsToMapRight");
+				Undo.SetCurrentGroupName("ReferenceReplace.InsertSelectionsToMapRight");
 				int listCount = m_ReplaceMaps.Count;
 				int selectionCount = Selection.objects.Length;
 				for (int i = 0; i < selectionCount && i < listCount; ++i) {
@@ -158,6 +183,7 @@ namespace WYTools.ReferenceReplace {
 					});
 				}
 			}
+			EditorGUILayout.EndVertical();
 			EditorGUILayout.EndHorizontal();
 
 			GUILayout.Space(10F);
@@ -169,6 +195,7 @@ namespace WYTools.ReferenceReplace {
 					EditorUtility.DisplayDialog("错误", "只支持拖入文本型资产文件，如Scene、Prefab、Material等。", "确定");
 				} else {
 					Undo.RecordObject(this, "ReferenceReplace.Target");
+					Undo.SetCurrentGroupName("ReferenceReplace.Target");
 					m_Target = newTarget;
 				}
 			}
