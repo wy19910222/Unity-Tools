@@ -14,8 +14,8 @@ using UObject = UnityEngine.Object;
 
 namespace WYTools.ReferenceReplace {
 	public static class GUIDUtility {
-		[MenuItem("Assets/复制(保持内部依赖) %#D", priority = 0)]
-		public static void CopyAssets() {
+		[MenuItem("Assets/克隆(复制内部依赖) %#D", priority = 0)]
+		public static void DeepCloneAssets() {
 			// 检查序列化模式
 			if (EditorSettings.serializationMode != SerializationMode.ForceText) {
 				if (!EditorUtility.DisplayDialog("警告", "当前序列化模式非「Force Text」，是否将Asset Serialization Mode设置成「Force Text」？", "确定", "取消")) {
@@ -27,7 +27,10 @@ namespace WYTools.ReferenceReplace {
 			UObject[] objs = Selection.objects;
 			List<string> selectedPaths = new List<string>(objs.Length);
 			foreach (UObject obj in objs) {
-				selectedPaths.Add(AssetDatabase.GetAssetPath(obj));
+				string path = AssetDatabase.GetAssetPath(obj);
+				if (!string.IsNullOrEmpty(path)) {
+					selectedPaths.Add(path);
+				}
 			}
 			// 去重，有父子关系的只保留父路径
 			// 父路径总比子路径短，所以先排序
@@ -92,6 +95,14 @@ namespace WYTools.ReferenceReplace {
 						}
 					}
 					WriteAllText(dstPath, text);
+				} else if (srcPath.EndsWith(".asmdef") || srcPath.EndsWith(".asmref")) {
+					string text = ReadAllText(srcPath);
+					foreach ((string from, string to) in metaFileGUIDDict.Values) {
+						if (!string.IsNullOrEmpty(from) && !string.IsNullOrEmpty(to)) {
+							text = text.Replace("GUID:" + from, "GUID:" + to);
+						}
+					}
+					WriteAllText(dstPath, text);
 				} else {
 					File.Copy(srcPath, dstPath, true);
 				}
@@ -110,6 +121,7 @@ namespace WYTools.ReferenceReplace {
 		}
 
 		// 在扩展名前面拼上"(Clone)"作为输出路径
+		// 因为调用放传入的都是AssetDatabase获取的路径，所以只考虑目录分隔符为"/"的情况
 		public static string GetOutputFilePath(string filePath) {
 			int selectedPathLength = filePath.Length;
 			int slashIndex = filePath.LastIndexOf('/');
@@ -154,7 +166,7 @@ namespace WYTools.ReferenceReplace {
 		}
 
 		public static string ReadAllText(string filePath) {
-			return File.ReadAllText(filePath);;
+			return File.ReadAllText(filePath);
 		}
 
 		public static bool WriteAllText(string filePath, string text) {
