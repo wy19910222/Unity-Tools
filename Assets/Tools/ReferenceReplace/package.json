@@ -1,7 +1,7 @@
 {
   "name": "com.wy.tools.reference-replace",
   "displayName": "WYTools.ReferenceReplace",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "设置一组映射关系，替换一个或若干个资产内部的GUID。"
   
 }

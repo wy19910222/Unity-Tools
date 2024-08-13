@@ -247,60 +247,50 @@ namespace WYTools.ReferenceReplace {
 
 		private void Replace(bool clone) {
 			if (EditorSettings.serializationMode != SerializationMode.ForceText) {
-				if (EditorUtility.DisplayDialog("警告", "当前序列化模式非「Force Text」，是否将Asset Serialization Mode设置成「Force Text」？", "确定", "取消")) {
-					// SettingsService.OpenProjectSettings("Project/Editor");
-					// // GetWindow<ProjectSettingsWindow>().m_SearchText = "Mode";
-					// Type editorType = typeof(Editor).Assembly.GetType("UnityEditor.ProjectSettingsWindow");
-					// EditorWindow projectSettingsWindow = GetWindow(editorType);
-					// FieldInfo searchTextFI = editorType?.BaseType?.GetField("m_SearchText", BindingFlags.Instance | BindingFlags.NonPublic);
-					// searchTextFI?.SetValue(projectSettingsWindow, "Mode");
-					EditorSettings.serializationMode = SerializationMode.ForceText;
+				if (!EditorUtility.DisplayDialog("警告", "当前序列化模式非「Force Text」，是否将Asset Serialization Mode设置成「Force Text」？", "确定", "取消")) {
+					return;
 				}
-				return;
+				// SettingsService.OpenProjectSettings("Project/Editor");
+				// // GetWindow<ProjectSettingsWindow>().m_SearchText = "Mode";
+				// Type editorType = typeof(Editor).Assembly.GetType("UnityEditor.ProjectSettingsWindow");
+				// EditorWindow projectSettingsWindow = GetWindow(editorType);
+				// FieldInfo searchTextFI = editorType?.BaseType?.GetField("m_SearchText", BindingFlags.Instance | BindingFlags.NonPublic);
+				// searchTextFI?.SetValue(projectSettingsWindow, "Mode");
+				// return;
+				EditorSettings.serializationMode = SerializationMode.ForceText;
 			}
 
 			string targetPath = AssetDatabase.GetAssetPath(m_Target);
 			if (!string.IsNullOrEmpty(targetPath)) {
+				List<(string fromGUID, string toGUID)> guidMaps = GetGUIDMaps();
+				
+				// 替换操作
+				int targetPathLength = targetPath.Length;
 				int count = 0;
 				if (Directory.Exists(targetPath)) {
-					// 如果是文件夹，则遍历操作文件夹内所有文件
-					string outputDir = targetPath;
-					if (clone) {
-						string dirPath = targetPath + "_Clone";
-						outputDir = dirPath;
-						for (int i = 1; Directory.Exists(outputDir) || File.Exists(outputDir); i++) {
-							outputDir = dirPath + "_" + i;
-						}
-					}
+					// 如果是文件夹，则遍历操作文件夹内所有非meta文件
+					string outputDir = clone ? GUIDUtility.GetOutputDirPath(targetPath) : targetPath;
 					string[] filePaths = Directory.GetFiles(targetPath, "*", SearchOption.AllDirectories);
 					foreach (string filePath in filePaths) {
-						string outputPath = filePath;
-						if (clone) {
-							outputPath = outputDir + outputPath.Substring(targetPath.Length);
-						}
-						if (ReplaceInFile(filePath, outputPath)) {
-							count++;
+						if (!filePath.EndsWith(".meta")) {
+							string outputPath = clone ? outputDir + filePath.Substring(targetPathLength) : filePath;
+							if (ReplaceInFile(filePath, outputPath, guidMaps)) {
+								count++;
+							} else {
+								Debug.LogError($"替换失败：{filePath}");;
+							}
 						}
 					}
 				} else if (File.Exists(targetPath)) {
 					// 如果是文件，则操作该文件
-					string outputPath = targetPath;
-					if (clone) {
-						int pointIndex = outputPath.LastIndexOf('.');
-						if (pointIndex == -1) {
-							pointIndex = outputPath.Length;
-						}
-						string filePathNoExt = outputPath.Substring(0, pointIndex) + "_Clone";
-						string fileExt = outputPath.Substring(pointIndex);
-						outputPath = filePathNoExt + fileExt;
-						for (int i = 1; Directory.Exists(outputPath) || File.Exists(outputPath); i++) {
-							outputPath = filePathNoExt + "_" + i + fileExt;
-						}
-					}
-					if (ReplaceInFile(targetPath, outputPath)) {
+					string outputPath = clone ? GUIDUtility.GetOutputFilePath(targetPath) : targetPath;
+					if (ReplaceInFile(targetPath, outputPath, guidMaps)) {
 						count++;
+					} else {
+						Debug.LogError($"替换失败：{targetPath}");;
 					}
 				}
+				
 				// 刷新
 				AssetDatabase.Refresh();
 				string text = $"替换完成，{count}个资源被{(clone ? "复制" : "改动")}。";
@@ -309,43 +299,37 @@ namespace WYTools.ReferenceReplace {
 			}
 		}
 
-		private bool ReplaceInFile(string srcFilePath, string dstFilePath) {
+		private bool ReplaceInFile(string srcFilePath, string dstFilePath, IEnumerable<(string fromGUID, string toGUID)> guidMaps) {
 			// 检查是不是YAML语法的文本文件
-			foreach (string line in File.ReadLines(srcFilePath)) {
-				if (!line.StartsWith("%YAML")) {
-					return false;
-				}
-				break;
+			if (!GUIDUtility.IsYamlFile(srcFilePath)) {
+				return false;
 			}
 			// 读取
-			string text = File.ReadAllText(srcFilePath);
+			string text = GUIDUtility.ReadAllText(srcFilePath);
 			// 替换
 			bool done = false;
-			foreach (var map in m_ReplaceMaps) {
-				if (map.from && map.to) {
-					string fromPath = AssetDatabase.GetAssetPath(map.from);
-					string fromGUID = AssetDatabase.AssetPathToGUID(fromPath);
-					string toPath = AssetDatabase.GetAssetPath(map.to);
-					string toGUID = AssetDatabase.AssetPathToGUID(toPath);
-					if (!string.IsNullOrEmpty(fromGUID) && !string.IsNullOrEmpty(toGUID)) {
-						done = done || text.Contains(fromGUID);
-						text = text.Replace(fromGUID, toGUID);
-					}
-				}
+			foreach ((string fromGUID, string toGUID) in guidMaps) {
+				done = done || text.Contains(fromGUID);
+				text = text.Replace(fromGUID, toGUID);
 			}
 			// 写入
-			if (done) {
-				FileInfo file = new FileInfo(dstFilePath);
-				DirectoryInfo dir = file.Directory;
-				if (dir != null) {
-					if (!dir.Exists) {
-						dir.Create();
+			return done && GUIDUtility.WriteAllText(dstFilePath, text);
+		}
+
+		private List<(string fromGUID, string toGUID)> GetGUIDMaps() {
+			int mapCount = m_ReplaceMaps.Count;
+			List<(string fromGUID, string toGUID)> guidMaps = new List<(string fromGUID, string toGUID)>(mapCount);
+			for (int i = 0; i < mapCount; ++i) {
+				ReplaceMap map = m_ReplaceMaps[i];
+				if (map.from && map.to) {
+					string fromGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(map.from));
+					string toGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(map.to));
+					if (!string.IsNullOrEmpty(fromGUID) && !string.IsNullOrEmpty(toGUID)) {
+						guidMaps.Add((fromGUID, toGUID));
 					}
-					File.WriteAllText(dstFilePath, text);
-					return true;
 				}
 			}
-			return false;
+			return guidMaps;
 		}
 	}
 }
