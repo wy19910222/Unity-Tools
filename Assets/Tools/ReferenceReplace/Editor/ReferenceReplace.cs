@@ -247,7 +247,7 @@ namespace WYTools.ReferenceReplace {
 
 		private void Replace(bool clone) {
 			if (EditorSettings.serializationMode != SerializationMode.ForceText) {
-				if (!EditorUtility.DisplayDialog("警告", "当前序列化模式非「Force Text」，是否将Asset Serialization Mode设置成「Force Text」？", "确定", "取消")) {
+				if (!EditorUtility.DisplayDialog("警告", "当前序列化模式非「Force Text」，是否将Asset Serialization Mode设置成「Force Text」并继续？", "确定", "取消")) {
 					return;
 				}
 				// SettingsService.OpenProjectSettings("Project/Editor");
@@ -269,7 +269,7 @@ namespace WYTools.ReferenceReplace {
 				int count = 0;
 				if (Directory.Exists(targetPath)) {
 					// 如果是文件夹，则遍历操作文件夹内所有非meta文件
-					string outputDir = clone ? GUIDUtility.GetOutputDirPath(targetPath) : targetPath;
+					string outputDir = clone ? Utility.GetOutputDirPath(targetPath) : targetPath;
 					string[] filePaths = Directory.GetFiles(targetPath, "*", SearchOption.AllDirectories);
 					foreach (string filePath in filePaths) {
 						if (!filePath.EndsWith(".meta")) {
@@ -283,7 +283,7 @@ namespace WYTools.ReferenceReplace {
 					}
 				} else if (File.Exists(targetPath)) {
 					// 如果是文件，则操作该文件
-					string outputPath = clone ? GUIDUtility.GetOutputFilePath(targetPath) : targetPath;
+					string outputPath = clone ? Utility.GetOutputFilePath(targetPath) : targetPath;
 					if (ReplaceInFile(targetPath, outputPath, guidMaps)) {
 						count++;
 					} else {
@@ -301,11 +301,11 @@ namespace WYTools.ReferenceReplace {
 
 		private bool ReplaceInFile(string srcFilePath, string dstFilePath, IEnumerable<(string fromGUID, string toGUID)> guidMaps) {
 			// 检查是不是YAML语法的文本文件
-			if (!GUIDUtility.IsYamlFile(srcFilePath)) {
+			if (!Utility.IsYamlFile(srcFilePath)) {
 				return false;
 			}
 			// 读取
-			string text = GUIDUtility.ReadAllText(srcFilePath);
+			string text = Utility.ReadAllText(srcFilePath);
 			// 替换
 			bool done = false;
 			foreach ((string fromGUID, string toGUID) in guidMaps) {
@@ -313,7 +313,7 @@ namespace WYTools.ReferenceReplace {
 				text = text.Replace(fromGUID, toGUID);
 			}
 			// 写入
-			return done && GUIDUtility.WriteAllText(dstFilePath, text);
+			return done && Utility.WriteAllText(dstFilePath, text);
 		}
 
 		private List<(string fromGUID, string toGUID)> GetGUIDMaps() {
