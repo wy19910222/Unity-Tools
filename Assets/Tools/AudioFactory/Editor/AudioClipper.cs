@@ -104,6 +104,16 @@ namespace WYTools.AudioFactory {
 			Undo.undoRedoPerformed -= Repaint;
 		}
 
+		private void OnDestroy() {
+			DestroyImmediate(m_AudioSource);
+			m_Clip = null;
+			m_ClippedClip = null;
+			m_AudioSource = null;
+			m_WaveformTextures = null;
+			m_TexturePool.Clear();
+			Resources.UnloadUnusedAssets();
+		}
+
 		private bool m_WillRepaint;
 		private void Update() {
 			if (m_AudioSource.isPlaying) {
