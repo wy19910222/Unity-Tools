@@ -455,9 +455,9 @@ namespace WYTools.ReferenceReplace {
 						modification.objectReference = to;
 						UObject target = modification.target;
 						if (objsInPrefab != null) {
-							foreach (UObject prefabComp in objsInPrefab) {
-								if (PrefabUtility.GetCorrespondingObjectFromSource(prefabComp) == target) {
-									target = prefabComp;
+							foreach (UObject obj in objsInPrefab) {
+								if (PrefabUtility.GetCorrespondingObjectFromSource(obj) == target) {
+									target = obj;
 									Undo.RecordObject(target, "ReferenceReplace.Replace");
 									Undo.SetCurrentGroupName("ReferenceReplace.Replace");
 									break;
