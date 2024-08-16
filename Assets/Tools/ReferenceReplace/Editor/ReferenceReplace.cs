@@ -246,20 +246,6 @@ namespace WYTools.ReferenceReplace {
 		}
 
 		private void Replace(bool clone) {
-			if (EditorSettings.serializationMode != SerializationMode.ForceText) {
-				if (!EditorUtility.DisplayDialog("警告", "当前序列化模式非「Force Text」，是否将Asset Serialization Mode设置成「Force Text」并继续？", "确定", "取消")) {
-					return;
-				}
-				// SettingsService.OpenProjectSettings("Project/Editor");
-				// // GetWindow<ProjectSettingsWindow>().m_SearchText = "Mode";
-				// Type editorType = typeof(Editor).Assembly.GetType("UnityEditor.ProjectSettingsWindow");
-				// EditorWindow projectSettingsWindow = GetWindow(editorType);
-				// FieldInfo searchTextFI = editorType?.BaseType?.GetField("m_SearchText", BindingFlags.Instance | BindingFlags.NonPublic);
-				// searchTextFI?.SetValue(projectSettingsWindow, "Mode");
-				// return;
-				EditorSettings.serializationMode = SerializationMode.ForceText;
-			}
-
 			string targetPath = AssetDatabase.GetAssetPath(m_Target);
 			if (string.IsNullOrEmpty(targetPath)) {
 				ReplaceSceneObject(m_Target, clone);
@@ -399,6 +385,20 @@ namespace WYTools.ReferenceReplace {
 		}
 
 		private void ReplaceAsset(string targetPath, bool clone) {
+			if (EditorSettings.serializationMode != SerializationMode.ForceText) {
+				if (!EditorUtility.DisplayDialog("警告", "当前序列化模式非「Force Text」，是否将Asset Serialization Mode设置成「Force Text」并继续？", "确定", "取消")) {
+					return;
+				}
+				// SettingsService.OpenProjectSettings("Project/Editor");
+				// // GetWindow<ProjectSettingsWindow>().m_SearchText = "Mode";
+				// Type editorType = typeof(Editor).Assembly.GetType("UnityEditor.ProjectSettingsWindow");
+				// EditorWindow projectSettingsWindow = GetWindow(editorType);
+				// FieldInfo searchTextFI = editorType?.BaseType?.GetField("m_SearchText", BindingFlags.Instance | BindingFlags.NonPublic);
+				// searchTextFI?.SetValue(projectSettingsWindow, "Mode");
+				// return;
+				EditorSettings.serializationMode = SerializationMode.ForceText;
+			}
+			
 			List<(string fromGUID, string toGUID)> guidMaps = ReplaceMapsToGUIDMaps(m_ReplaceMaps);
 				
 			// 替换操作
