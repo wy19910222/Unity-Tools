@@ -272,7 +272,7 @@ namespace WYTools.ReferenceReplace {
 			List<(UObject from, UObject to)> objMaps = ReplaceMapsToObjectMaps(m_ReplaceMaps);
 			if (target is GameObject go) {
 				if (PrefabUtility.IsPartOfAnyPrefab(go)) {
-					EditorUtility.DisplayDialog("警告", "目标对象属于Prefab，请选择Prefab文件执行此操作。", "确定");
+					EditorUtility.DisplayDialog("警告", "目标对象属于prefab，请选择prefab文件执行此操作。", "确定");
 					return;
 				}
 				// 克隆
@@ -340,31 +340,39 @@ namespace WYTools.ReferenceReplace {
 					modificationCompChangedCount = targetSet.Count;
 				}
 				// 遍历在Prefab中的组件，如果有需要替换的，则弹窗提示
-				bool existInPrefab = false;
+				prefabSet.Clear();
 				if (prefabComps.Count > 0) {
 					foreach (Component comp in prefabComps) {
 						SerializedObject serializedObject = new SerializedObject(comp);
 						SerializedProperty property = serializedObject.GetIterator();
+						bool isExist = false;
 						while (property.Next(true)) {
 							if (property.propertyType == SerializedPropertyType.ObjectReference) {
 								foreach (ReplaceMap map in m_ReplaceMaps) {
 									if (property.objectReferenceValue == map.from) {
-										existInPrefab = true;
+										isExist = true;
 										break;
 									}
 								}
-								if (existInPrefab) {
+								if (isExist) {
 									break;
 								}
 							}
 						}
-						if (existInPrefab) {
-							break;
+						if (isExist) {
+							GameObject subPrefab = PrefabUtility.GetNearestPrefabInstanceRoot(comp);
+							if (subPrefab) {
+								prefabSet.Add(subPrefab);
+							}
 						}
 					}
 				}
-				if (existInPrefab) {
-					EditorUtility.DisplayDialog("警告", "部分引用位于Prefab内部，请选择相应Prefab文件执行此操作。", "确定");
+				if (prefabSet.Count > 0) {
+					EditorUtility.DisplayDialog("警告", "部分引用位于prefab内部，请根据log选择相应prefab文件执行此操作。", "确定");
+					Debug.Log($"部分引用位于以下{prefabSet.Count}个prefab中：");
+					foreach (GameObject prefab in prefabSet) {
+						Debug.Log(prefab, PrefabUtility.GetCorrespondingObjectFromOriginalSource(prefab));
+					}
 				}
 				// 如果没有改动，则删除克隆的对象
 				if (clone && referenceChangedCount <= 0) {
