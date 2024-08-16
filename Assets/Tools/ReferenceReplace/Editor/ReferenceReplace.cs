@@ -191,13 +191,13 @@ namespace WYTools.ReferenceReplace {
 			EditorGUIUtility.labelWidth = 70F;
 			UObject newTarget = EditorGUILayout.ObjectField("替换目标", m_Target, typeof(UObject), true);
 			if (newTarget != m_Target) {
-				if (newTarget && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(newTarget))) {
-					EditorUtility.DisplayDialog("错误", "只支持拖入文本型资产文件，如Scene、Prefab、Material等。", "确定");
-				} else {
+				// if (newTarget && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(newTarget))) {
+				// 	EditorUtility.DisplayDialog("错误", "只支持拖入文本型资产文件，如Scene、Prefab、Material等。", "确定");
+				// } else {
 					Undo.RecordObject(this, "ReferenceReplace.Target");
 					Undo.SetCurrentGroupName("ReferenceReplace.Target");
 					m_Target = newTarget;
-				}
+				// }
 			}
 
 			EditorGUILayout.BeginHorizontal(GUILayout.Height(EditorGUIUtility.singleLineHeight * 2));
@@ -261,45 +261,218 @@ namespace WYTools.ReferenceReplace {
 			}
 
 			string targetPath = AssetDatabase.GetAssetPath(m_Target);
-			if (!string.IsNullOrEmpty(targetPath)) {
-				List<(string fromGUID, string toGUID)> guidMaps = GetGUIDMaps();
-				
-				// 替换操作
-				int targetPathLength = targetPath.Length;
-				int count = 0;
-				if (Directory.Exists(targetPath)) {
-					// 如果是文件夹，则遍历操作文件夹内所有非meta文件
-					string outputDir = clone ? Utility.GetOutputDirPath(targetPath) : targetPath;
-					string[] filePaths = Directory.GetFiles(targetPath, "*", SearchOption.AllDirectories);
-					foreach (string filePath in filePaths) {
-						if (!filePath.EndsWith(".meta")) {
-							string outputPath = clone ? outputDir + filePath.Substring(targetPathLength) : filePath;
-							if (ReplaceInFile(filePath, outputPath, guidMaps)) {
-								count++;
-							} else {
-								Debug.LogError($"替换失败：{filePath}");;
-							}
+			if (string.IsNullOrEmpty(targetPath)) {
+				ReplaceSceneObject(m_Target, clone);
+			} else {
+				ReplaceAsset(targetPath, clone);
+			}
+		}
+
+		private void ReplaceSceneObject(UObject target, bool clone) {
+			List<(UObject from, UObject to)> objMaps = ReplaceMapsToObjectMaps(m_ReplaceMaps);
+			if (target is GameObject go) {
+				if (PrefabUtility.IsPartOfAnyPrefab(go)) {
+					EditorUtility.DisplayDialog("警告", "目标对象属于Prefab，请选择Prefab文件执行此操作。", "确定");
+					return;
+				}
+				// 克隆
+				if (clone) {
+					UObject prevSelectedObject = Selection.activeObject;
+					Selection.activeGameObject = go;
+					Unsupported.DuplicateGameObjectsUsingPasteboard();
+					GameObject dstGo = Selection.activeGameObject;
+					Selection.activeObject = prevSelectedObject;
+					Transform srcTrans = go.transform;
+					Transform dstTrans = dstGo.transform;
+					dstTrans.SetParent(srcTrans.parent);
+					dstTrans.localPosition = srcTrans.localPosition;
+					dstTrans.localRotation = srcTrans.localRotation;
+					dstTrans.localScale = srcTrans.localScale;
+					go = dstGo;
+				}
+				// 遍历所有组件，分成不在Prefab中的组件、在Prefab中的组件，另外记录所有根Prefab
+				Component[] comps = go.GetComponentsInChildren<Component>(true);
+				List<Component> selfComps = new List<Component>();
+				List<Component> prefabComps = new List<Component>();
+				HashSet<GameObject> prefabSet = new HashSet<GameObject>();
+				foreach (var comp in comps) {
+					if (!PrefabUtility.IsPartOfAnyPrefab(comp)) {
+						selfComps.Add(comp);
+					} else {
+						prefabComps.Add(comp);
+						GameObject subPrefab = PrefabUtility.GetOutermostPrefabInstanceRoot(comp);
+						if (subPrefab) {
+							prefabSet.Add(subPrefab);
 						}
 					}
-				} else if (File.Exists(targetPath)) {
-					// 如果是文件，则操作该文件
-					string outputPath = clone ? Utility.GetOutputFilePath(targetPath) : targetPath;
-					if (ReplaceInFile(targetPath, outputPath, guidMaps)) {
-						count++;
-					} else {
-						Debug.LogError($"替换失败：{targetPath}");;
+				}
+				// 遍历不在Prefab中的组件，替换引用
+				int referenceChangedCount = 0;
+				int selfCompChangedCount = 0;
+				if (selfComps.Count > 0) {
+					foreach (Component comp in selfComps) {
+						int changeCount = ReplaceInObject(comp, objMaps);
+						if (changeCount > 0) {
+							referenceChangedCount += changeCount;
+							selfCompChangedCount++;
+						}
 					}
 				}
-				
-				// 刷新
-				AssetDatabase.Refresh();
-				string text = $"替换完成，{count}个资源被{(clone ? "复制" : "改动")}。";
+				// 遍历对Prefab的修改，替换引用
+				int modificationCompChangedCount = 0;
+				if (prefabSet.Count > 0) {
+					HashSet<UObject> targetSet = new HashSet<UObject>();
+					foreach (GameObject prefab in prefabSet) {
+						PropertyModification[] modifications = PrefabUtility.GetPropertyModifications(prefab);
+						bool anyModificationChanged = false;
+						foreach (PropertyModification modification in modifications) {
+							bool changed = ReplaceInModification(modification, objMaps, prefabComps);
+							if (changed) {
+								anyModificationChanged = true;
+								referenceChangedCount++;
+								targetSet.Add(modification.target);
+							}
+						}
+						if (anyModificationChanged) {
+							PrefabUtility.SetPropertyModifications(prefab, modifications);
+						}
+					}
+					modificationCompChangedCount = targetSet.Count;
+				}
+				// 遍历在Prefab中的组件，如果有需要替换的，则弹窗提示
+				bool existInPrefab = false;
+				if (prefabComps.Count > 0) {
+					foreach (Component comp in prefabComps) {
+						SerializedObject serializedObject = new SerializedObject(comp);
+						SerializedProperty property = serializedObject.GetIterator();
+						while (property.Next(true)) {
+							if (property.propertyType == SerializedPropertyType.ObjectReference) {
+								foreach (ReplaceMap map in m_ReplaceMaps) {
+									if (property.objectReferenceValue == map.from) {
+										existInPrefab = true;
+										break;
+									}
+								}
+								if (existInPrefab) {
+									break;
+								}
+							}
+						}
+						if (existInPrefab) {
+							break;
+						}
+					}
+				}
+				if (existInPrefab) {
+					EditorUtility.DisplayDialog("警告", "部分引用位于Prefab内部，请选择相应Prefab文件执行此操作。", "确定");
+				}
+				// 如果没有改动，则删除克隆的对象
+				if (clone && referenceChangedCount <= 0) {
+					DestroyImmediate(go);
+				}
+				// 完成提示
+				string text = $"{(clone ? "克隆" : "改动")}完成，{selfCompChangedCount + modificationCompChangedCount}个对象中的{referenceChangedCount}个引用被替换。";
+				ShowNotification(EditorGUIUtility.TrTextContent(text), 1);
+				Debug.Log(text);
+			} else {
+				if (clone) {
+					target = Instantiate(target);
+				}
+				int changeCount = ReplaceInObject(target, objMaps);
+				// 如果没有改动，则删除克隆的对象
+				if (clone && changeCount <= 0) {
+					DestroyImmediate(target);
+				}
+				// 完成提示
+				string text = $"{(clone ? "克隆" : "改动")}完成，1个对象中的{changeCount}个引用被替换。";
 				ShowNotification(EditorGUIUtility.TrTextContent(text), 1);
 				Debug.Log(text);
 			}
 		}
 
-		private bool ReplaceInFile(string srcFilePath, string dstFilePath, IEnumerable<(string fromGUID, string toGUID)> guidMaps) {
+		private void ReplaceAsset(string targetPath, bool clone) {
+			List<(string fromGUID, string toGUID)> guidMaps = ReplaceMapsToGUIDMaps(m_ReplaceMaps);
+				
+			// 替换操作
+			int targetPathLength = targetPath.Length;
+			int count = 0;
+			if (Directory.Exists(targetPath)) {
+				// 如果是文件夹，则遍历操作文件夹内所有非meta文件
+				string outputDir = clone ? Utility.GetOutputDirPath(targetPath) : targetPath;
+				string[] filePaths = Directory.GetFiles(targetPath, "*", SearchOption.AllDirectories);
+				foreach (string filePath in filePaths) {
+					if (!filePath.EndsWith(".meta")) {
+						string outputPath = clone ? outputDir + filePath.Substring(targetPathLength) : filePath;
+						if (ReplaceInFile(filePath, outputPath, guidMaps)) {
+							count++;
+						}
+					}
+				}
+			} else if (File.Exists(targetPath)) {
+				// 如果是文件，则操作该文件
+				string outputPath = clone ? Utility.GetOutputFilePath(targetPath) : targetPath;
+				if (ReplaceInFile(targetPath, outputPath, guidMaps)) {
+					count++;
+				}
+			}
+			
+			// 刷新
+			AssetDatabase.Refresh();
+			string text = $"{(clone ? "克隆" : "改动")}完成，{count}个资源被替换。";
+			ShowNotification(EditorGUIUtility.TrTextContent(text), 1);
+			Debug.Log(text);
+		}
+
+		private static int ReplaceInObject(UObject obj, IReadOnlyList<(UObject from, UObject to)> objMaps) {
+			SerializedObject serializedObject = new SerializedObject(obj);
+			SerializedProperty property = serializedObject.GetIterator();
+			int changedCount = 0;
+			while (property.Next(true)) {
+				if (property.propertyType == SerializedPropertyType.ObjectReference) {
+					foreach ((UObject from, UObject to) in objMaps) {
+						if (property.objectReferenceValue == @from) {
+							property.objectReferenceValue = to;
+							changedCount++;
+							Debug.Log($"{obj}的{property.propertyPath}被替换。", obj);
+							break;
+						}
+					}
+				}
+			}
+			if (changedCount > 0) {
+				Undo.RecordObject(obj, "ReferenceReplace.Replace");
+				Undo.SetCurrentGroupName("ReferenceReplace.Replace");
+				serializedObject.ApplyModifiedProperties();
+			}
+			serializedObject.Dispose();
+			return changedCount;
+		}
+
+		private static bool ReplaceInModification(PropertyModification modification, IEnumerable<(UObject from, UObject to)> objMaps, IEnumerable<UObject> objsInPrefab = null) {
+			if (modification.target && modification.objectReference) {
+				foreach ((UObject from, UObject to) in objMaps) {
+					if (modification.objectReference == from) {
+						modification.objectReference = to;
+						UObject target = modification.target;
+						if (objsInPrefab != null) {
+							foreach (UObject prefabComp in objsInPrefab) {
+								if (PrefabUtility.GetCorrespondingObjectFromSource(prefabComp) == target) {
+									target = prefabComp;
+									Undo.RecordObject(target, "ReferenceReplace.Replace");
+									Undo.SetCurrentGroupName("ReferenceReplace.Replace");
+									break;
+								}
+							}
+						}
+						Debug.Log($"Modification: {target}的{modification.propertyPath}被替换。", target);
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		private static bool ReplaceInFile(string srcFilePath, string dstFilePath, IEnumerable<(string fromGUID, string toGUID)> guidMaps) {
 			// 检查是不是YAML语法的文本文件
 			if (!Utility.IsYamlFile(srcFilePath)) {
 				return false;
@@ -316,11 +489,23 @@ namespace WYTools.ReferenceReplace {
 			return done && Utility.WriteAllText(dstFilePath, text);
 		}
 
-		private List<(string fromGUID, string toGUID)> GetGUIDMaps() {
-			int mapCount = m_ReplaceMaps.Count;
+		private static List<(UObject from, UObject to)> ReplaceMapsToObjectMaps(IReadOnlyList<ReplaceMap> objectMaps) {
+			int mapCount = objectMaps.Count;
+			List<(UObject from, UObject to)> objMaps = new List<(UObject from, UObject to)>(mapCount);
+			for (int i = 0; i < mapCount; ++i) {
+				ReplaceMap map = objectMaps[i];
+				if (map.from && map.to) {
+					objMaps.Add((map.from, map.to));
+				}
+			}
+			return objMaps;
+		}
+
+		private static List<(string fromGUID, string toGUID)> ReplaceMapsToGUIDMaps(IReadOnlyList<ReplaceMap> objectMaps) {
+			int mapCount = objectMaps.Count;
 			List<(string fromGUID, string toGUID)> guidMaps = new List<(string fromGUID, string toGUID)>(mapCount);
 			for (int i = 0; i < mapCount; ++i) {
-				ReplaceMap map = m_ReplaceMaps[i];
+				ReplaceMap map = objectMaps[i];
 				if (map.from && map.to) {
 					string fromGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(map.from));
 					string toGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(map.to));
