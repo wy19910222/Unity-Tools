@@ -43,11 +43,14 @@
 ## 引用替换&深拷贝资产
 
 [**ReferenceReplace**](Assets/Tools/ReferenceReplace/Editor/ReferenceReplace.cs)  
-设置一组映射关系，替换一个或若干个资产内部的GUID。  
-![ReferenceReplace](Assets/Tools/ReferenceReplace/Captures~/ReferenceReplace.gif)
-* **列表：** 原对象和替换为的映射表，事实上取的是它们的GUID。  
+设置一组映射关系列表，将目标内所有对列表左边的引用替换为列表右边。  
+![ReferenceReplace](Assets/Tools/ReferenceReplace/Captures~/ReferenceReplace.gif)  
+* **列表：** 原对象和替换为的映射表。  
 * **交换按钮：** 在列表标题栏「原对象」与「替换为」之间的按钮，点击可以交换整个列表的左右两边。  
-* **替换目标：** 必须是一个文件夹或以文本形式储存的资产文件，原理是在文本中搜索GUID并替换保存。如果目标是文件夹，则遍历文件夹操作每一个符合条件的文件。  
+* **替换目标：** 可以是场景内的GameObject，也可以是一个文件夹或以 YAML 格式储存的资产文件。  
+  * 如果目标是个场景内对象，则通过遍历引用进行替换。  
+  * 如果目标是个以 YAML 格式储存的资产文件，则以文本形式打开文件，搜索GUID并替换保存。  
+  * 如果目标是个文件夹，则遍历文件夹内所有文件，对每个 YAML 格式储存的资产文件进行操作。  
 * **一种便捷的列表添加方法：** 点击「全选左边」按钮，继续选中想要添加的对象，点击「选中对象覆盖到左边」按钮，新选中的对象将添加到列表末尾原对象列，右边同理。  
 
 [**AssetsDeepCloner**](Assets/Tools/ReferenceReplace/Editor/AssetsDeepCloner.cs)  
