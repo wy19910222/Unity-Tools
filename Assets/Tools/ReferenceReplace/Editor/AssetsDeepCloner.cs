@@ -81,31 +81,12 @@ namespace WYTools.ReferenceReplace {
 				// 复制meta文件
 				string srcMetaFilePath = srcPath + ".meta";
 				string dstMetaFilePath = dstPath + ".meta";
-				if (metaFileGUIDDict.TryGetValue(srcMetaFilePath, out (string from, string to) guidMap)) {
-					string metaText = Utility.ReadAllText(srcMetaFilePath);
-					metaText = metaText.Replace("guid: " + guidMap.from, "guid: " + guidMap.to);
-					Utility.WriteAllText(dstMetaFilePath, metaText);
-				} else {
-					Debug.LogError($"替换meta文件的GUID失败：{srcMetaFilePath}");
-					File.Copy(srcMetaFilePath, dstMetaFilePath, true);
-				}
+				CopyAndReplace(srcMetaFilePath, dstMetaFilePath, metaFileGUIDDict.Values);
 				// 复制资源文件
 				if (Utility.IsYamlFile(srcPath)) {
-					string text = Utility.ReadAllText(srcPath);
-					foreach ((string from, string to) in metaFileGUIDDict.Values) {
-						if (!string.IsNullOrEmpty(from) && !string.IsNullOrEmpty(to)) {
-							text = text.Replace("guid: " + from, "guid: " + to);
-						}
-					}
-					Utility.WriteAllText(dstPath, text);
+					CopyAndReplace(srcPath, dstPath, metaFileGUIDDict.Values);
 				} else if (srcPath.EndsWith(".asmdef") || srcPath.EndsWith(".asmref")) {
-					string text = Utility.ReadAllText(srcPath);
-					foreach ((string from, string to) in metaFileGUIDDict.Values) {
-						if (!string.IsNullOrEmpty(from) && !string.IsNullOrEmpty(to)) {
-							text = text.Replace("GUID:" + from, "GUID:" + to);
-						}
-					}
-					Utility.WriteAllText(dstPath, text);
+					CopyAndReplace(srcPath, dstPath, metaFileGUIDDict.Values, "GUID:");
 				} else {
 					File.Copy(srcPath, dstPath, true);
 				}
@@ -113,6 +94,16 @@ namespace WYTools.ReferenceReplace {
 			EditorUtility.ClearProgressBar();
 			Debug.Log("复制完成");
 			AssetDatabase.Refresh();
+		}
+
+		private static bool CopyAndReplace(string srcFilePath, string dstFilePath, IEnumerable<(string, string)> guidMaps, string prefix = "guid: ") {
+			string text = Utility.ReadAllText(srcFilePath);
+			foreach ((string from, string to) in guidMaps) {
+				if (!string.IsNullOrEmpty(from) && !string.IsNullOrEmpty(to)) {
+					text = text.Replace(prefix + from, prefix + to);
+				}
+			}
+			return Utility.WriteAllText(dstFilePath, text);
 		}
 	}
 }
