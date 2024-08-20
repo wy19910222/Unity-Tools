@@ -82,6 +82,7 @@ namespace WYTools.ReferenceReplace {
 				string srcMetaFilePath = srcPath + ".meta";
 				string dstMetaFilePath = dstPath + ".meta";
 				CopyAndReplace(srcMetaFilePath, dstMetaFilePath, metaFileGUIDDict.Values);
+				Debug.Log($"Clone meta[{i}/{length}] succeeded: {dstMetaFilePath}");
 				// 复制资源文件
 				if (Utility.IsYamlFile(srcPath)) {
 					CopyAndReplace(srcPath, dstPath, metaFileGUIDDict.Values);
@@ -90,20 +91,21 @@ namespace WYTools.ReferenceReplace {
 				} else {
 					File.Copy(srcPath, dstPath, true);
 				}
+				Debug.Log($"Clone asset[{i}/{length}] succeeded: {dstPath}");
 			}
 			EditorUtility.ClearProgressBar();
 			Debug.Log("复制完成");
 			AssetDatabase.Refresh();
 		}
 
-		private static bool CopyAndReplace(string srcFilePath, string dstFilePath, IEnumerable<(string, string)> guidMaps, string prefix = "guid: ") {
+		private static void CopyAndReplace(string srcFilePath, string dstFilePath, IEnumerable<(string, string)> guidMaps, string prefix = "guid: ") {
 			string text = Utility.ReadAllText(srcFilePath);
 			foreach ((string from, string to) in guidMaps) {
 				if (!string.IsNullOrEmpty(from) && !string.IsNullOrEmpty(to)) {
 					text = text.Replace(prefix + from, prefix + to);
 				}
 			}
-			return Utility.WriteAllText(dstFilePath, text);
+			Utility.WriteAllText(dstFilePath, text);
 		}
 	}
 }

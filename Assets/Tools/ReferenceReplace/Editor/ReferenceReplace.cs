@@ -200,14 +200,17 @@ namespace WYTools.ReferenceReplace {
 				// }
 			}
 
-			EditorGUILayout.BeginHorizontal(GUILayout.Height(EditorGUIUtility.singleLineHeight * 2));
-			if (GUILayout.Button("生成副本并替换")) {
-				Replace(true);
-			}
-			if (GUILayout.Button("直接替换", GUILayout.Width(80F))) {
+			// EditorGUILayout.BeginHorizontal();
+			// if (GUILayout.Button("生成副本并替换"))) {
+			// 	Replace(true);
+			// }
+			// if (GUILayout.Button("直接替换", GUILayout.Width(80F))) {
+			// 	Replace(false);
+			// }
+			// EditorGUILayout.EndHorizontal();
+			if (GUILayout.Button("替换引用", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2F + 2F))) {
 				Replace(false);
 			}
-			EditorGUILayout.EndHorizontal();
 		}
 
 		private void SaveMaps() {
@@ -412,7 +415,10 @@ namespace WYTools.ReferenceReplace {
 					if (!filePath.EndsWith(".meta")) {
 						string outputPath = clone ? outputDir + filePath.Substring(targetPathLength) : filePath;
 						if (ReplaceInFile(filePath, outputPath, guidMaps)) {
+							Debug.Log("Replace succeeded:" + filePath);
 							count++;
+						} else {
+							Debug.LogWarning("Replace failed:" + filePath);
 						}
 					}
 				}
@@ -420,7 +426,10 @@ namespace WYTools.ReferenceReplace {
 				// 如果是文件，则操作该文件
 				string outputPath = clone ? Utility.GetOutputFilePath(targetPath) : targetPath;
 				if (ReplaceInFile(targetPath, outputPath, guidMaps)) {
+					Debug.Log("Replace succeeded:" + targetPath);
 					count++;
+				} else {
+					Debug.LogWarning("Replace failed:" + targetPath);
 				}
 			}
 			
@@ -431,7 +440,7 @@ namespace WYTools.ReferenceReplace {
 			Debug.Log(text);
 		}
 
-		private static int ReplaceInObject(UObject obj, IReadOnlyList<(UObject from, UObject to)> objMaps) {
+		private static int ReplaceInObject(UObject obj, IReadOnlyList<(UObject, UObject)> objMaps) {
 			SerializedObject serializedObject = new SerializedObject(obj);
 			SerializedProperty property = serializedObject.GetIterator();
 			int changedCount = 0;
@@ -456,7 +465,7 @@ namespace WYTools.ReferenceReplace {
 			return changedCount;
 		}
 
-		private static bool ReplaceInModification(PropertyModification modification, IEnumerable<(UObject from, UObject to)> objMaps, IEnumerable<UObject> objsInPrefab = null) {
+		private static bool ReplaceInModification(PropertyModification modification, IEnumerable<(UObject, UObject)> objMaps, IEnumerable<UObject> objsInPrefab = null) {
 			if (modification.target && modification.objectReference) {
 				foreach ((UObject from, UObject to) in objMaps) {
 					if (modification.objectReference == from) {
@@ -480,26 +489,41 @@ namespace WYTools.ReferenceReplace {
 			return false;
 		}
 
-		private static bool ReplaceInFile(string srcFilePath, string dstFilePath, IEnumerable<(string fromGUID, string toGUID)> guidMaps) {
-			// 检查是不是YAML语法的文本文件
-			if (!Utility.IsYamlFile(srcFilePath)) {
-				return false;
+		private static bool ReplaceInFile(string srcFilePath, string dstFilePath, IEnumerable<(string, string)> guidMaps) {
+			if (Utility.IsYamlFile(srcFilePath)) {
+				// 如果是YAML语法的文本文件，说明是Unity序列化文件，meta文件只存自己的GUID，不需要管
+				return CopyAndReplace(srcFilePath, dstFilePath, guidMaps);
+			} else if (srcFilePath.EndsWith(".asmdef") || srcFilePath.EndsWith(".asmref")) {
+				// 如果是AssemblyDefinition或AssemblyDefinitionReference文件，meta文件只存自己的GUID，不需要管
+				return CopyAndReplace(srcFilePath, dstFilePath, guidMaps, null, "GUID:");
+			} else {
+				// 如果是非Unity序列化文件，引用GUID存在meta文件内，应该操作meta文件而不是资源文件
+				string srcMetaFilePath = srcFilePath + ".meta";
+				string dstMetaFilePath = dstFilePath + ".meta";
+				string guid = Utility.GetGUIDFromMetaFile(srcMetaFilePath);
+				bool done = CopyAndReplace(srcMetaFilePath, dstMetaFilePath, guidMaps, guid);
+				if (done && dstFilePath != srcFilePath) {
+					File.Copy(srcFilePath, dstFilePath, true);
+				}
+				return done;
 			}
-			// 读取
+		}
+
+		private static bool CopyAndReplace(string srcFilePath, string dstFilePath, IEnumerable<(string, string)> guidMaps, string exceptGUID = null, string prefix = "guid: ") {
 			string text = Utility.ReadAllText(srcFilePath);
-			// 替换
 			bool done = false;
 			foreach ((string fromGUID, string toGUID) in guidMaps) {
-				done = done || text.Contains(fromGUID);
-				text = text.Replace(fromGUID, toGUID);
+				if (fromGUID != exceptGUID) {
+					done = done || text.Contains(prefix + fromGUID);
+					text = text.Replace(prefix + fromGUID, prefix + toGUID);
+				}
 			}
-			// 写入
 			return done && Utility.WriteAllText(dstFilePath, text);
 		}
 
 		private static List<(UObject from, UObject to)> ReplaceMapsToObjectMaps(IReadOnlyList<ReplaceMap> objectMaps) {
 			int mapCount = objectMaps.Count;
-			List<(UObject from, UObject to)> objMaps = new List<(UObject from, UObject to)>(mapCount);
+			List<(UObject, UObject)> objMaps = new List<(UObject, UObject)>(mapCount);
 			for (int i = 0; i < mapCount; ++i) {
 				ReplaceMap map = objectMaps[i];
 				if (map.from && map.to) {
@@ -511,7 +535,7 @@ namespace WYTools.ReferenceReplace {
 
 		private static List<(string fromGUID, string toGUID)> ReplaceMapsToGUIDMaps(IReadOnlyList<ReplaceMap> objectMaps) {
 			int mapCount = objectMaps.Count;
-			List<(string fromGUID, string toGUID)> guidMaps = new List<(string fromGUID, string toGUID)>(mapCount);
+			List<(string, string)> guidMaps = new List<(string, string)>(mapCount);
 			for (int i = 0; i < mapCount; ++i) {
 				ReplaceMap map = objectMaps[i];
 				if (map.from && map.to) {
