@@ -7,11 +7,26 @@
 
 using System;
 using System.IO;
+using System.Reflection;
+using UnityEditor;
 using UnityEngine;
 using UObject = UnityEngine.Object;
 
 namespace WYTools.ReferenceReplace {
 	public static class Utility {
+		private static PropertyInfo s_InspectorModePI = typeof(SerializedObject).GetProperty("inspectorMode", BindingFlags.Instance | BindingFlags.NonPublic);
+		public static long GetFileID(UObject obj) {
+			using (SerializedObject sObj = new SerializedObject(obj)) {
+				s_InspectorModePI?.SetValue(sObj, InspectorMode.Debug, null);
+				SerializedProperty localIdProp = sObj.FindProperty("m_LocalIdentfierInFile");
+				return localIdProp.longValue;
+			}
+		}
+		
+		public static string GetGUID(UObject obj) {
+			return AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(obj));
+		}
+		
 		// 直接在最后拼上"(Clone)"作为输出路径
 		public static string GetOutputDirPath(string dirPath) {
 			do {

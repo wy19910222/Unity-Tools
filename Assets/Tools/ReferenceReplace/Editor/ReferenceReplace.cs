@@ -15,6 +15,7 @@ using UnityEditor;
 using UnityEditorInternal;
 
 using UObject = UnityEngine.Object;
+using ComplexIDMap = System.ValueTuple<(string fromGUID, long fromFileID), (string toGUID, long toFileID)>;
 
 namespace WYTools.ReferenceReplace {
 	public class ReferenceReplace : EditorWindow {
@@ -260,10 +261,6 @@ namespace WYTools.ReferenceReplace {
 		private void ReplaceSceneObject(UObject target, bool clone) {
 			List<(UObject from, UObject to)> objMaps = ReplaceMapsToObjectMaps(m_ReplaceMaps);
 			if (target is GameObject go) {
-				if (PrefabUtility.IsPartOfAnyPrefab(go)) {
-					EditorUtility.DisplayDialog("警告", "目标对象属于prefab，请选择prefab文件执行此操作。", "确定");
-					return;
-				}
 				// 克隆
 				if (clone) {
 					UObject prevSelectedObject = Selection.activeObject;
@@ -402,7 +399,7 @@ namespace WYTools.ReferenceReplace {
 				EditorSettings.serializationMode = SerializationMode.ForceText;
 			}
 			
-			List<(string fromGUID, string toGUID)> guidMaps = ReplaceMapsToGUIDMaps(m_ReplaceMaps);
+			List<ComplexIDMap> idMaps = ReplaceMapsToIDMaps(m_ReplaceMaps);
 				
 			// 替换操作
 			int targetPathLength = targetPath.Length;
@@ -414,7 +411,7 @@ namespace WYTools.ReferenceReplace {
 				foreach (string filePath in filePaths) {
 					if (!filePath.EndsWith(".meta")) {
 						string outputPath = clone ? outputDir + filePath.Substring(targetPathLength) : filePath;
-						if (ReplaceInFile(filePath, outputPath, guidMaps)) {
+						if (ReplaceInFile(filePath, outputPath, idMaps)) {
 							Debug.Log("Replace succeeded:" + filePath);
 							count++;
 						} else {
@@ -425,7 +422,7 @@ namespace WYTools.ReferenceReplace {
 			} else if (File.Exists(targetPath)) {
 				// 如果是文件，则操作该文件
 				string outputPath = clone ? Utility.GetOutputFilePath(targetPath) : targetPath;
-				if (ReplaceInFile(targetPath, outputPath, guidMaps)) {
+				if (ReplaceInFile(targetPath, outputPath, idMaps)) {
 					Debug.Log("Replace succeeded:" + targetPath);
 					count++;
 				} else {
@@ -489,19 +486,19 @@ namespace WYTools.ReferenceReplace {
 			return false;
 		}
 
-		private static bool ReplaceInFile(string srcFilePath, string dstFilePath, IEnumerable<(string, string)> guidMaps) {
+		private static bool ReplaceInFile(string srcFilePath, string dstFilePath, IEnumerable<ComplexIDMap> idMaps) {
 			if (Utility.IsYamlFile(srcFilePath)) {
 				// 如果是YAML语法的文本文件，说明是Unity序列化文件，meta文件只存自己的GUID，不需要管
-				return CopyAndReplace(srcFilePath, dstFilePath, guidMaps);
+				return CopyAndReplace(srcFilePath, dstFilePath, idMaps);
 			} else if (srcFilePath.EndsWith(".asmdef") || srcFilePath.EndsWith(".asmref")) {
 				// 如果是AssemblyDefinition或AssemblyDefinitionReference文件，meta文件只存自己的GUID，不需要管
-				return CopyAndReplace(srcFilePath, dstFilePath, guidMaps, null, "GUID:");
+				return CopyAndReplace(srcFilePath, dstFilePath, idMaps, "GUID:{0}");
 			} else {
 				// 如果是非Unity序列化文件，引用GUID存在meta文件内，应该操作meta文件而不是资源文件
 				string srcMetaFilePath = srcFilePath + ".meta";
 				string dstMetaFilePath = dstFilePath + ".meta";
 				string guid = Utility.GetGUIDFromMetaFile(srcMetaFilePath);
-				bool done = CopyAndReplace(srcMetaFilePath, dstMetaFilePath, guidMaps, guid);
+				bool done = CopyAndReplace(srcMetaFilePath, dstMetaFilePath, idMaps, guid);
 				if (done && dstFilePath != srcFilePath) {
 					File.Copy(srcFilePath, dstFilePath, true);
 				}
@@ -509,14 +506,13 @@ namespace WYTools.ReferenceReplace {
 			}
 		}
 
-		private static bool CopyAndReplace(string srcFilePath, string dstFilePath, IEnumerable<(string, string)> guidMaps, string exceptGUID = null, string prefix = "guid: ") {
+		private static bool CopyAndReplace(string srcFilePath, string dstFilePath, IEnumerable<ComplexIDMap> idMaps, string pattern = "fileID: {1}, guid: {0}") {
 			string text = Utility.ReadAllText(srcFilePath);
 			bool done = false;
-			foreach ((string fromGUID, string toGUID) in guidMaps) {
-				if (fromGUID != exceptGUID) {
-					done = done || text.Contains(prefix + fromGUID);
-					text = text.Replace(prefix + fromGUID, prefix + toGUID);
-				}
+			foreach (((string fromGUID, long fromFileID), (string toGUID, long toFileID)) in idMaps) {
+				string fromStr = string.Format(pattern, fromGUID, fromFileID);
+				done = done || text.Contains(fromStr);
+				text = text.Replace(fromStr, string.Format(pattern, toGUID, toFileID));
 			}
 			return done && Utility.WriteAllText(dstFilePath, text);
 		}
@@ -533,16 +529,18 @@ namespace WYTools.ReferenceReplace {
 			return objMaps;
 		}
 
-		private static List<(string fromGUID, string toGUID)> ReplaceMapsToGUIDMaps(IReadOnlyList<ReplaceMap> objectMaps) {
+		private static List<ComplexIDMap> ReplaceMapsToIDMaps(IReadOnlyList<ReplaceMap> objectMaps) {
 			int mapCount = objectMaps.Count;
-			List<(string, string)> guidMaps = new List<(string, string)>(mapCount);
+			List<ComplexIDMap> guidMaps = new List<ComplexIDMap>(mapCount);
 			for (int i = 0; i < mapCount; ++i) {
 				ReplaceMap map = objectMaps[i];
 				if (map.from && map.to) {
-					string fromGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(map.from));
-					string toGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(map.to));
+					string fromGUID = Utility.GetGUID(map.from);
+					string toGUID = Utility.GetGUID(map.to);
 					if (!string.IsNullOrEmpty(fromGUID) && !string.IsNullOrEmpty(toGUID)) {
-						guidMaps.Add((fromGUID, toGUID));
+						long fromFileID = Utility.GetFileID(map.from);
+						long toFileID = Utility.GetFileID(map.to);
+						guidMaps.Add(((fromGUID, fromFileID), (toGUID, toFileID)));
 					}
 				}
 			}
