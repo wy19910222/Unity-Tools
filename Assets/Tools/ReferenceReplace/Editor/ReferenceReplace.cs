@@ -45,9 +45,15 @@ namespace WYTools.ReferenceReplace {
 		
 		private static GUIStyle m_SwapBtnStyle;
 
-		private void OnEnable() {
+		private void Awake() {
 			LoadMaps();
+		}
 
+		private void OnDestroy() {
+			SaveMaps();
+		}
+
+		private void OnEnable() {
 			m_List = new ReorderableList(m_ReplaceMaps, typeof(ReplaceMap), true, true, true, true) {
 				drawHeaderCallback = rect => {
 					// Header比Element左右各宽1像素，在这里对齐一下
@@ -63,9 +69,9 @@ namespace WYTools.ReferenceReplace {
 					Rect leftRect = new Rect(rect.x + thumbWidth, rect.y, labelWidth - swapBtnWidth, rect.height);
 					EditorGUI.LabelField(leftRect, "原对象");
 					
-					Rect middleRect = new Rect(rect.x + thumbWidth + labelWidth - swapBtnWidth, rect.y - 1, swapBtnWidth, rect.height + 2);
+					Rect swapBtnRect = new Rect(rect.x + thumbWidth + labelWidth - swapBtnWidth, rect.y - 1, swapBtnWidth, rect.height + 2);
 					m_SwapBtnStyle ??= new GUIStyle("Button") { fontSize = 16 };
-					if (GUI.Button(middleRect, "⇌", m_SwapBtnStyle)) {
+					if (GUI.Button(swapBtnRect, "⇌", m_SwapBtnStyle)) {
 						Undo.RecordObject(this, "ReferenceReplace.MapSwap");
 						Undo.SetCurrentGroupName("ReferenceReplace.MapSwap");
 						for (int i = 0, length = m_ReplaceMaps.Count; i < length; ++i) {
@@ -86,13 +92,12 @@ namespace WYTools.ReferenceReplace {
 					}
 				},
 				drawElementCallback = (rect, index, isActive, isFocused) => {
-					const float BUTTON_WIDTH = 30;
-					float LABEL_WIDTH = (rect.width - BUTTON_WIDTH + 7) * 0.5F;
+					float LABEL_WIDTH = (rect.width - List_ADD_BUTTON_WIDTH + 7) * 0.5F;
 
 					ReplaceMap map = m_ReplaceMaps[index];
 					Rect leftRect = new Rect(rect.x, rect.y + 1, LABEL_WIDTH - 2, rect.height - 2);
 					UObject newFrom = EditorGUI.ObjectField(leftRect, map.from, typeof(UObject), true);
-					Rect rightRect = new Rect(rect.x + LABEL_WIDTH, rect.y + 1, LABEL_WIDTH, rect.height - 2);
+					Rect rightRect = new Rect(rect.x + LABEL_WIDTH, rect.y + 1, LABEL_WIDTH - 2, rect.height - 2);
 					UObject newTo = EditorGUI.ObjectField(rightRect, map.to, typeof(UObject), true);
 					if (newFrom != map.from || newTo != map.to) {
 						Undo.RecordObject(this, "ReferenceReplace.MapUpdate");
@@ -102,7 +107,7 @@ namespace WYTools.ReferenceReplace {
 						m_ReplaceMaps[index] = map;
 					}
 
-					Rect tailRect = new Rect(rect.x + rect.width - BUTTON_WIDTH + 8, rect.y + 1, BUTTON_WIDTH - 2, rect.height - 2);
+					Rect tailRect = new Rect(rect.x + rect.width - List_ADD_BUTTON_WIDTH + 8, rect.y + 1, List_ADD_BUTTON_WIDTH - 2, rect.height - 2);
 					if (GUI.Button(tailRect, "×")) {
 						EditorApplication.delayCall += () => {
 							Undo.RecordObject(this, "ReferenceReplace.MapRemove");
@@ -114,10 +119,6 @@ namespace WYTools.ReferenceReplace {
 				},
 				elementHeight = 20, footerHeight = 0
 			};
-		}
-
-		private void OnDisable() {
-			SaveMaps();
 		}
 
 		private void OnGUI() {
