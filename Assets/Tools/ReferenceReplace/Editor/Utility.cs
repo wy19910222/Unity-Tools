@@ -14,7 +14,15 @@ using UObject = UnityEngine.Object;
 
 namespace WYTools.ReferenceReplace {
 	public static class Utility {
-		private static PropertyInfo s_InspectorModePI = typeof(SerializedObject).GetProperty("inspectorMode", BindingFlags.Instance | BindingFlags.NonPublic);
+		public static bool IsSceneObject(UObject obj) {
+			return string.IsNullOrEmpty(AssetDatabase.GetAssetPath(obj));
+		}
+		
+		public static string GetGUID(UObject obj) {
+			return AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(obj));
+		}
+		
+		private static readonly PropertyInfo s_InspectorModePI = typeof(SerializedObject).GetProperty("inspectorMode", BindingFlags.Instance | BindingFlags.NonPublic);
 		public static long GetFileID(UObject obj) {
 			using (SerializedObject sObj = new SerializedObject(obj)) {
 				s_InspectorModePI?.SetValue(sObj, InspectorMode.Debug, null);
@@ -23,8 +31,28 @@ namespace WYTools.ReferenceReplace {
 			}
 		}
 		
-		public static string GetGUID(UObject obj) {
-			return AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(obj));
+		public static int GetInstanceID(UObject obj) {
+			return obj.GetInstanceID();
+		}
+		
+		private static readonly MethodInfo s_FindObjectFromInstanceIdMI = typeof(UObject).GetMethod("FindObjectFromInstanceID", BindingFlags.Static | BindingFlags.NonPublic);
+		public static UObject GetObject(string guid, long fileID, int instanceID) {
+			if (string.IsNullOrEmpty(guid)) {
+				return s_FindObjectFromInstanceIdMI.Invoke(null, new object[] {instanceID}) as UObject;
+			} else {
+				string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+				UObject[] objs = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+				if (objs.Length > 1) {
+					foreach (UObject obj in objs) {
+						if (GetFileID(obj) == fileID) {
+							return obj;
+						}
+					}
+				} else if (objs.Length == 1) {
+					return objs[0];
+				}
+			}
+			return null;
 		}
 		
 		// 直接在最后拼上"(Clone)"作为输出路径
