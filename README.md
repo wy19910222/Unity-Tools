@@ -45,8 +45,8 @@
 [**ReferenceReplace**](Assets/Tools/ReferenceReplace/Editor/ReferenceReplace.cs)  
 设置一组映射关系列表，将目标内所有对列表左边的引用替换为列表右边。  
 ![ReferenceReplace](Assets/Tools/ReferenceReplace/Captures~/ReferenceReplace.gif)  
-* **列表：** 原对象和替换为的映射表。  
-* **交换按钮：** 在列表标题栏「原对象」与「替换为」之间的按钮，点击可以交换整个列表的左右两边。  
+* **列表：** 原引用和替换为的映射表。**（本工具不是把列表左边替换为列表右边，而是把对列表左边的引用替换为对列表右边的引用）**
+* **交换按钮：** 在列表标题栏「原引用」与「替换为」之间的按钮，点击可以交换整个列表的左右两边。  
 * **详情：**  
   * 列表行左右两边对象的类型毫无关系时，会出现警告图标，提示检查对象类型。  
   * 列表行左右两边对象都是GameObject时，会出现按钮，点击可将两个GameObject都拥有的组件加入映射列表。  
