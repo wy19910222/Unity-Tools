@@ -29,6 +29,8 @@ namespace WYTools.ReferenceReplace {
 		private const float List_THUMB_WIDTH = 14;
 		private const float List_ADD_BUTTON_WIDTH = 30;
 		private const float LIST_ELEMENT_INFO_WIDTH = 30;
+		
+		private static GUIStyle m_SwapBtnStyle;
 
 		[Serializable]
 		private struct ReplaceMap {
@@ -43,8 +45,7 @@ namespace WYTools.ReferenceReplace {
 
 		private ReorderableList m_List;
 		private Vector2 m_ScrollPos = Vector2.zero;
-		
-		private static GUIStyle m_SwapBtnStyle;
+		private Rect m_DropRect;
 
 		private void Awake() {
 			LoadMaps();
@@ -262,63 +263,65 @@ namespace WYTools.ReferenceReplace {
 			m_ScrollPos = EditorGUILayout.BeginScrollView(m_ScrollPos, GUILayout.ExpandHeight(false));
 			Undo.RecordObject(this, "ReferenceReplace.MapUpdate");
 			m_List.DoLayoutList();
+			HandleListDragAndDrop();
 			EditorGUILayout.EndScrollView();
 			GUILayout.Space(-2F);
 			EditorGUILayout.BeginHorizontal();
-			EditorGUILayout.BeginVertical();
-			if (GUILayout.Button("全选左边对象")) {
-				int count = m_ReplaceMaps.Count;
-				UObject[] objects = new UObject[count];
-				for (int i = 0; i < count; ++i) {
-					objects[i] = m_ReplaceMaps[i].from;
-				}
-				Selection.objects = objects;
-			}
-			if (GUILayout.Button("选中对象覆盖到左边")) {
-				Undo.RecordObject(this, "ReferenceReplace.InsertSelectionsToMapLeft");
-				Undo.SetCurrentGroupName("ReferenceReplace.InsertSelectionsToMapLeft");
-				int listCount = m_ReplaceMaps.Count;
-				int selectionCount = Selection.objects.Length;
-				for (int i = 0; i < selectionCount && i < listCount; ++i) {
-					ReplaceMap map = m_ReplaceMaps[i];
-					map.from = Selection.objects[i];
-					m_ReplaceMaps[i] = map;
-				}
-				for (int i = listCount; i < selectionCount; ++i) {
-					m_ReplaceMaps.Add(new ReplaceMap {
-						from = Selection.objects[i]
-					});
-				}
-			}
-			EditorGUILayout.EndVertical();
-			EditorGUILayout.BeginVertical();
-			if (GUILayout.Button("全选右边对象")) {
-				int count = m_ReplaceMaps.Count;
-				UObject[] objects = new UObject[count];
-				for (int i = 0; i < count; ++i) {
-					objects[i] = m_ReplaceMaps[i].to;
-				}
-				Selection.objects = objects;
-			}
-			if (GUILayout.Button("选中对象覆盖到右边")) {
-				Undo.RecordObject(this, "ReferenceReplace.InsertSelectionsToMapRight");
-				Undo.SetCurrentGroupName("ReferenceReplace.InsertSelectionsToMapRight");
-				int listCount = m_ReplaceMaps.Count;
-				int selectionCount = Selection.objects.Length;
-				for (int i = 0; i < selectionCount && i < listCount; ++i) {
-					ReplaceMap map = m_ReplaceMaps[i];
-					map.to = Selection.objects[i];
-					m_ReplaceMaps[i] = map;
-				}
-				for (int i = listCount; i < selectionCount; ++i) {
-					m_ReplaceMaps.Add(new ReplaceMap {
-						to = Selection.objects[i]
-					});
-				}
-			}
-			EditorGUILayout.EndVertical();
-			GUILayoutOption clearBtnHeight = GUILayout.Height(EditorGUIUtility.singleLineHeight * 2F + 4F);
-			if (GUILayout.Button(new GUIContent("清空\n列表"), clearBtnHeight)) {
+			// EditorGUILayout.BeginVertical();
+			// if (GUILayout.Button("全选左边对象")) {
+			// 	int count = m_ReplaceMaps.Count;
+			// 	UObject[] objects = new UObject[count];
+			// 	for (int i = 0; i < count; ++i) {
+			// 		objects[i] = m_ReplaceMaps[i].from;
+			// 	}
+			// 	Selection.objects = objects;
+			// }
+			// if (GUILayout.Button("选中对象覆盖到左边")) {
+			// 	Undo.RecordObject(this, "ReferenceReplace.InsertSelectionsToMapLeft");
+			// 	Undo.SetCurrentGroupName("ReferenceReplace.InsertSelectionsToMapLeft");
+			// 	int listCount = m_ReplaceMaps.Count;
+			// 	int selectionCount = Selection.objects.Length;
+			// 	for (int i = 0; i < selectionCount && i < listCount; ++i) {
+			// 		ReplaceMap map = m_ReplaceMaps[i];
+			// 		map.from = Selection.objects[i];
+			// 		m_ReplaceMaps[i] = map;
+			// 	}
+			// 	for (int i = listCount; i < selectionCount; ++i) {
+			// 		m_ReplaceMaps.Add(new ReplaceMap {
+			// 			from = Selection.objects[i]
+			// 		});
+			// 	}
+			// }
+			// EditorGUILayout.EndVertical();
+			// EditorGUILayout.BeginVertical();
+			// if (GUILayout.Button("全选右边对象")) {
+			// 	int count = m_ReplaceMaps.Count;
+			// 	UObject[] objects = new UObject[count];
+			// 	for (int i = 0; i < count; ++i) {
+			// 		objects[i] = m_ReplaceMaps[i].to;
+			// 	}
+			// 	Selection.objects = objects;
+			// }
+			// if (GUILayout.Button("选中对象覆盖到右边")) {
+			// 	Undo.RecordObject(this, "ReferenceReplace.InsertSelectionsToMapRight");
+			// 	Undo.SetCurrentGroupName("ReferenceReplace.InsertSelectionsToMapRight");
+			// 	int listCount = m_ReplaceMaps.Count;
+			// 	int selectionCount = Selection.objects.Length;
+			// 	for (int i = 0; i < selectionCount && i < listCount; ++i) {
+			// 		ReplaceMap map = m_ReplaceMaps[i];
+			// 		map.to = Selection.objects[i];
+			// 		m_ReplaceMaps[i] = map;
+			// 	}
+			// 	for (int i = listCount; i < selectionCount; ++i) {
+			// 		m_ReplaceMaps.Add(new ReplaceMap {
+			// 			to = Selection.objects[i]
+			// 		});
+			// 	}
+			// }
+			// EditorGUILayout.EndVertical();
+			// GUILayoutOption clearBtnHeight = GUILayout.Height(EditorGUIUtility.singleLineHeight * 2F + 4F);
+			// if (GUILayout.Button(new GUIContent("清空\n列表"), clearBtnHeight)) {
+			if (GUILayout.Button(new GUIContent("清空列表", EditorGUIUtility.FindTexture("TreeEditor.Trash")))) {
 				Undo.RecordObject(this, "ReferenceReplace.MapClear");
 				Undo.SetCurrentGroupName("ReferenceReplace.MapClear");
 				m_ReplaceMaps.Clear();
@@ -349,6 +352,101 @@ namespace WYTools.ReferenceReplace {
 			// EditorGUILayout.EndHorizontal();
 			if (GUILayout.Button("替换引用", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2F + 2F))) {
 				Replace(false);
+			}
+		}
+
+		private void HandleListDragAndDrop() {
+			if (Event.current.type == EventType.Repaint) {
+				if (m_DropRect != default) {
+					EditorGUI.DrawRect(m_DropRect, new Color(0.2F, 0.35F, 0.8F, 0.5F));
+					m_DropRect = default;
+				}
+			}
+			Rect listRect = GUILayoutUtility.GetLastRect();
+			switch (Event.current.type) {
+				case EventType.DragUpdated: {
+					Vector2 mousePos = Event.current.mousePosition;
+					if (listRect.Contains(mousePos)) {
+						if (Event.current.control) {
+							DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+						} else {
+							DragAndDrop.visualMode = DragAndDropVisualMode.Move;
+						}
+						float deltaX = mousePos.x - listRect.x;
+						float thumbWidth = m_List.draggable ? List_THUMB_WIDTH + 5 : 5;
+						float leftWidth = (listRect.width + thumbWidth - LIST_ELEMENT_INFO_WIDTH - List_ADD_BUTTON_WIDTH) * 0.5F;
+						bool isLeft = deltaX < leftWidth;
+						float deltaY = mousePos.y - listRect.y - m_List.headerHeight - 4;
+						float lineHeight = m_List.elementHeight + 2;
+						float x = isLeft ? listRect.x + thumbWidth : listRect.x + leftWidth;
+						float width = leftWidth - thumbWidth;
+						float y, height;
+						if (Event.current.control) {
+							int index = Mathf.Max(Mathf.RoundToInt(deltaY / lineHeight), 0);
+							y = listRect.y + m_List.headerHeight + 4 + index * lineHeight - 1;
+							height = 2;
+						} else {
+							int index = Mathf.Max(Mathf.FloorToInt(deltaY / lineHeight), 0);
+							int count = DragAndDrop.objectReferences.Length;
+							y = listRect.y + m_List.headerHeight + 4 + index * lineHeight;
+							height = Mathf.Min(count, m_List.count - index) * lineHeight;
+						}
+						m_DropRect = new Rect(x, y, width, height);
+						Repaint();
+					}
+					break;
+				}
+				case EventType.DragPerform: {
+					Vector2 mousePos = Event.current.mousePosition;
+					if (listRect.Contains(mousePos)) {
+						DragAndDrop.AcceptDrag();
+						if (Event.current.control) {
+							Undo.RecordObject(this, "ReferenceReplace.MapAdd");
+							Undo.SetCurrentGroupName("ReferenceReplace.MapAdd");
+						} else {
+							Undo.RecordObject(this, "ReferenceReplace.MapUpdate");
+							Undo.SetCurrentGroupName("ReferenceReplace.MapUpdate");
+						}
+						float deltaX = mousePos.x - listRect.x;
+						float thumbWidth = m_List.draggable ? List_THUMB_WIDTH + 5 : 5;
+						float leftWidth = (listRect.width + thumbWidth - LIST_ELEMENT_INFO_WIDTH - List_ADD_BUTTON_WIDTH) * 0.5F;
+						bool isLeft = deltaX < leftWidth;
+						float deltaY = mousePos.y - listRect.y - m_List.headerHeight - 4;
+						float lineHeight = m_List.elementHeight + 2;
+						if (Event.current.control) {
+							int index = Mathf.Max(Mathf.RoundToInt(deltaY / lineHeight), 0);
+							if (isLeft) {
+								for (int i = 0, length = DragAndDrop.objectReferences.Length; i < length; ++i) {
+									m_ReplaceMaps.Insert(index + i, new ReplaceMap() { from = DragAndDrop.objectReferences[i] });
+								}
+							} else {
+								for (int i = 0, length = DragAndDrop.objectReferences.Length; i < length; ++i) {
+									m_ReplaceMaps.Insert(index + i, new ReplaceMap() { to = DragAndDrop.objectReferences[i] });
+								}
+							}
+						} else {
+							int index = Mathf.Max(Mathf.FloorToInt(deltaY / lineHeight), 0);
+							int count = DragAndDrop.objectReferences.Length;
+							for (int i = m_ReplaceMaps.Count, length = index + count; i < length; i++) {
+								m_ReplaceMaps.Add(new ReplaceMap());
+							}
+							if (isLeft) {
+								for (int i = 0; i < count; i++) {
+									ReplaceMap map = m_ReplaceMaps[index + i];
+									map.from = DragAndDrop.objectReferences[i];
+									m_ReplaceMaps[index + i] = map;
+								}
+							} else {
+								for (int i = 0; i < count; i++) {
+									ReplaceMap map = m_ReplaceMaps[index + i];
+									map.to = DragAndDrop.objectReferences[i];
+									m_ReplaceMaps[index + i] = map;
+								}
+							}
+						}
+					}
+					break;
+				}
 			}
 		}
 
@@ -388,19 +486,16 @@ namespace WYTools.ReferenceReplace {
 			if (pairs != string.Empty) {
 				foreach (string pair in Regex.Split(pairs, "(?<=}),(?={)")) {
 					try {
-						string fromGUID = null, toGUID = null;
-						long fromFileID = 0, toFileID = 0;
-						int fromInstanceID = 0, toInstanceID = 0;
 						string fromID = Regex.Match(pair, "(?<=\"from\":\")\\w{0,32}_\\w+_\\w+(?=\")").Value;
 						string[] fromIDParts = fromID.Split('_');
-						fromGUID = fromIDParts[0];
-						fromFileID = long.Parse(fromIDParts[1]);
-						fromInstanceID = int.Parse(fromIDParts[2]);
+						string fromGUID = fromIDParts[0];
+						long fromFileID = long.Parse(fromIDParts[1]);
+						int fromInstanceID = int.Parse(fromIDParts[2]);
 						string toID = Regex.Match(pair, "(?<=\"to\":\")\\w{0,32}_\\w+_\\w+(?=\")").Value;
 						string[] toIDParts = toID.Split('_');
-						toGUID = toIDParts[0];
-						toFileID = long.Parse(toIDParts[1]);
-						toInstanceID = int.Parse(toIDParts[2]);
+						string toGUID = toIDParts[0];
+						long toFileID = long.Parse(toIDParts[1]);
+						int toInstanceID = int.Parse(toIDParts[2]);
 						m_ReplaceMaps.Add(new ReplaceMap {
 							from = Utility.GetObject(fromGUID, fromFileID, fromInstanceID),
 							to = Utility.GetObject(toGUID, toFileID, toInstanceID)
