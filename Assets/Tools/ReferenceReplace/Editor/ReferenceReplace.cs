@@ -31,7 +31,7 @@ namespace WYTools.ReferenceReplace {
 		private const float LIST_ELEMENT_INFO_WIDTH = 30;
 		
 		private static GUIStyle m_SwapBtnStyle;
-		private static readonly Color DROP_AREA_COLOR = new Color(0.2F, 0.4F, 0.6F, 0.5F);
+		private static readonly Color DROP_AREA_COLOR = new Color(0.2F, 0.4F, 0.6F, 0.7F);
 
 		[Serializable]
 		private struct ReplaceMap {
@@ -332,7 +332,7 @@ namespace WYTools.ReferenceReplace {
 			GUILayout.Space(10F);
 
 			EditorGUIUtility.labelWidth = 70F;
-			UObject newTarget = EditorGUILayout.ObjectField("替换目标", m_Target, typeof(UObject), true);
+			UObject newTarget = EditorGUILayout.ObjectField("操作目标", m_Target, typeof(UObject), true);
 			if (newTarget != m_Target) {
 				// if (newTarget && Utility.IsSceneObject(newTarget)) {
 				// 	EditorUtility.DisplayDialog("错误", "只支持拖入文本型资产文件，如Scene、Prefab、Material等。", "确定");
@@ -383,14 +383,14 @@ namespace WYTools.ReferenceReplace {
 						float width = leftWidth - thumbWidth;
 						float y, height;
 						if (Event.current.control) {
-							int index = Mathf.Max(Mathf.RoundToInt(deltaY / lineHeight), 0);
+							int index = Mathf.Clamp(Mathf.RoundToInt(deltaY / lineHeight), 0, m_List.count);
 							y = listRect.y + m_List.headerHeight + 4 + index * lineHeight - 1;
 							height = 2;
 						} else {
-							int index = Mathf.Max(Mathf.FloorToInt(deltaY / lineHeight), 0);
+							int index = Mathf.Clamp(Mathf.FloorToInt(deltaY / lineHeight), 0, m_List.count);
 							int count = DragAndDrop.objectReferences.Length;
 							y = listRect.y + m_List.headerHeight + 4 + index * lineHeight;
-							height = Mathf.Min(count, m_List.count - index) * lineHeight;
+							height = Mathf.Min(count, Mathf.Max(m_List.count, 1) - index) * lineHeight;
 						}
 						m_DropRect = new Rect(x, y, width, height);
 						Repaint();
@@ -415,7 +415,7 @@ namespace WYTools.ReferenceReplace {
 						float deltaY = mousePos.y - listRect.y - m_List.headerHeight - 4;
 						float lineHeight = m_List.elementHeight + 2;
 						if (Event.current.control) {
-							int index = Mathf.Max(Mathf.RoundToInt(deltaY / lineHeight), 0);
+							int index = Mathf.Clamp(Mathf.RoundToInt(deltaY / lineHeight), 0, m_List.count);
 							if (isLeft) {
 								for (int i = 0, length = DragAndDrop.objectReferences.Length; i < length; ++i) {
 									m_ReplaceMaps.Insert(index + i, new ReplaceMap() { from = DragAndDrop.objectReferences[i] });
@@ -426,7 +426,7 @@ namespace WYTools.ReferenceReplace {
 								}
 							}
 						} else {
-							int index = Mathf.Max(Mathf.FloorToInt(deltaY / lineHeight), 0);
+							int index = Mathf.Clamp(Mathf.FloorToInt(deltaY / lineHeight), 0, m_List.count);
 							int count = DragAndDrop.objectReferences.Length;
 							for (int i = m_ReplaceMaps.Count, length = index + count; i < length; i++) {
 								m_ReplaceMaps.Add(new ReplaceMap());
