@@ -31,6 +31,7 @@ namespace WYTools.ReferenceReplace {
 		private const float LIST_ELEMENT_INFO_WIDTH = 30;
 		
 		private static GUIStyle m_SwapBtnStyle;
+		private static readonly Color DROP_AREA_COLOR = new Color(0.2F, 0.4F, 0.6F, 0.5F);
 
 		[Serializable]
 		private struct ReplaceMap {
@@ -358,7 +359,7 @@ namespace WYTools.ReferenceReplace {
 		private void HandleListDragAndDrop() {
 			if (Event.current.type == EventType.Repaint) {
 				if (m_DropRect != default) {
-					EditorGUI.DrawRect(m_DropRect, new Color(0.2F, 0.35F, 0.8F, 0.5F));
+					EditorGUI.DrawRect(m_DropRect, DROP_AREA_COLOR);
 					m_DropRect = default;
 				}
 			}
