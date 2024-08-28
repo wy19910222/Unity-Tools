@@ -28,6 +28,7 @@ namespace WYTools.ReferenceReplace {
 		
 		private const float List_THUMB_WIDTH = 14;
 		private const float List_ADD_BUTTON_WIDTH = 30;
+		private const float LIST_ELEMENT_INFO_WIDTH = 30;
 
 		[Serializable]
 		private struct ReplaceMap {
@@ -63,11 +64,11 @@ namespace WYTools.ReferenceReplace {
 					float thumbWidth = m_List.draggable ? List_THUMB_WIDTH : 0;
 					float headerWidth = rect.width + 7;	// 右边空白处也用起来
 					// 左端拖拽区域宽度 + 原对象宽度 + 替换为宽度 + 右端添加按钮宽度
-					float labelWidth = (headerWidth - thumbWidth - List_ADD_BUTTON_WIDTH) * 0.5F;
+					float labelWidth = (headerWidth - thumbWidth - List_ADD_BUTTON_WIDTH - LIST_ELEMENT_INFO_WIDTH) * 0.5F;
 					float swapBtnWidth = 24F;
 					
 					Rect leftRect = new Rect(rect.x + thumbWidth, rect.y, labelWidth - swapBtnWidth, rect.height);
-					EditorGUI.LabelField(leftRect, "原对象");
+					EditorGUI.LabelField(leftRect, "原引用");
 					
 					Rect swapBtnRect = new Rect(rect.x + thumbWidth + labelWidth - swapBtnWidth, rect.y - 1, swapBtnWidth, rect.height + 2);
 					m_SwapBtnStyle ??= new GUIStyle("Button") { fontSize = 16 };
@@ -84,20 +85,23 @@ namespace WYTools.ReferenceReplace {
 					Rect rightRect = new Rect(rect.x + thumbWidth + labelWidth, rect.y, labelWidth, rect.height);
 					EditorGUI.LabelField(rightRect, "替换为");
 
+					Rect infoRect = new Rect(rect.x + thumbWidth + labelWidth + labelWidth, rect.y, LIST_ELEMENT_INFO_WIDTH, rect.height);
+					EditorGUI.LabelField(infoRect, "详情");
+
 					Rect tailRect = new Rect(rect.x + headerWidth - List_ADD_BUTTON_WIDTH, rect.y - 1, List_ADD_BUTTON_WIDTH, rect.height + 2);
-					if (GUI.Button(tailRect, "+")) {
+					if (GUI.Button(tailRect, EditorGUIUtility.IconContent("Toolbar Plus"))) {
 						Undo.RecordObject(this, "ReferenceReplace.MapAdd");
 						Undo.SetCurrentGroupName("ReferenceReplace.MapAdd");
 						m_ReplaceMaps.Add(new ReplaceMap());
 					}
 				},
 				drawElementCallback = (rect, index, isActive, isFocused) => {
-					float LABEL_WIDTH = (rect.width - List_ADD_BUTTON_WIDTH + 7) * 0.5F;
+					float labelWidth = (rect.width - List_ADD_BUTTON_WIDTH - LIST_ELEMENT_INFO_WIDTH + 7) * 0.5F;
 
 					ReplaceMap map = m_ReplaceMaps[index];
-					Rect leftRect = new Rect(rect.x, rect.y + 1, LABEL_WIDTH - 2, rect.height - 2);
+					Rect leftRect = new Rect(rect.x, rect.y + 1, labelWidth - 2, rect.height - 2);
 					UObject newFrom = EditorGUI.ObjectField(leftRect, map.from, typeof(UObject), true);
-					Rect rightRect = new Rect(rect.x + LABEL_WIDTH, rect.y + 1, LABEL_WIDTH - 2, rect.height - 2);
+					Rect rightRect = new Rect(rect.x + labelWidth, rect.y + 1, labelWidth - 2, rect.height - 2);
 					UObject newTo = EditorGUI.ObjectField(rightRect, map.to, typeof(UObject), true);
 					if (newFrom != map.from || newTo != map.to) {
 						Undo.RecordObject(this, "ReferenceReplace.MapUpdate");
@@ -107,8 +111,29 @@ namespace WYTools.ReferenceReplace {
 						m_ReplaceMaps[index] = map;
 					}
 
+					Type fromType = map.from ? map.from.GetType() : null;
+					Type toType = map.to ? map.to.GetType() : null;
+					if (fromType != null && toType != null) {
+						Rect infoRect = new Rect(rect.x + labelWidth + labelWidth, rect.y + 1, LIST_ELEMENT_INFO_WIDTH, rect.height - 2);
+						if (!fromType.IsAssignableFrom(toType) && !toType.IsAssignableFrom(fromType)) {
+							GUIContent content = new GUIContent() {
+								image = EditorGUIUtility.FindTexture("console.warnicon.sml"),
+								tooltip = "类型不匹配，可能并不是期望的映射关系"
+							};
+							EditorGUI.LabelField(infoRect, content, "CenteredLabel");
+						} else if (map.from is GameObject fromGo && map.to is GameObject toGo) {
+							GUIContent content = new GUIContent() {
+								image = EditorGUIUtility.FindTexture("Toolbar Plus More"),
+								tooltip = "将其组件加入到映射表"
+							};
+							if (GUI.Button(infoRect, content)) {
+								OnAddCompsBtnClick(infoRect, fromGo, toGo, index);
+							}
+						}
+					}
+
 					Rect tailRect = new Rect(rect.x + rect.width - List_ADD_BUTTON_WIDTH + 8, rect.y + 1, List_ADD_BUTTON_WIDTH - 2, rect.height - 2);
-					if (GUI.Button(tailRect, "×")) {
+					if (GUI.Button(tailRect, EditorGUIUtility.IconContent("Toolbar Minus"))) {
 						EditorApplication.delayCall += () => {
 							Undo.RecordObject(this, "ReferenceReplace.MapRemove");
 							Undo.SetCurrentGroupName("ReferenceReplace.MapRemove");
@@ -119,6 +144,118 @@ namespace WYTools.ReferenceReplace {
 				},
 				elementHeight = 20, footerHeight = 0
 			};
+			Undo.undoRedoPerformed += Repaint;
+		}
+
+		private void OnDisable() {
+			Undo.undoRedoPerformed -= Repaint;
+		}
+
+		private void OnAddCompsBtnClick(Rect btnRect, GameObject fromGo, GameObject toGo, int goIndex) {
+			Component[] fromComps = fromGo.GetComponents<Component>();
+			List<Component> toComps = new List<Component>(toGo.GetComponents<Component>());
+			List<ReplaceMap> maps = new List<ReplaceMap>();
+			for (int i = 0, lengthFrom = fromComps.Length; i < lengthFrom; ++i) {
+				Component formComp = fromComps[i];
+				Type fromCompType = formComp.GetType();
+				for (int j = 0, lengthTo = toComps.Count; j < lengthTo; ++j) {
+					Component toComp = toComps[j];
+					Type toCompType = toComp.GetType();
+					if (fromCompType.IsAssignableFrom(toCompType) || toCompType.IsAssignableFrom(fromCompType)) {
+						maps.Add(new ReplaceMap() { from = formComp, to = toComp });
+						toComps.RemoveAt(j);
+						break;
+					}
+				}
+			}
+			GUIStyle style = "MenuToggleItem";
+			float widthMax = 0;
+			int mapCount = maps.Count;
+			GUIContent[] displays = new GUIContent[mapCount];
+			for (int i = 0; i < mapCount; i++) {
+				GUIContent displayText =  EditorGUIUtility.TrTextContent($"{maps[i].from.GetType().Name} -> {maps[i].to.GetType().Name}");
+				float width = style.CalcSize(displayText).x;
+				if (width > widthMax) {
+					widthMax = width;
+				}
+				displays[i] = displayText;
+			}
+			bool[] selected = new bool[mapCount];
+			bool[] newSelected = new bool[mapCount];
+			for (int i = 0; i < mapCount; ++i) {
+				ReplaceMap map = maps[i];
+				foreach (ReplaceMap _map in m_ReplaceMaps) {
+					if (_map.from == map.from && _map.to == map.to) {
+						selected[i] = true;
+						newSelected[i] = true;
+						break;
+					}
+				}
+			}
+			PopupWindow.Show(btnRect, new PopupContent() {
+				Width = widthMax + 10,
+				Height = mapCount * 19F + 10,
+				OnGUIAction = popupRect => {
+					for (int i = 0; i < mapCount; ++i) {
+						Rect _rect = new Rect(popupRect.x + 5, popupRect.y + i * 19F + 6, popupRect.width - 10, 19F);
+						newSelected[i] = GUI.Toggle(_rect, newSelected[i], displays[i], style);
+					}
+				},
+				OnCloseAction = () => {
+					bool added = false, removed = false;
+					for (int i = 0; i < mapCount; ++i) {
+						if (!selected[i] && newSelected[i]) {
+							added = true;
+						}
+						if (selected[i] && !newSelected[i]) {
+							removed = true;
+						}
+					}
+					if (added) {
+						if (removed) {
+							Undo.RecordObject(this, "ReferenceReplace.MapUpdate");
+							Undo.SetCurrentGroupName("ReferenceReplace.MapUpdate");
+						} else {
+							Undo.RecordObject(this, "ReferenceReplace.MapAdd");
+							Undo.SetCurrentGroupName("ReferenceReplace.MapAdd");
+						}
+					} else {
+						if (removed) {
+							Undo.RecordObject(this, "ReferenceReplace.MapRemove");
+							Undo.SetCurrentGroupName("ReferenceReplace.MapRemove");
+						} else {
+							return;
+						}
+					}
+
+					int index = goIndex;
+					for (int i = 0; i < mapCount; ++i) {
+						ReplaceMap map = maps[i];
+						int compIndex = -1;
+						for (int j = 0, length = m_ReplaceMaps.Count; j < length; j++) {
+							ReplaceMap _map = m_ReplaceMaps[j];
+							if (_map.from == map.from && _map.to == map.to) {
+								compIndex = j;
+								break;
+							}
+						}
+						if (newSelected[i]) {
+							if (compIndex == -1) {
+								m_ReplaceMaps.Insert(++index, map);
+							} else {
+								++index;
+							}
+						} else {
+							if (compIndex != -1) {
+								m_ReplaceMaps.RemoveAt(compIndex);
+								if (compIndex < index) {
+									index--;
+								}
+							}
+						}
+					}
+				}
+			});
 		}
 
 		private void OnGUI() {
@@ -128,12 +265,6 @@ namespace WYTools.ReferenceReplace {
 			EditorGUILayout.EndScrollView();
 			GUILayout.Space(-2F);
 			EditorGUILayout.BeginHorizontal();
-			GUILayoutOption clearBtnHeight = GUILayout.Height(EditorGUIUtility.singleLineHeight * 2F + 4F);
-			if (GUILayout.Button(new GUIContent("清空\n列表"), clearBtnHeight)) {
-				Undo.RecordObject(this, "ReferenceReplace.MapClear");
-				Undo.SetCurrentGroupName("ReferenceReplace.MapClear");
-				m_ReplaceMaps.Clear();
-			}
 			EditorGUILayout.BeginVertical();
 			if (GUILayout.Button("全选左边对象")) {
 				int count = m_ReplaceMaps.Count;
@@ -186,6 +317,12 @@ namespace WYTools.ReferenceReplace {
 				}
 			}
 			EditorGUILayout.EndVertical();
+			GUILayoutOption clearBtnHeight = GUILayout.Height(EditorGUIUtility.singleLineHeight * 2F + 4F);
+			if (GUILayout.Button(new GUIContent("清空\n列表"), clearBtnHeight)) {
+				Undo.RecordObject(this, "ReferenceReplace.MapClear");
+				Undo.SetCurrentGroupName("ReferenceReplace.MapClear");
+				m_ReplaceMaps.Clear();
+			}
 			EditorGUILayout.EndHorizontal();
 
 			GUILayout.Space(10F);
@@ -193,7 +330,7 @@ namespace WYTools.ReferenceReplace {
 			EditorGUIUtility.labelWidth = 70F;
 			UObject newTarget = EditorGUILayout.ObjectField("替换目标", m_Target, typeof(UObject), true);
 			if (newTarget != m_Target) {
-				// if (newTarget && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(newTarget))) {
+				// if (newTarget && Utility.IsSceneObject(newTarget)) {
 				// 	EditorUtility.DisplayDialog("错误", "只支持拖入文本型资产文件，如Scene、Prefab、Material等。", "确定");
 				// } else {
 					Undo.RecordObject(this, "ReferenceReplace.Target");
@@ -220,32 +357,57 @@ namespace WYTools.ReferenceReplace {
 			sb.Append("[");
 			List<string> pairs = new List<string>();
 			foreach (ReplaceMap map in m_ReplaceMaps) {
-				string fromPath = AssetDatabase.GetAssetPath(map.from);
-				string fromGUID = AssetDatabase.AssetPathToGUID(fromPath);
-				string toPath = AssetDatabase.GetAssetPath(map.to);
-				string toGUID = AssetDatabase.AssetPathToGUID(toPath);
-				pairs.Add($"{{\"from\":\"{fromGUID}\",\"to\":\"{toGUID}\"}}");
+				string fromGUID = null, toGUID = null;
+				long fromFileID = 0, toFileID = 0;
+				int fromInstanceID = 0, toInstanceID = 0;
+				if (Utility.IsSceneObject(map.from)) {
+					fromInstanceID = map.from.GetInstanceID();
+				} else {
+					fromGUID = Utility.GetGUID(map.from);
+					fromFileID = Utility.GetFileID(map.from);
+				}
+				if (Utility.IsSceneObject(map.to)) {
+					toInstanceID = map.to.GetInstanceID();
+				} else {
+					toGUID = Utility.GetGUID(map.to);
+					toFileID = Utility.GetFileID(map.to);
+				}
+				pairs.Add($"{{\"from\":\"{fromGUID}_{fromFileID}_{fromInstanceID}\",\"to\":\"{toGUID}_{toFileID}_{toInstanceID}\"}}");
 			}
 			sb.Append(string.Join(",", pairs));
 			sb.Append("]");
 			string json = sb.ToString();
-			// [{"from":"26512af483b2a2c468a185b4aab5d1a5","to":"26512af483b2a2c468a185b4aab5d1a5"}]
+			// [{"from":"60d6fe07be344425ba61cb9d96cddd4d_5727705958130629547_42034","to":"813b7b02ec20473e916866a669053c5c_5593592556152845978_42034"}]
 			EditorPrefs.SetString("ReferenceReplace.Maps", json);
 		}
 		private void LoadMaps() {
 			m_ReplaceMaps.Clear();
-			// [{"from":"26512af483b2a2c468a185b4aab5d1a5","to":"26512af483b2a2c468a185b4aab5d1a5"}]
+			// [{"from":"60d6fe07be344425ba61cb9d96cddd4d_5727705958130629547_42034","to":"813b7b02ec20473e916866a669053c5c_5593592556152845978_42034"}]
 			string json = EditorPrefs.GetString("ReferenceReplace.Maps", "{}");
 			string pairs = json.Length < 2 ? string.Empty : json.Substring(1, json.Length - 2);
 			if (pairs != string.Empty) {
 				foreach (string pair in Regex.Split(pairs, "(?<=}),(?={)")) {
-					string fromGUID = Regex.Match(pair, "(?<=\"from\":\")\\w{0,32}(?=\")").Value;
-					string toGUID = Regex.Match(pair, "(?<=\"to\":\")\\w{0,32}(?=\")").Value;
-					string fromPath = AssetDatabase.GUIDToAssetPath(fromGUID);
-					UObject from = AssetDatabase.LoadAssetAtPath<UObject>(fromPath);
-					string toPath = AssetDatabase.GUIDToAssetPath(toGUID);
-					UObject to = AssetDatabase.LoadAssetAtPath<UObject>(toPath);
-					m_ReplaceMaps.Add(new ReplaceMap {from = from, to = to});
+					try {
+						string fromGUID = null, toGUID = null;
+						long fromFileID = 0, toFileID = 0;
+						int fromInstanceID = 0, toInstanceID = 0;
+						string fromID = Regex.Match(pair, "(?<=\"from\":\")\\w{0,32}_\\w+_\\w+(?=\")").Value;
+						string[] fromIDParts = fromID.Split('_');
+						fromGUID = fromIDParts[0];
+						fromFileID = long.Parse(fromIDParts[1]);
+						fromInstanceID = int.Parse(fromIDParts[2]);
+						string toID = Regex.Match(pair, "(?<=\"to\":\")\\w{0,32}_\\w+_\\w+(?=\")").Value;
+						string[] toIDParts = toID.Split('_');
+						toGUID = toIDParts[0];
+						toFileID = long.Parse(toIDParts[1]);
+						toInstanceID = int.Parse(toIDParts[2]);
+						m_ReplaceMaps.Add(new ReplaceMap {
+							from = Utility.GetObject(fromGUID, fromFileID, fromInstanceID),
+							to = Utility.GetObject(toGUID, toFileID, toInstanceID)
+						});
+					} catch (Exception e) {
+						Debug.LogError(e);
+					}
 				}
 			}
 		}
@@ -547,5 +709,21 @@ namespace WYTools.ReferenceReplace {
 			}
 			return guidMaps;
 		}
+	}
+
+	public class PopupContent : PopupWindowContent {
+		public float Width { get; set; }
+		public float Height { get; set; }
+		public Action<Rect> OnGUIAction { get; set; }
+		public Action OnOpenAction { get; set; }
+		public Action OnCloseAction { get; set; }
+
+		public override Vector2 GetWindowSize() => new Vector2(Width, Height);
+
+		public override void OnGUI(Rect rect) => OnGUIAction?.Invoke(rect);
+
+		public override void OnOpen() => OnOpenAction?.Invoke();
+
+		public override void OnClose() => OnCloseAction?.Invoke();
 	}
 }
