@@ -126,20 +126,20 @@ namespace WYTools.UITools {
 		private static UITools s_Instance;
 		// ReSharper disable once ConvertToNullCoalescingCompoundAssignment
 		public static UITools Instance => s_Instance ?? (s_Instance = new UITools {
-			alignLeft = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_left.png"),
-			alignMiddle = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_middle.png"),
-			alignRight = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_right.png"),
-			alignTop = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_top.png"),
-			alignCenter = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_center.png"),
-			alignBottom = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_bottom.png"),
-			sameWidth = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "same_width.png"),
-			sameHeight = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "same_height.png"),
-			fitWidth = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "fit_width.png"),
-			fitHeight = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "fit_height.png"),
-			groupPack = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "group_pack.png"),
-			groupUnpack = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "group_unpack.png"),
-			averageGapH = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "average_gap_h.png"),
-			averageGapV = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "average_gap_v.png"),
+			m_AlignLeft = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_left.png"),
+			m_AlignMiddle = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_middle.png"),
+			m_AlignRight = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_right.png"),
+			m_AlignTop = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_top.png"),
+			m_AlignCenter = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_center.png"),
+			m_AlignBottom = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "align_bottom.png"),
+			m_SameWidth = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "same_width.png"),
+			m_SameHeight = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "same_height.png"),
+			m_FitWidth = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "fit_width.png"),
+			m_FitHeight = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "fit_height.png"),
+			m_GroupPack = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "group_pack.png"),
+			m_GroupUnpack = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "group_unpack.png"),
+			m_AverageGapH = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "average_gap_h.png"),
+			m_AverageGapV = AssetDatabase.LoadAssetAtPath<Texture2D>(ROOT_PATH + "average_gap_v.png"),
 		});
 
 		private static string m_ROOT_PATH = "Assets/Editor/UITools/Res/";
@@ -159,32 +159,34 @@ namespace WYTools.UITools {
 			}
 		}
 
+		private const float BTN_WIDTH = 36F;
+		private const float BTN_HEIGHT = 22F;
 		private static GUIStyle s_BtnStyle;
 		private static readonly GUILayoutOption[] s_BtnVerticalOptions = {
-			GUILayout.MinWidth(36F),
-			GUILayout.Height(22F),
+			GUILayout.MinWidth(BTN_WIDTH),
+			GUILayout.Height(BTN_HEIGHT),
 			GUILayout.ExpandWidth(true)
 		};
 		private static readonly GUILayoutOption[] s_BtnHorizontalOptions = {
-			GUILayout.Width(36F),
-			GUILayout.MinHeight(22F),
+			GUILayout.Width(BTN_WIDTH),
+			GUILayout.MinHeight(BTN_HEIGHT),
 			GUILayout.ExpandHeight(true)
 		};
 
-		private Texture2D alignLeft;
-		private Texture2D alignMiddle;
-		private Texture2D alignRight;
-		private Texture2D alignTop;
-		private Texture2D alignCenter;
-		private Texture2D alignBottom;
-		private Texture2D sameWidth;
-		private Texture2D sameHeight;
-		private Texture2D fitWidth;
-		private Texture2D fitHeight;
-		private Texture2D groupPack;
-		private Texture2D groupUnpack;
-		private Texture2D averageGapH;
-		private Texture2D averageGapV;
+		private Texture2D m_AlignLeft;
+		private Texture2D m_AlignMiddle;
+		private Texture2D m_AlignRight;
+		private Texture2D m_AlignTop;
+		private Texture2D m_AlignCenter;
+		private Texture2D m_AlignBottom;
+		private Texture2D m_SameWidth;
+		private Texture2D m_SameHeight;
+		private Texture2D m_FitWidth;
+		private Texture2D m_FitHeight;
+		private Texture2D m_GroupPack;
+		private Texture2D m_GroupUnpack;
+		private Texture2D m_AverageGapH;
+		private Texture2D m_AverageGapV;
 
 		private void DrawButtons(bool isHorizontal) {
 			if (s_BtnStyle == null) {
@@ -206,41 +208,41 @@ namespace WYTools.UITools {
 			}
 			GUI.contentColor = EditorGUIUtility.isProSkin ? Color.white : Color.gray;
 
-			DrawAlignBtn(alignLeft, "左对齐", 0, 0, s_BtnStyle, btnOptions);
+			DrawAlignBtn(m_AlignLeft, "左对齐", 0, 0, s_BtnStyle, btnOptions);
 			GUILayout.Space(-1F);
-			DrawAlignBtn(alignMiddle, "水平居中", 0, 0.5F, s_BtnStyle, btnOptions);
+			DrawAlignBtn(m_AlignMiddle, "水平居中", 0, 0.5F, s_BtnStyle, btnOptions);
 			GUILayout.Space(-1F);
-			DrawAlignBtn(alignRight, "右对齐", 0, 1, s_BtnStyle, btnOptions);
+			DrawAlignBtn(m_AlignRight, "右对齐", 0, 1, s_BtnStyle, btnOptions);
 			GUILayout.Space(1F);
-			DrawAlignBtn(alignTop, "上对齐", 1, 1, s_BtnStyle, btnOptions);
+			DrawAlignBtn(m_AlignTop, "上对齐", 1, 1, s_BtnStyle, btnOptions);
 			GUILayout.Space(-1F);
-			DrawAlignBtn(alignCenter, "竖直居中", 1, 0.5F, s_BtnStyle, btnOptions);
+			DrawAlignBtn(m_AlignCenter, "竖直居中", 1, 0.5F, s_BtnStyle, btnOptions);
 			GUILayout.Space(-1F);
-			DrawAlignBtn(alignBottom, "下对齐", 1, 0, s_BtnStyle, btnOptions);
+			DrawAlignBtn(m_AlignBottom, "下对齐", 1, 0, s_BtnStyle, btnOptions);
 
 			GUILayout.Space(3F);
 
-			DrawResizeBtn(sameWidth, "相同宽度", 0, s_BtnStyle, btnOptions);
+			DrawResizeBtn(m_SameWidth, "相同宽度", 0, s_BtnStyle, btnOptions);
 			GUILayout.Space(-1F);
-			DrawResizeBtn(sameHeight, "相同高度", 1, s_BtnStyle, btnOptions);
+			DrawResizeBtn(m_SameHeight, "相同高度", 1, s_BtnStyle, btnOptions);
 
 			GUILayout.Space(3F);
 
-			DrawFitBtn(fitWidth, "水平贴合", 0, s_BtnStyle, btnOptions);
+			DrawFitBtn(m_FitWidth, "水平贴合", 0, s_BtnStyle, btnOptions);
 			GUILayout.Space(-1F);
-			DrawFitBtn(fitHeight, "竖直贴合", 1, s_BtnStyle, btnOptions);
+			DrawFitBtn(m_FitHeight, "竖直贴合", 1, s_BtnStyle, btnOptions);
 
 			GUILayout.Space(3F);
 
-			DrawGroupPackBtn(groupPack, "成组", s_BtnStyle, btnOptions);
+			DrawGroupPackBtn(m_GroupPack, "成组", s_BtnStyle, btnOptions);
 			GUILayout.Space(-1F);
-			DrawGroupUnpackBtn(groupUnpack, "解组", s_BtnStyle, btnOptions);
+			DrawGroupUnpackBtn(m_GroupUnpack, "解组", s_BtnStyle, btnOptions);
 
 			GUILayout.Space(3F);
 
-			DrawGapBtn(averageGapH, "平均间距", 0, s_BtnStyle, btnOptions);
+			DrawGapBtn(m_AverageGapH, "平均间距", 0, s_BtnStyle, btnOptions);
 			GUILayout.Space(-1F);
-			DrawGapBtn(averageGapV, "平均行距", 1, s_BtnStyle, btnOptions);
+			DrawGapBtn(m_AverageGapV, "平均行距", 1, s_BtnStyle, btnOptions);
 
 			if (isHorizontal) {
 				EditorGUILayout.EndHorizontal();
