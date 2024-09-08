@@ -1,7 +1,7 @@
 {
   "name": "com.wy.tools.ui-tools",
   "displayName": "WYTools.UITools",
-  "version": "0.1.1",
-  "description": "用于更方便地编辑UGUI，由于在Unity2021.2及以上版本才有Overlay，所以在Unity旧版本的工程中，本工具是一个EditorWindow。\n\n对齐按钮、同宽高按钮、贴合按钮、组按钮、行间距按钮。"
+  "version": "0.2.0",
+  "description": "用于更方便地编辑UGUI，由于在Unity2021.2及以上版本才有Overlay，所以在Unity旧版本的工程中，本工具是一个EditorWindow。\n\n对齐按钮、同宽高按钮、贴合按钮、组按钮、行间距按钮。\n\n按住Ctrl键将图片拖放到Hierarchy窗口内的RectTransform下可直接创建Image。\n按住Ctrl键将图片拖放到Scene窗口内的Canvas框中可直接创建Image.\n按住Ctrl键且Scene窗口拥有焦点时，方向键可移动Transform。"
   
 }
