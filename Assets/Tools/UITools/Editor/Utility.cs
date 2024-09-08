@@ -98,10 +98,10 @@ namespace WYTools.UITools {
 				}
 			
 				// 获取到鼠标所指的Canvas，并计算鼠标相对于Canvas的位置
-				RectTransform container = GetContainerUnderMouse(SceneView.lastActiveSceneView, out Vector3 mouseLocalPosition);
-				if (container) {
+				RectTransform canvasTrans = GetCanvasTransformUnderMouse(SceneView.lastActiveSceneView, out Vector3 mouseLocalPosition);
+				if (canvasTrans) {
 					// 创建对象并放到指定层级和位置
-					DropToTransform(needHandleList, container, mouseLocalPosition);
+					DropToTransform(needHandleList, canvasTrans, mouseLocalPosition);
 					return DragAndDropVisualMode.Copy;
 				}
 			}
@@ -190,7 +190,7 @@ namespace WYTools.UITools {
 			return needHandleList;
 		}
 		
-		private static RectTransform GetContainerUnderMouse(SceneView sceneView, out Vector3 mouseLocalPosition) {
+		private static RectTransform GetCanvasTransformUnderMouse(SceneView sceneView, out Vector3 mouseLocalPosition) {
 			Vector2 mousePos = Event.current.mousePosition;
 			mousePos.y = sceneView.camera.pixelHeight - mousePos.y;
 			Ray ray = sceneView.camera.ScreenPointToRay(mousePos);
