@@ -96,17 +96,15 @@ namespace WYTools.UITools {
 		}
 
 		[EditorToolbarElement("UITools/Tools", typeof(SceneView))]
-		public class UIToolsStrip : VisualElement {
+		public class UIToolsStrip : IMGUIContainer {
 			public UIToolsStrip() {
-				IMGUIContainer container = new IMGUIContainer();
-				container.style.marginLeft = 2;
-				container.style.marginTop = -1;
-				container.onGUIHandler = () => {
+				style.marginLeft = 2;
+				style.marginTop = -1;
+				onGUIHandler = () => {
 					FlexDirection direction = parent.resolvedStyle.flexDirection;
 					bool isHorizontal = direction == FlexDirection.Row || direction == FlexDirection.RowReverse;
 					Instance.DrawButtons(isHorizontal);
 				};
-				Add(container);
 			}
 		}
 #else
