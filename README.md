@@ -118,6 +118,7 @@
 
 [**UITools**](Assets/Tools/UITools)  
 提供对齐、同宽高、贴合、成组解组、平均行间距等操作，用于更方便地编辑UGUI。  
+另外还提供了「图片拖入场景直接创建Image」、「方向键控制节点移动」等功能。  
 ![UITools](Assets/Tools/UITools/Captures~/UITools.png)  
 ![UIToolsIn2021](Assets/Tools/UITools/Captures~/UIToolsIn2021.png)  
 * **对齐按钮：** 分为「上」、「中」、「下」、「左」、「中」、「右」共6个按钮。  
@@ -135,6 +136,12 @@
   平均间距：以选中的多个节点的最左边节点和最右边节点为两端，平均分布节点间的间距。  
   平均行距：以选中的多个节点的最下边节点和最上边节点为两端，平均分布节点间的行距。  
   当按住Shift键再点击时，将会重新定义缝隙（广义缝隙）。  
+* 按住「Alt」键将图片拖放到 Hierarchy窗口 内的 RectTransform 下可直接创建 Image 。  
+  * **注意：** 放开时，必须按住Alt键，且指针指的是一个RectTransform。否则将默认创建SpriteRenderer。  
+* 按住「Alt」键将图片拖放到 Scene窗口 内的 Canvas框 中可直接创建 Image 。  
+  * **注意：** 放开时，必须按住Alt键，且指针指在某个Canvas框内。否则将默认创建SpriteRenderer。  
+* 按住「Alt」键且 Scene窗口 拥有焦点时，方向键可移动 Transform 。  
+  * **注意：** Scene窗口拥有焦点时才可移动。  
 
 #### 安装方法
 * 使用Unity Package Manager安装：  

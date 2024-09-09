@@ -26,10 +26,12 @@ namespace WYTools.UITools {
 
 		private static void OnSceneGUI(SceneView sceneView) {
 			Event e = Event.current;
-			if (!e.control) {
+			// 按住Alt键才响应
+			if (!e.alt) {
 				return;
 			}
 			
+			// UITools工具开着才响应
 			if (!UITools.IsDisplayed) {
 				return;
 			}
@@ -38,10 +40,15 @@ namespace WYTools.UITools {
 #if !UNITY_2021_2_OR_NEWER
 				case EventType.DragPerform: {
 					List<Object> needHandleList = GetSpriteAndRectTransformFromDragAndDrop();
+					// 有需要操作的对象才操作
 					if (needHandleList.Count > 0) {
 						RectTransform canvasTrans = GetCanvasTransformUnderMouse(sceneView, out Vector3 mouseLocalPosition);
 						if (canvasTrans) {
-							DropToTransform(needHandleList, canvasTrans, mouseLocalPosition);
+							// 创建对象并放到指定层级和位置
+							List<Object> goList = DropToTransform(needHandleList, canvasTrans, mouseLocalPosition);
+							// 选中创建的对象
+							Selection.objects = goList.ToArray();
+
 							DragAndDrop.AcceptDrag();
 							e.Use();
 						}
@@ -85,8 +92,8 @@ namespace WYTools.UITools {
 		public static DragAndDropVisualMode SceneDropHandler(Object dropUpon, Vector3 worldPosition, Vector2 viewportPosition, Transform _, bool perform) {
 			// 只处理放的操作，拖的响应不变
 			if (perform) {
-				// 按住Ctrl键才响应
-				if (!Event.current.control) {
+				// 按住Alt键才响应
+				if (!Event.current.alt) {
 					return DragAndDropVisualMode.None;
 				}
 			
@@ -105,7 +112,10 @@ namespace WYTools.UITools {
 				RectTransform canvasTrans = GetCanvasTransformUnderMouse(SceneView.lastActiveSceneView, out Vector3 mouseLocalPosition);
 				if (canvasTrans) {
 					// 创建对象并放到指定层级和位置
-					DropToTransform(needHandleList, canvasTrans, mouseLocalPosition);
+					List<Object> goList = DropToTransform(needHandleList, canvasTrans, mouseLocalPosition);
+					// 选中创建的对象
+					Selection.objects = goList.ToArray();
+					
 					return DragAndDropVisualMode.Copy;
 				}
 			}
@@ -114,8 +124,8 @@ namespace WYTools.UITools {
 		
 		private static readonly MethodInfo s_FindObjectFromInstanceIdMI = typeof(Object).GetMethod("FindObjectFromInstanceID", BindingFlags.Static | BindingFlags.NonPublic);
 		public static DragAndDropVisualMode HierarchyDropHandler(int dropTargetInstanceID, HierarchyDropFlags dropMode, Transform _, bool perform) {
-			// 按住Ctrl键才响应
-			if (!Event.current.control) {
+			// 按住Alt键才响应
+			if (!Event.current.alt) {
 				return DragAndDropVisualMode.None;
 			}
 			
@@ -159,7 +169,10 @@ namespace WYTools.UITools {
 					// 父对象是RectTransform才允许拖放
 					if (trans is RectTransform parent) {
 						// 创建对象并放到指定层级
-						DropToTransform(needHandleList, parent, Vector3.zero, siblingIndex);
+						List<Object> goList = DropToTransform(needHandleList, parent, Vector3.zero, siblingIndex);
+						// 选中创建的对象
+						Selection.objects = goList.ToArray();
+						
 						return DragAndDropVisualMode.Copy;
 					}
 				} else {
@@ -255,7 +268,8 @@ namespace WYTools.UITools {
 			return transList[selectedIndex];
 		}
 		
-		private static void DropToTransform(IReadOnlyList<Object> objs, Transform parent, Vector3 mouseLocalPosition, int startSiblingIndex = -1) {
+		private static List<Object> DropToTransform(IReadOnlyList<Object> objs, Transform parent, Vector3 mouseLocalPosition, int startSiblingIndex = -1) {
+			List<Object> goList = new List<Object>();
 			for (int i = 0, length = objs.Count; i < length; ++i) {
 				switch (objs[i]) {
 					case Sprite sprite: {
@@ -267,11 +281,16 @@ namespace WYTools.UITools {
 								trans.SetSiblingIndex(startSiblingIndex++);
 							}
 							trans.localPosition = mouseLocalPosition;
+							trans.localRotation = Quaternion.identity;
+							trans.localScale = Vector3.one;
+							
 							Image image = newGo.GetComponent<Image>();
 							image.raycastTarget = false;
 							Undo.RecordObject(image, "UITools.ChangeSprite");
 							image.sprite = sprite;
 							image.SetNativeSize();
+							
+							goList.Add(newGo);
 						}
 						break;
 					}
@@ -281,17 +300,24 @@ namespace WYTools.UITools {
 							newGo.name = go.name;
 							Undo.RegisterCreatedObjectUndo(newGo, "UITools.CreateImageByDragAndDrop");
 							if (newGo.transform is RectTransform trans) {
+								Quaternion rotation = trans.localRotation;
+								Vector3 scale = trans.localScale;
 								Undo.SetTransformParent(trans, parent, "UITools.SetTransformParent");
 								if (startSiblingIndex != -1) {
 									trans.SetSiblingIndex(startSiblingIndex++);
 								}
 								trans.localPosition = mouseLocalPosition;
+								trans.localRotation = rotation;
+								trans.localScale = scale;
+							
+								goList.Add(newGo);
 							}
 						}
 						break;
 					}
 				}
 			}
+			return goList;
 		}
 	}
 }

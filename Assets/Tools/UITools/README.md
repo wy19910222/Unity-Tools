@@ -9,12 +9,14 @@
   * 窗口高度小于100时，按钮横向排列。  
 
 提供对齐、同宽高、贴合、成组解组、平均行间距等操作，用于更方便地编辑UGUI。  
+另外还提供了「图片拖入场景直接创建Image」、「方向键控制节点移动」等功能。  
 ![UITools](Captures~/UITools.png)  
 下图是在Unity2021.3里的样子，停靠在Scene窗口右侧工具栏里。  
 ![UIToolsIn2021](Captures~/UIToolsIn2021.png)  
 由于在Unity2021.2及以上版本才有Overlay，所以在Unity旧版本的工程中，本工具是一个EditorWindow。  
 下图是在Unity2019.4里的样子，停靠在Scene窗口右侧或下侧。  
 ![UIToolsIn2019](Captures~/UIToolsIn2019.png)  
+### 按钮
 * **对齐按钮：** 分为「上」、「中」、「下」、「左」、「中」、「右」共6个按钮。  
   当选中单个UI节点，则将该节点与父节点对齐。当选中多个UI节点，则将其他节点与第一个节点对齐。  
   当按住Shift键再点击时，会同时设置节点的轴点。  
@@ -30,3 +32,9 @@
   平均间距：以选中的多个节点的最左边节点和最右边节点为两端，平均分布节点间的间距。  
   平均行距：以选中的多个节点的最下边节点和最上边节点为两端，平均分布节点间的行距。  
   当按住Shift键再点击时，将会重新定义缝隙（广义缝隙）。  
+* 按住「Alt」键将图片拖放到 Hierarchy窗口 内的 RectTransform 下可直接创建 Image 。  
+  * **注意：** 放开时，必须按住Alt键，且指针指的是一个RectTransform。否则将默认创建SpriteRenderer。  
+* 按住「Alt」键将图片拖放到 Scene窗口 内的 Canvas框 中可直接创建 Image 。  
+  * **注意：** 放开时，必须按住Alt键，且指针指在某个Canvas框内。否则将默认创建SpriteRenderer。  
+* 按住「Alt」键且 Scene窗口 拥有焦点时，方向键可移动 Transform 。  
+  * **注意：** Scene窗口拥有焦点时才可移动。  
