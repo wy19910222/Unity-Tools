@@ -30,8 +30,10 @@ namespace WYTools.ReferenceReplace {
 		private const float List_ADD_BUTTON_WIDTH = 30;
 		private const float LIST_ELEMENT_INFO_WIDTH = 30;
 		
-		private static GUIStyle m_SwapBtnStyle;
 		private static readonly Color DROP_AREA_COLOR = new Color(0.2F, 0.4F, 0.6F, 0.7F);
+		
+		private static GUIStyle m_SwapBtnStyle;
+		private static GUIStyle SwapBtnStyle => m_SwapBtnStyle ?? (m_SwapBtnStyle = new GUIStyle("Button") { fontSize = 16 });
 
 		[Serializable]
 		private struct ReplaceMap {
@@ -73,8 +75,7 @@ namespace WYTools.ReferenceReplace {
 					EditorGUI.LabelField(leftRect, "原引用");
 					
 					Rect swapBtnRect = new Rect(rect.x + thumbWidth + labelWidth - swapBtnWidth, rect.y - 1, swapBtnWidth, rect.height + 2);
-					m_SwapBtnStyle ??= new GUIStyle("Button") { fontSize = 16 };
-					if (GUI.Button(swapBtnRect, "⇌", m_SwapBtnStyle)) {
+					if (GUI.Button(swapBtnRect, "⇌", SwapBtnStyle)) {
 						Undo.RecordObject(this, "ReferenceReplace.MapSwap");
 						Undo.SetCurrentGroupName("ReferenceReplace.MapSwap");
 						for (int i = 0, length = m_ReplaceMaps.Count; i < length; ++i) {
