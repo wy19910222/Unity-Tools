@@ -460,17 +460,21 @@ namespace WYTools.ReferenceReplace {
 				string fromGUID = null, toGUID = null;
 				long fromFileID = 0, toFileID = 0;
 				int fromInstanceID = 0, toInstanceID = 0;
-				if (Utility.IsSceneObject(map.from)) {
-					fromInstanceID = map.from.GetInstanceID();
-				} else {
-					fromGUID = Utility.GetGUID(map.from);
-					fromFileID = Utility.GetFileID(map.from);
+				if (map.from) {
+					if (Utility.IsSceneObject(map.from)) {
+						fromInstanceID = map.from.GetInstanceID();
+					} else {
+						fromGUID = Utility.GetGUID(map.from);
+						fromFileID = Utility.GetFileID(map.from);
+					}
 				}
-				if (Utility.IsSceneObject(map.to)) {
-					toInstanceID = map.to.GetInstanceID();
-				} else {
-					toGUID = Utility.GetGUID(map.to);
-					toFileID = Utility.GetFileID(map.to);
+				if (map.to) {
+					if (Utility.IsSceneObject(map.to)) {
+						toInstanceID = map.to.GetInstanceID();
+					} else {
+						toGUID = Utility.GetGUID(map.to);
+						toFileID = Utility.GetFileID(map.to);
+					}
 				}
 				pairs.Add($"{{\"from\":\"{fromGUID}_{fromFileID}_{fromInstanceID}\",\"to\":\"{toGUID}_{toFileID}_{toInstanceID}\"}}");
 			}
