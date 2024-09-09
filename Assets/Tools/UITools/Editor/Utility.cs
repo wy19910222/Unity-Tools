@@ -5,10 +5,11 @@
  * @EditTime: 2024-09-09 04:30:35 178
  */
 
-using System.Collections.Generic;
+#if UNITY_2021_2_OR_NEWER
 using System.Reflection;
+#endif
+using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.Overlays;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,11 +18,11 @@ namespace WYTools.UITools {
 		[InitializeOnLoadMethod]
 		private static void InitializeOnLoadMethod() {
 			SceneView.duringSceneGui += OnSceneGUI;
+#if UNITY_2021_2_OR_NEWER
 			DragAndDrop.AddDropHandler(SceneDropHandler);
 			DragAndDrop.AddDropHandler(HierarchyDropHandler);
+#endif
 		}
-
-		private static bool IsUIToolsDisplayed => SceneView.lastActiveSceneView.TryGetOverlay("UITools", out Overlay uiTools) && uiTools.displayed;
 
 		private static void OnSceneGUI(SceneView sceneView) {
 			Event e = Event.current;
@@ -29,23 +30,25 @@ namespace WYTools.UITools {
 				return;
 			}
 			
-			if (!IsUIToolsDisplayed) {
+			if (!UITools.IsDisplayed) {
 				return;
 			}
 
 			switch (e.type) {
-				// case EventType.DragPerform: {
-				// 	List<Object> needHandleList = GetSpriteAndRectTransformFromDragAndDrop();
-				// 	if (needHandleList.Count > 0) {
-				// 		RectTransform canvasTrans = GetContainerUnderMouse(sceneView, out Vector3 mouseLocalPosition);
-				// 		if (canvasTrans) {
-				// 			DropToTransform(needHandleList, canvasTrans, mouseLocalPosition);
-				// 			DragAndDrop.AcceptDrag();
-				// 			e.Use();
-				// 		}
-				// 	}
-				// 	break;
-				// }
+#if !UNITY_2021_2_OR_NEWER
+				case EventType.DragPerform: {
+					List<Object> needHandleList = GetSpriteAndRectTransformFromDragAndDrop();
+					if (needHandleList.Count > 0) {
+						RectTransform canvasTrans = GetCanvasTransformUnderMouse(sceneView, out Vector3 mouseLocalPosition);
+						if (canvasTrans) {
+							DropToTransform(needHandleList, canvasTrans, mouseLocalPosition);
+							DragAndDrop.AcceptDrag();
+							e.Use();
+						}
+					}
+					break;
+				}
+#endif
 				case EventType.KeyDown: {
 					Vector3 offset = Vector3.zero;
 					switch (e.keyCode) {
@@ -78,6 +81,7 @@ namespace WYTools.UITools {
 			}
 		}
 		
+#if UNITY_2021_2_OR_NEWER
 		public static DragAndDropVisualMode SceneDropHandler(Object dropUpon, Vector3 worldPosition, Vector2 viewportPosition, Transform _, bool perform) {
 			// 只处理放的操作，拖的响应不变
 			if (perform) {
@@ -87,7 +91,7 @@ namespace WYTools.UITools {
 				}
 			
 				// UITools工具开着才响应
-				if (!IsUIToolsDisplayed) {
+				if (!UITools.IsDisplayed) {
 					return DragAndDropVisualMode.None;
 				}
 			
@@ -116,7 +120,7 @@ namespace WYTools.UITools {
 			}
 			
 			// UITools工具开着才响应
-			if (!IsUIToolsDisplayed) {
+			if (!UITools.IsDisplayed) {
 				return DragAndDropVisualMode.None;
 			}
 			
@@ -131,10 +135,16 @@ namespace WYTools.UITools {
 				if (perform) {
 					Transform trans = null;
 					int siblingIndex = -1;
-					// 拖到某个节点前面，说明是放在父节点下当前节点前
-					if ((dropMode & HierarchyDropFlags.DropAbove) != 0) {
+					// 拖到某个节点下最前面，说明是放在当前节点下最前位置
+					if ((dropMode & HierarchyDropFlags.DropAfterParent) != 0) {
 						trans = go.transform.parent;
+						siblingIndex = 0;
+					}
+					// 拖到某个节点后面，说明是放在父节点下当前节点后（实际上DropAfterParent和DropAbove总是同时出现）
+					else if ((dropMode & HierarchyDropFlags.DropAbove) != 0) {
+						trans = go.transform;
 						siblingIndex = trans.GetSiblingIndex();
+						trans = trans.parent;
 					}
 					// 拖到某个节点后面，说明是放在父节点下当前节点后
 					else if ((dropMode & HierarchyDropFlags.DropBetween) != 0) {
@@ -142,7 +152,7 @@ namespace WYTools.UITools {
 						siblingIndex = trans.GetSiblingIndex() + 1;
 						trans = trans.parent;
 					}
-					// 拖到某个节点，说明是放在当前节点下最后位置f
+					// 拖到某个节点，说明是放在当前节点下最后位置
 					else if ((dropMode & HierarchyDropFlags.DropUpon) != 0) {
 						trans = go.transform;
 					}
@@ -161,6 +171,7 @@ namespace WYTools.UITools {
 			}
 			return DragAndDropVisualMode.None;
 		}
+#endif
 		
 		private static List<Object> GetSpriteAndRectTransformFromDragAndDrop() {
 			List<Object> needHandleList = new List<Object>();

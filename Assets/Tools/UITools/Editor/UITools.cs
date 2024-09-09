@@ -107,6 +107,8 @@ namespace WYTools.UITools {
 				};
 			}
 		}
+		
+		public static bool IsDisplayed => SceneView.lastActiveSceneView.TryGetOverlay("UITools", out Overlay uiTools) && uiTools.displayed;
 #else
 		public class UIToolsWindow : EditorWindow {
 			[MenuItem("Tools/WYTools/UITools")]
@@ -119,6 +121,8 @@ namespace WYTools.UITools {
 				Instance.DrawButtons(position.height < 100F);
 			}
 		}
+
+		public static bool IsDisplayed => Resources.FindObjectsOfTypeAll(typeof(UIToolsWindow)).Length > 0;
 #endif
 
 		private static UITools s_Instance;
