@@ -136,7 +136,7 @@
   平均间距：以选中的多个节点的最左边节点和最右边节点为两端，平均分布节点间的间距。  
   平均行距：以选中的多个节点的最下边节点和最上边节点为两端，平均分布节点间的行距。  
   当按住Shift键再点击时，将会重新定义缝隙（广义缝隙）。  
-* 按住「Alt」键将图片拖放到 Hierarchy窗口 内的 RectTransform 下可直接创建 Image 。  
+* 按住「Alt」键将图片拖放到 Hierarchy窗口 内的 RectTransform 下可直接创建 Image 。<mark>（Unity2021.2及之后版本才支持。）</mark>  
   * **注意：** 放开时，必须按住Alt键，且指针指的是一个RectTransform。否则将默认创建SpriteRenderer。  
 * 按住「Alt」键将图片拖放到 Scene窗口 内的 Canvas框 中可直接创建 Image 。  
   * **注意：** 放开时，必须按住Alt键，且指针指在某个Canvas框内。否则将默认创建SpriteRenderer。  
