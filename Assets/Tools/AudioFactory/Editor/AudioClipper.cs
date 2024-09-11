@@ -93,8 +93,6 @@ namespace WYTools.AudioFactory {
 				m_TexStop = CreateTexStop();
 			}
 			Undo.undoRedoPerformed += () => {
-				m_ClippedClip = null;
-				m_AudioSource.clip = null;
 				UpdateWaveformTexture();
 				Repaint();
 			};
@@ -494,10 +492,8 @@ namespace WYTools.AudioFactory {
 			}
 			// 画波形图
 			for (int i = 0; i < realWaveformCount; i++) {
-				if (waveformTextures[i]) {
-					Rect rect = new Rect(waveformRect.x, waveformRect.y + WAVEFORM_HEIGHT * i, waveformRect.width, WAVEFORM_HEIGHT);
-					GUI.DrawTexture(rect, waveformTextures[i]);
-				}
+				Rect rect = new Rect(waveformRect.x, waveformRect.y + WAVEFORM_HEIGHT * i, waveformRect.width, WAVEFORM_HEIGHT);
+				GUI.DrawTexture(rect, waveformTextures[i]);
 			}
 			return waveformRect;
 		}
@@ -763,7 +759,7 @@ namespace WYTools.AudioFactory {
 				// 如果长度为0，则返回空白图片
 				Color[] colors = new Color[width * height];
 				for (int channelIndex = 0; channelIndex < channels; channelIndex++) {
-					Texture2D waveformTexture = m_TexturePool.Count > 0 ? m_TexturePool.Pop() : new Texture2D(width, height, TextureFormat.RGBA32, false);
+					Texture2D waveformTexture = m_TexturePool.Count > 0 ? m_TexturePool.Pop() : new Texture2D(width, height, TextureFormat.RGBA32, false) {hideFlags = HideFlags.HideAndDontSave};
 					waveformTexture.SetPixels(colors);
 					waveformTexture.Apply();
 					waveformTextures[channelIndex] = waveformTexture;
@@ -775,7 +771,7 @@ namespace WYTools.AudioFactory {
 			float[] data = new float[Mathf.Min(lengthSamples + 1, clip.samples) * channels];
 			clip.GetData(data, startSample);
 			for (int channelIndex = 0; channelIndex < channels; channelIndex++) {
-				Texture2D waveformTexture = m_TexturePool.Count > 0 ? m_TexturePool.Pop() : new Texture2D(width, height, TextureFormat.RGBA32, false);
+				Texture2D waveformTexture = m_TexturePool.Count > 0 ? m_TexturePool.Pop() : new Texture2D(width, height, TextureFormat.RGBA32, false) {hideFlags = HideFlags.HideAndDontSave};
 				Color[] colors = new Color[width * height];
 				float pixelPerSample = (float) width / lengthSamples;
 				if (pixelPerSample < 1) {
@@ -975,6 +971,7 @@ namespace WYTools.AudioFactory {
 
 			AudioClip clippedAudioClip = AudioClip.Create($"{clip.name}_Clipped", lengthSamples, channels, frequency, false);
 			clippedAudioClip.SetData(newData, 0);
+			clippedAudioClip.hideFlags = HideFlags.HideAndDontSave;
 
 			return clippedAudioClip;
 		}
@@ -992,8 +989,10 @@ namespace WYTools.AudioFactory {
 			Color colorTransparent = new Color(1, 1, 1, 0);
 			Color colorMain = new Color(1, 1, 1, 0.9F);
 			Color colorCorner = new Color(1, 1, 1, 0.6F);
-				
-			Texture2D texStop = new Texture2D(WIDTH, HEIGHT, TextureFormat.RGBA32, false);
+
+			Texture2D texStop = new Texture2D(WIDTH, HEIGHT, TextureFormat.RGBA32, false) {
+				hideFlags = HideFlags.HideAndDontSave
+			};
 			Color[] colors = texStop.GetPixels();
 			for (int i = 0, length = colors.Length; i < length; i++) {
 				colors[i] = colorTransparent;
