@@ -23,7 +23,9 @@ using UObject = UnityEngine.Object;
 
 namespace WYTools.TransformSearch {
 	public class SearchReferenceInScene : BaseSearch {
-		[MenuItem("Tools/WYTools/TransformSearch/SearchReferenceInScene")]
+		// SearchReferenceInScene是用反射的方式查找引用关系，但是诸如Renderer.material之类的成员，
+		// 调用Property会做一些额外的事，但Field又不在C#类里，无法遍历到，所以该版本暂时废弃。
+		// [MenuItem("Tools/WYTools/TransformSearch/SearchReferenceInScene")]
 		private static void Init() {
 			SearchReferenceInScene window = GetWindow<SearchReferenceInScene>("ReferenceInSceneSearch");
 			window.minSize = new Vector2(200F, 200F);
