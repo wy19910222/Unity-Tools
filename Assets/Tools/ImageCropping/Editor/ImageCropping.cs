@@ -44,7 +44,7 @@ namespace WYTools.ImageCropping {
 		}
 
 		[Flags]
-		public enum QuickCroppingType {
+		public enum Direction {
 			// [InspectorName("无")]
 			// NONE = 0,
 			[InspectorName("上")]
@@ -96,7 +96,12 @@ namespace WYTools.ImageCropping {
 		[SerializeField] private float m_Scale = 1;
 		[SerializeField] private float m_ContentX;
 		[SerializeField] private float m_ContentY;
-		[SerializeField] private QuickCroppingType m_QuickCroppingType = QuickCroppingType.TOP | QuickCroppingType.BOTTOM | QuickCroppingType.LEFT | QuickCroppingType.RIGHT;
+		[SerializeField] private Direction m_ResetCroppingDirection = Direction.TOP | Direction.BOTTOM | Direction.LEFT | Direction.RIGHT;
+		[SerializeField] private Direction m_TrimCroppingDirection = Direction.TOP | Direction.BOTTOM | Direction.LEFT | Direction.RIGHT;
+		[SerializeField] private Direction m_HalfCroppingDirection = Direction.LEFT;
+		[SerializeField] private int m_HalfCroppingTolerance;
+		[SerializeField] private Direction m_QuartCroppingDirection = Direction.BOTTOM | Direction.LEFT;
+		[SerializeField] private int m_QuartCroppingTolerance;
 		[SerializeField] private bool m_IsPreview;
 		[SerializeField] private RenderTexture m_PreviewTex;
 
@@ -109,8 +114,12 @@ namespace WYTools.ImageCropping {
 		private Texture2D m_BlankTex;
 		private Material m_Mat;
 		private void OnEnable() {
-			m_Mat = new Material(Shader.Find("Hidden/ImageCropping/Unlit"));
-			m_BlankTex = new Texture2D(1, 1);
+			m_Mat = new Material(Shader.Find("Hidden/ImageCropping/Unlit")) {
+				hideFlags = HideFlags.HideAndDontSave
+			};
+			m_BlankTex = new Texture2D(1, 1) {
+				hideFlags = HideFlags.HideAndDontSave
+			};
 			m_BlankTex.SetPixel(0, 0, Color.clear);
 			m_BlankTex.Apply();
 		}
@@ -135,7 +144,6 @@ namespace WYTools.ImageCropping {
 		}
 
 		#region OnGUI
-
 		private void DrawTargetField() {
 			Texture2D newTex = EditorGUILayout.ObjectField("原图", m_Tex, typeof(Texture2D), false, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as Texture2D;
 			if (newTex != m_Tex) {
@@ -275,7 +283,7 @@ namespace WYTools.ImageCropping {
 			m_FloatingRects.Clear();
 			m_FloatingRects.Add(DrawPreviewBtnField(canvasRect.x + 5F, canvasRect.y + 5F));
 			m_FloatingRects.Add(DrawCornerField(canvasRect.xMax - 5F, canvasRect.y + 5F, true));
-			m_FloatingRects.Add(DrawQuickCroppingField(canvasRect.xMax - 5F, canvasRect.yMax - 5F, true, true));
+			m_FloatingRects.Add(DrawQuickCroppingField(canvasRect.x + 5F, canvasRect.yMax - 5F, false, true));
 
 			if (m_Tex) {
 				SetCursorRect();
@@ -365,7 +373,6 @@ namespace WYTools.ImageCropping {
 				}
 			}
 		}
-
 		#endregion
 
 		#region DrawCanvasField
@@ -539,85 +546,310 @@ namespace WYTools.ImageCropping {
 
 		private Rect DrawQuickCroppingField(float x, float y, bool alignRight = false, bool alignBottom = false) {
 			float singleLineHeight = EditorGUIUtility.singleLineHeight;
-			Rect quickCroppingRect = new Rect(x, y, 140F, singleLineHeight);
+			Rect quickCroppingRect = new Rect(x, y, 128F, singleLineHeight);
 			if (alignRight) {
 				quickCroppingRect.x -= quickCroppingRect.width;
 			}
 			if (alignBottom) {
 				quickCroppingRect.y -= quickCroppingRect.height;
-				quickCroppingRect.y -= quickCroppingRect.height * 2 + 4F;
 			}
 
-			string dirText = string.Empty;
-			foreach (QuickCroppingType type in Enum.GetValues(typeof(QuickCroppingType))) {
-				if ((m_QuickCroppingType & type) != 0) {
-					dirText += GetEnumInspectorName(type);
+			Rect mainRect = quickCroppingRect;
+			mainRect.width -= 18F;
+			Rect popupRect = quickCroppingRect;
+			popupRect.x += mainRect.width;
+			popupRect.width = 18F;
+			
+			EditorGUI.BeginDisabledGroup(m_ResetCroppingDirection == 0);
+			if (GUI.Button(mainRect, "重置" + GetCroppingDirectionText(m_ResetCroppingDirection) + "边缘", "ButtonLeft")) {
+				if (m_Tex) {
+					Undo.RecordObject(this, "ImageCropping.QuickCropping");
+					ResetCropping();
+					UpdatePreviewTex();
 				}
 			}
-
-			Rect rect = quickCroppingRect;
-			EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
-			if (GUI.Button(rect, "裁剪" + dirText + "空白")) {
+			EditorGUI.EndDisabledGroup();
+			if (GUI.Button(popupRect, EditorGUIUtility.IconContent("forward"), "ButtonRight")) {
+				PopupCroppingDirectionToggles(popupRect, m_ResetCroppingDirection, null, true, 1, newDir => {
+					Undo.RecordObject(this, "ImageCropping.QuickCroppingConfig");
+					m_ResetCroppingDirection = newDir;
+					Repaint();
+				});
+			}
+			
+			if (alignBottom) {
+				mainRect.y -= singleLineHeight + 2F;
+				popupRect.y -= singleLineHeight + 2F;
+				quickCroppingRect.y -= singleLineHeight + 2F;
+				quickCroppingRect.height += singleLineHeight + 2F;
+			} else {
+				mainRect.y += singleLineHeight + 2F;
+				popupRect.y += singleLineHeight + 2F;
+				quickCroppingRect.height += singleLineHeight + 2F;
+			}
+			
+			EditorGUI.BeginDisabledGroup(m_TrimCroppingDirection == 0);
+			if (GUI.Button(mainRect, "裁剪" + GetCroppingDirectionText(m_TrimCroppingDirection) + "空白", "ButtonLeft")) {
 				if (m_Tex) {
-					Undo.RecordObject(this, "ImageCropping.CroppingRect");
+					Undo.RecordObject(this, "ImageCropping.QuickCropping");
 					TrimTex();
 					UpdatePreviewTex();
 				}
 			}
 			EditorGUI.EndDisabledGroup();
-
-			rect.y += singleLineHeight + 2F;
-			quickCroppingRect.height += singleLineHeight + 2F;
-			EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(dirText));
-			if (GUI.Button(rect, "重置" + dirText + "边缘")) {
+			if (GUI.Button(popupRect, EditorGUIUtility.IconContent("forward"), "ButtonRight")) {
+				PopupCroppingDirectionToggles(popupRect, m_TrimCroppingDirection, null, true, 1, newDir => {
+					Undo.RecordObject(this, "ImageCropping.QuickCroppingConfig");
+					m_TrimCroppingDirection = newDir;
+					Repaint();
+				});
+			}
+			
+			if (alignBottom) {
+				mainRect.y -= singleLineHeight + 2F;
+				popupRect.y -= singleLineHeight + 2F;
+				quickCroppingRect.y -= singleLineHeight + 2F;
+				quickCroppingRect.height += singleLineHeight + 2F;
+			} else {
+				mainRect.y += singleLineHeight + 2F;
+				popupRect.y += singleLineHeight + 2F;
+				quickCroppingRect.height += singleLineHeight + 2F;
+			}
+			
+			if (GUI.Button(mainRect, "裁剪" + GetCroppingDirectionText(m_HalfCroppingDirection) + "边一半", "ButtonLeft")) {
 				if (m_Tex) {
-					Undo.RecordObject(this, "ImageCropping.CroppingRect");
-					if ((m_QuickCroppingType & QuickCroppingType.LEFT) != 0) {
-						m_CroppingRect.xMin = 0;
-					}
-					if ((m_QuickCroppingType & QuickCroppingType.BOTTOM) != 0) {
-						m_CroppingRect.yMin = 0;
-					}
-					if ((m_QuickCroppingType & QuickCroppingType.RIGHT) != 0) {
-						m_CroppingRect.xMax = m_Tex.width;
-					}
-					if ((m_QuickCroppingType & QuickCroppingType.TOP) != 0) {
-						m_CroppingRect.yMax = m_Tex.height;
-					}
+					Undo.RecordObject(this, "ImageCropping.QuickCropping");
+					HalfTex();
 					UpdatePreviewTex();
 				}
 			}
-			EditorGUI.EndDisabledGroup();
-
-			EditorGUI.BeginChangeCheck();
-			rect.y += singleLineHeight + 2F;
-			quickCroppingRect.height += singleLineHeight + 2F;
-			rect.width *= 0.25F;
-			bool newQuickCropTop = EditorGUI.ToggleLeft(rect, "上", (m_QuickCroppingType & QuickCroppingType.TOP) != 0);
-			rect.x += rect.width;
-			bool newQuickCropBottom = EditorGUI.ToggleLeft(rect, "下", (m_QuickCroppingType & QuickCroppingType.BOTTOM) != 0);
-			rect.x += rect.width;
-			bool newQuickCropLeft = EditorGUI.ToggleLeft(rect, "左", (m_QuickCroppingType & QuickCroppingType.LEFT) != 0);
-			rect.x += rect.width;
-			bool newQuickCropRight = EditorGUI.ToggleLeft(rect, "右", (m_QuickCroppingType & QuickCroppingType.RIGHT) != 0);
-			if (EditorGUI.EndChangeCheck()) {
-				Undo.RecordObject(this, "ImageCropping.QuickCroppingType");
-				m_QuickCroppingType = 0;
-				if (newQuickCropTop) {
-					m_QuickCroppingType |= QuickCroppingType.TOP;
-				}
-				if (newQuickCropBottom) {
-					m_QuickCroppingType |= QuickCroppingType.BOTTOM;
-				}
-				if (newQuickCropLeft) {
-					m_QuickCroppingType |= QuickCroppingType.LEFT;
-				}
-				if (newQuickCropRight) {
-					m_QuickCroppingType |= QuickCroppingType.RIGHT;
+			if (GUI.Button(popupRect, EditorGUIUtility.IconContent("forward"), "ButtonRight")) {
+				PopupCroppingDirectionTogglesWidthTolerance(
+						popupRect, m_HalfCroppingDirection, m_HalfCroppingTolerance, null, false, 1,
+						(newDir, newTolerance, immediately) => {
+							Undo.RecordObject(this, "ImageCropping.QuickCroppingConfig");
+							m_HalfCroppingDirection = newDir;
+							m_HalfCroppingTolerance = newTolerance;
+							if (immediately) {
+								Undo.RecordObject(this, "ImageCropping.QuickCropping");
+								HalfTex();
+								UpdatePreviewTex();
+							}
+							Repaint();
+						}
+				);
+			}
+			
+			if (alignBottom) {
+				mainRect.y -= singleLineHeight + 2F;
+				popupRect.y -= singleLineHeight + 2F;
+				quickCroppingRect.y -= singleLineHeight + 2F;
+				quickCroppingRect.height += singleLineHeight + 2F;
+			} else {
+				mainRect.y += singleLineHeight + 2F;
+				popupRect.y += singleLineHeight + 2F;
+				quickCroppingRect.height += singleLineHeight + 2F;
+			}
+			
+			if (GUI.Button(mainRect, "裁剪" + GetCroppingDirectionText(m_QuartCroppingDirection, true) + "一角", "ButtonLeft")) {
+				if (m_Tex) {
+					Undo.RecordObject(this, "ImageCropping.CroppingRect");
+					QuartTex();
+					UpdatePreviewTex();
 				}
 			}
-
+			if (GUI.Button(popupRect, EditorGUIUtility.IconContent("forward"), "ButtonRight")) {
+				PopupCroppingDirectionTogglesWidthTolerance(
+					popupRect,
+					m_QuartCroppingDirection,
+					m_QuartCroppingTolerance,
+					new Direction[] {
+						Direction.LEFT | Direction.TOP,
+						Direction.LEFT | Direction.BOTTOM,
+						Direction.RIGHT | Direction.TOP,
+						Direction.RIGHT | Direction.BOTTOM,
+					},
+					false,
+					2,
+					(newDir, newTolerance, immediately) => {
+						Undo.RecordObject(this, "ImageCropping.QuickCroppingConfig");
+						m_QuartCroppingDirection = newDir;
+						m_QuartCroppingTolerance = newTolerance;
+						if (immediately) {
+							Undo.RecordObject(this, "ImageCropping.QuickCropping");
+							QuartTex();
+							UpdatePreviewTex();
+						}
+						Repaint();
+					}
+				);
+			}
+			
 			return quickCroppingRect;
+		}
+
+		private string GetCroppingDirectionText(Direction direction, bool inverseText = false) {
+			Array values = Enum.GetValues(typeof(Direction));
+			if (inverseText) {
+				Array.Reverse(values);
+			}
+			string text = string.Empty;
+			foreach (Direction type in values) {
+				if ((direction & type) != 0) {
+					text += GetEnumInspectorName(type);
+				}
+			}
+			return text;
+		}
+
+		private void PopupCroppingDirectionToggles(Rect popupOwnerRect, Direction dir, Direction[] options, bool multiSelect, int rows, Action<Direction> onChange) {
+			if (options == null) {
+				options = new Direction[] {
+					Direction.TOP,
+					Direction.BOTTOM,
+					Direction.LEFT,
+					Direction.RIGHT,
+				};
+			}
+
+			int optionCount = options.Length;
+			int columns = Mathf.CeilToInt(optionCount / (float) rows);
+			float width = columns * 50F;
+			float height = rows * EditorGUIUtility.singleLineHeight;
+			float border = 2;
+			
+			PopupWindow.Show(popupOwnerRect, new PopupContent {
+				Width = width + border + border,
+				Height = height + border + border,
+				OnGUIAction = rect => {
+					Rect columnRect = rect;
+					columnRect.x += border;
+					columnRect.y += border;
+					columnRect.width -= border + border;
+					columnRect.height -= border + border;
+					columnRect.width /= columns;
+					for (int i = 0; i < columns; i++) {
+						Rect itemRect = columnRect;
+						itemRect.height /= rows;
+						for (int j = 0; j < rows; j++) {
+							int index = i * rows + j;
+							if (index < optionCount) {
+								EditorGUI.BeginChangeCheck();
+								bool newValue = GUI.Toggle(
+										itemRect, 
+										(dir & options[index]) == options[index],
+										GetCroppingDirectionText(options[index], true),
+										"Button"
+								);
+								if (EditorGUI.EndChangeCheck()) {
+									if (multiSelect) {
+										if (newValue) {
+											dir |= options[index];
+										} else {
+											dir &= ~options[index];
+										}
+									} else {
+										dir = options[index];
+									}
+									onChange?.Invoke(dir);
+								}
+							}
+							itemRect.y += itemRect.height;
+						}
+						columnRect.x += columnRect.width;
+					}
+				}
+			});
+		}
+
+		private void PopupCroppingDirectionTogglesWidthTolerance(
+				Rect popupOwnerRect, Direction dir, int tolerance, Direction[] options, bool multiSelect, int rows, Action<Direction, int, bool> onChange) {
+			if (options == null) {
+				options = new Direction[] {
+					Direction.TOP,
+					Direction.BOTTOM,
+					Direction.LEFT,
+					Direction.RIGHT,
+				};
+			}
+
+			int optionCount = options.Length;
+			int columns = Mathf.CeilToInt(optionCount / (float) rows);
+			float width = columns * 50F;
+			float singleLineHeight = EditorGUIUtility.singleLineHeight;
+			float toleranceHeight = 20F;
+			float immediatelyHeight = 20F;
+			float space = 2;
+			float height = rows * singleLineHeight + space + space + toleranceHeight + immediatelyHeight;
+
+			bool immediately = false;
+			PopupWindow.Show(popupOwnerRect, new PopupContent {
+				Width = width + space + space,
+				Height = height + space + space,
+				OnGUIAction = rect => {
+					// 空出边框
+					rect.x += space;
+					rect.y += space;
+					rect.width -= space + space;
+					rect.height -= space + space;
+					// 每列范围
+					Rect columnRect = rect;
+					columnRect.height = rows * singleLineHeight;
+					columnRect.width /= columns;
+					for (int i = 0; i < columns; i++) {
+						// 每个Item范围
+						Rect itemRect = columnRect;
+						itemRect.height /= rows;
+						for (int j = 0; j < rows; j++) {
+							int index = i * rows + j;
+							if (index < optionCount) {
+								EditorGUI.BeginChangeCheck();
+								bool newValue = GUI.Toggle(
+										itemRect, 
+										(dir & options[index]) == options[index],
+										GetCroppingDirectionText(options[index], true),
+										"Button"
+								);
+								if (EditorGUI.EndChangeCheck()) {
+									if (multiSelect) {
+										if (newValue) {
+											dir |= options[index];
+										} else {
+											dir &= ~options[index];
+										}
+									} else {
+										dir = options[index];
+									}
+									onChange?.Invoke(dir, tolerance, immediately);
+								}
+							}
+							itemRect.y += itemRect.height;
+						}
+						columnRect.x += columnRect.width;
+					}
+					// 容差范围
+					Rect toleranceRect = rect;
+					toleranceRect.y = columnRect.yMax + space + space;
+					toleranceRect.height = toleranceHeight;
+					EditorGUI.BeginChangeCheck();
+					float prevLabelWidth = EditorGUIUtility.labelWidth;
+					EditorGUIUtility.labelWidth = 26;
+					tolerance = Mathf.Clamp(EditorGUI.IntField(toleranceRect, "容差", tolerance), 0, 255);
+					EditorGUIUtility.labelWidth = prevLabelWidth;
+					if (EditorGUI.EndChangeCheck()) {
+						onChange?.Invoke(dir, tolerance, immediately);
+					}
+					// 立即应用范围
+					Rect immediatelyRect = rect;
+					immediatelyRect.y = toleranceRect.yMax;
+					immediatelyRect.height = immediatelyHeight;
+					EditorGUI.BeginChangeCheck();
+					immediately = GUI.Toggle(immediatelyRect, immediately, "实时应用", "Button");
+					if (EditorGUI.EndChangeCheck()) {
+						onChange?.Invoke(dir, tolerance, immediately);
+					}
+				}
+			});
 		}
 
 		private void DrawCanvas(Rect canvasRect, float scaledContentWidth, float scaledContentHeight) {
@@ -1047,12 +1279,11 @@ namespace WYTools.ImageCropping {
 				}
 			}
 		}
-
 		#endregion
 
+		#region AutoScroll
 		private float deltaScrollX;
 		private float deltaScrollY;
-
 		private void HandleAutoScroll(float deltaTime) {
 			if (m_ResizeType != ResizeType.NONE) {
 				bool beyondLeft = m_DragPrevPos.x < 0;
@@ -1192,12 +1423,29 @@ namespace WYTools.ImageCropping {
 				}
 			}
 		}
+		#endregion
 
+		#region QuickCropping
+		private void ResetCropping() {
+			if ((m_ResetCroppingDirection & Direction.LEFT) != 0) {
+				m_CroppingRect.xMin = 0;
+			}
+			if ((m_ResetCroppingDirection & Direction.BOTTOM) != 0) {
+				m_CroppingRect.yMin = 0;
+			}
+			if ((m_ResetCroppingDirection & Direction.RIGHT) != 0) {
+				m_CroppingRect.xMax = m_Tex.width;
+			}
+			if ((m_ResetCroppingDirection & Direction.TOP) != 0) {
+				m_CroppingRect.yMax = m_Tex.height;
+			}
+		}
+		
 		private void TrimTex() {
-			Color[] colors = GetTexturePixels(m_Tex);
+			Color32[] colors = GetTexturePixels32(m_Tex);
 			int width = m_Tex.width;
 			int height = m_Tex.height;
-			if ((m_QuickCroppingType & QuickCroppingType.LEFT) != 0) {
+			if ((m_TrimCroppingDirection & Direction.LEFT) != 0) {
 				int trimXMin = 0;
 				for (int x = 0; x < width; x++) {
 					bool willBreak = false;
@@ -1214,7 +1462,7 @@ namespace WYTools.ImageCropping {
 				}
 				m_CroppingRect.xMin = trimXMin;
 			}
-			if ((m_QuickCroppingType & QuickCroppingType.BOTTOM) != 0) {
+			if ((m_TrimCroppingDirection & Direction.BOTTOM) != 0) {
 				int trimYMin = 0;
 				for (int y = 0; y < height; y++) {
 					bool willBreak = false;
@@ -1231,7 +1479,7 @@ namespace WYTools.ImageCropping {
 				}
 				m_CroppingRect.yMin = trimYMin;
 			}
-			if ((m_QuickCroppingType & QuickCroppingType.RIGHT) != 0) {
+			if ((m_TrimCroppingDirection & Direction.RIGHT) != 0) {
 				int trimXMax = width;
 				for (int x = width - 1; x >= 0; x--) {
 					bool willBreak = false;
@@ -1248,7 +1496,7 @@ namespace WYTools.ImageCropping {
 				}
 				m_CroppingRect.xMax = trimXMax;
 			}
-			if ((m_QuickCroppingType & QuickCroppingType.TOP) != 0) {
+			if ((m_TrimCroppingDirection & Direction.TOP) != 0) {
 				int trimYMax = height;
 				for (int y = height - 1; y >= 0; y--) {
 					bool willBreak = false;
@@ -1266,6 +1514,40 @@ namespace WYTools.ImageCropping {
 				m_CroppingRect.yMax = trimYMax;
 			}
 		}
+
+		private void HalfTex() {
+			Color32[] colors = GetTexturePixels32(m_Tex);
+			int width = m_Tex.width;
+			int height = m_Tex.height;
+			m_CroppingRect.xMin = 0;
+			m_CroppingRect.xMax = width;
+			m_CroppingRect.yMin = 0;
+			m_CroppingRect.yMax = height;
+			HalfCropping(colors, width, height, m_HalfCroppingDirection, m_HalfCroppingTolerance, ref m_CroppingRect);
+		}
+
+		private void QuartTex() {
+			Color32[] colors = GetTexturePixels32(m_Tex);
+			int width = m_Tex.width;
+			int height = m_Tex.height;
+			m_CroppingRect.xMin = 0;
+			m_CroppingRect.xMax = width;
+			m_CroppingRect.yMin = 0;
+			m_CroppingRect.yMax = height;
+			if ((m_QuartCroppingDirection & Direction.TOP) != 0) {
+				HalfCropping(colors, width, height, Direction.TOP, m_QuartCroppingTolerance, ref m_CroppingRect);
+			}
+			if ((m_QuartCroppingDirection & Direction.BOTTOM) != 0) {
+				HalfCropping(colors, width, height, Direction.BOTTOM, m_QuartCroppingTolerance, ref m_CroppingRect);
+			}
+			if ((m_QuartCroppingDirection & Direction.LEFT) != 0) {
+				HalfCropping(colors, width, height, Direction.LEFT, m_QuartCroppingTolerance, ref m_CroppingRect);
+			}
+			if ((m_QuartCroppingDirection & Direction.RIGHT) != 0) {
+				HalfCropping(colors, width, height, Direction.RIGHT, m_QuartCroppingTolerance, ref m_CroppingRect);
+			}
+		}
+		#endregion
 
 		private static readonly int MODE = Shader.PropertyToID("_Mode");
 		private static readonly int SCALE_AND_OFFSET = Shader.PropertyToID("_ScaleAndOffset");
@@ -1412,10 +1694,99 @@ namespace WYTools.ImageCropping {
 			}
 			return blockValue;
 		}
+		
+		private static void HalfCropping(IReadOnlyList<Color32> colors, int width, int height, Direction dir, int tolerance, ref RectInt croppingRect) {
+			switch (dir) {
+				case Direction.TOP: {
+					int startRow = Mathf.FloorToInt(height * 0.5F);
+					croppingRect.yMin = startRow;
+					for (int row = startRow + 1; row < height; row++) {
+						if (EqualsRows(colors, width, height, row, startRow, tolerance)) {
+							croppingRect.yMin = row;
+						} else {
+							break;
+						}
+					}
+					break;
+				}
+				case Direction.BOTTOM: {
+					int startRow = Mathf.CeilToInt(height * 0.5F) - 1;
+					croppingRect.yMax = startRow + 1;
+					for (int row = startRow - 1; row >= 0; row--) {
+						if (EqualsRows(colors, width, height, row, startRow, tolerance)) {
+							croppingRect.yMax = row + 1;
+						} else {
+							break;
+						}
+					}
+					break;
+				}
+				case Direction.LEFT: {
+					int startColumn = Mathf.CeilToInt(width * 0.5F) - 1;
+					croppingRect.xMax = startColumn + 1;
+					for (int column = startColumn - 1; column >= 0; column--) {
+						if (EqualsColumns(colors, width, height, column, startColumn, tolerance)) {
+							croppingRect.xMax = column + 1;
+						} else {
+							break;
+						}
+					}
+					break;
+				}
+				case Direction.RIGHT: {
+					int startColumn = Mathf.FloorToInt(width * 0.5F);
+					croppingRect.xMin = startColumn;
+					for (int column = startColumn + 1; column < height; column++) {
+						if (EqualsColumns(colors, width, height, column, startColumn, tolerance)) {
+							croppingRect.xMin = column;
+						} else {
+							break;
+						}
+					}
+					break;
+				}
+			}
+		}
+		private static bool EqualsColumns(IReadOnlyList<Color32> colors, int width, int height, int column1, int column2, int maxDelta = 0) {
+			if (column1 < 0 || column2 < 0 || column1 >= width || column2 >= width) {
+				return false;
+			}
+			for (int row = 0; row < height; ++row) {
+				int index1 = row * width + column1;
+				int index2 = row * width + column2;
+				Color32 color1 = colors[index1];
+				Color32 color2 = colors[index2];
+				if (Mathf.Abs(color1.r - color2.r) > maxDelta
+						|| Mathf.Abs(color1.g - color2.g) > maxDelta
+						|| Mathf.Abs(color1.b - color2.b) > maxDelta
+						|| Mathf.Abs(color1.a - color2.a) > maxDelta) {
+					return false;
+				}
+			}
+			return true;
+		}
+		private static bool EqualsRows(IReadOnlyList<Color32> colors, int width, int height, int row1, int row2, int maxDelta = 0) {
+			if (row1 < 0 || row2 < 0 || row1 >= height || row2 >= height) {
+				return false;
+			}
+			for (int column = 0; column < width; ++column) {
+				int index1 = row1 * width + column;
+				int index2 = row2 * width + column;
+				Color32 color1 = colors[index1];
+				Color32 color2 = colors[index2];
+				if (Mathf.Abs(color1.r - color2.r) > maxDelta
+						|| Mathf.Abs(color1.g - color2.g) > maxDelta
+						|| Mathf.Abs(color1.b - color2.b) > maxDelta
+						|| Mathf.Abs(color1.a - color2.a) > maxDelta) {
+					return false;
+				}
+			}
+			return true;
+		}
 
-		private static Color[] GetTexturePixels(Texture2D tex) {
+		private static Color32[] GetTexturePixels32(Texture2D tex) {
 			if (tex.isReadable) {
-				return tex.GetPixels();
+				return tex.GetPixels32();
 			}
 
 			RenderTexture rt = RenderTexture.GetTemporary(tex.width, tex.height);
@@ -1428,7 +1799,7 @@ namespace WYTools.ImageCropping {
 			tempTex.Apply();
 			RenderTexture.active = prevRT;
 
-			Color[] colors = tempTex.GetPixels();
+			Color32[] colors = tempTex.GetPixels32();
 			DestroyImmediate(tempTex);
 			return colors;
 		}
