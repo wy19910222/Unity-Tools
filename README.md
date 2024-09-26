@@ -28,9 +28,15 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
+  https://github.com/wy19910222/Unity-Tools.git?path=Assets/Tools/BatchRename
+  ```
+  ```
   git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/BatchRename
   ```
   * Gitee：
+  ```
+  https://gitee.com/wy19910222/Unity-Tools.git?path=Assets/Tools/BatchRename
+  ```
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/BatchRename
   ```
@@ -73,9 +79,15 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
+  https://github.com/wy19910222/Unity-Tools.git?path=Assets/Tools/ReferenceReplace
+  ```
+  ```
   git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/ReferenceReplace
   ```
   * Gitee：
+  ```
+  https://gitee.com/wy19910222/Unity-Tools.git?path=Assets/Tools/ReferenceReplace
+  ```
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/ReferenceReplace
   ```
@@ -102,9 +114,15 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
+  https://github.com/wy19910222/Unity-Tools.git?path=Assets/Tools/TransformSearch
+  ```
+  ```
   git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/TransformSearch
   ```
   * Gitee：
+  ```
+  https://gitee.com/wy19910222/Unity-Tools.git?path=Assets/Tools/TransformSearch
+  ```
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/TransformSearch
   ```
@@ -147,9 +165,15 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
+  https://github.com/wy19910222/Unity-Tools.git?path=Assets/Tools/UITools
+  ```
+  ```
   git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/UITools
   ```
   * Gitee：
+  ```
+  https://gitee.com/wy19910222/Unity-Tools.git?path=Assets/Tools/UITools
+  ```
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/UITools
   ```
@@ -182,9 +206,15 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
+  https://github.com/wy19910222/Unity-Tools.git?path=Assets/Tools/UGUIExt
+  ```
+  ```
   git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/UGUIExt
   ```
   * Gitee：
+  ```
+  https://gitee.com/wy19910222/Unity-Tools.git?path=Assets/Tools/UGUIExt
+  ```
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/UGUIExt
   ```
@@ -206,9 +236,15 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
+  https://github.com/wy19910222/Unity-Tools.git?path=Assets/Tools/TransformInspector
+  ```
+  ```
   git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/TransformInspector
   ```
   * Gitee：
+  ```
+  https://gitee.com/wy19910222/Unity-Tools.git?path=Assets/Tools/TransformInspector
+  ```
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/TransformInspector
   ```
@@ -232,9 +268,15 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
+  https://github.com/wy19910222/Unity-Tools.git?path=Assets/Tools/SpriteAtlasInspector
+  ```
+  ```
   git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/SpriteAtlasInspector
   ```
   * Gitee：
+  ```
+  https://gitee.com/wy19910222/Unity-Tools.git?path=Assets/Tools/SpriteAtlasInspector
+  ```
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/SpriteAtlasInspector
   ```
@@ -287,9 +329,15 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
+  https://github.com/wy19910222/Unity-Tools.git?path=Assets/Tools/AudioFactory
+  ```
+  ```
   git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioFactory
   ```
   * Gitee：
+  ```
+  https://gitee.com/wy19910222/Unity-Tools.git?path=Assets/Tools/AudioFactory
+  ```
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/AudioFactory
   ```
@@ -318,9 +366,15 @@
 * 使用Unity Package Manager安装：  
   * GitHub：
   ```
+  https://github.com/wy19910222/Unity-Tools.git?path=Assets/Tools/ImageCropping
+  ```
+  ```
   git@github.com:wy19910222/Unity-Tools.git?path=Assets/Tools/ImageCropping
   ```
   * Gitee：
+  ```
+  https://gitee.com/wy19910222/Unity-Tools.git?path=Assets/Tools/ImageCropping
+  ```
   ```
   git@gitee.com:wy19910222/Unity-Tools.git?path=Assets/Tools/ImageCropping
   ```
