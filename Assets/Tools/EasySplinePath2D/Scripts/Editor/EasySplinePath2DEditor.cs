@@ -867,7 +867,7 @@ public class EasySplinePath2DEditor : Editor
             }
 
 #if UNITY_2022_1_OR_NEWER
-            Vector3 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), handleSize, new Vector2(), Handles.CircleHandleCap);
+            Vector2 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), handleSize, new Vector2(), Handles.CircleHandleCap);
 #else
             Vector2 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), Quaternion.identity, handleSize, new Vector2(), Handles.CircleHandleCap);
 #endif
@@ -1094,7 +1094,7 @@ public class EasySplinePath2DEditor : Editor
                 if (!esconder)
                 {
 #if UNITY_2022_1_OR_NEWER
-                   Vector3 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), handleSize, new Vector2(), Handles.CircleHandleCap);
+                   Vector2 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), handleSize, new Vector2(), Handles.CircleHandleCap);
 #else
                    Vector2 newPos = Handles.FreeMoveHandle(creator.GetPoint(i), Quaternion.identity, handleSize, new Vector2(), Handles.CircleHandleCap);
 #endif
